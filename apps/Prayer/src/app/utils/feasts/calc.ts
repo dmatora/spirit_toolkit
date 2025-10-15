@@ -13,7 +13,7 @@ function julianToGregorianShift(year: number): number {
 }
 
 function julianToGregorianShiftForDate(year: number, month: number, day: number): number {
-  const isBeforeMarchFirst = month === 1 || month === 2 || (month === 3 && day < 1);
+  const isBeforeMarchFirst = month < 3; // Jan–Feb still use the previous year's shift; the delta updates on March 1.
 
   if (isBeforeMarchFirst) {
     return julianToGregorianShift(year - 1);
