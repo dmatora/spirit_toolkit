@@ -1,4 +1,4 @@
-import { daysBetween, startOfDayLocal, startOfDayUTC, withUTC } from '../date';
+import { daysBetween, localDateFromUTCDate, startOfDayLocal, startOfDayUTC, withUTC } from '../date';
 import { MAJOR_FEAST_RULES } from './rules';
 import { Feast, FeastRule } from './types';
 
@@ -45,10 +45,12 @@ export function orthodoxEaster(year: number): Date {
 export function materializeFeast(year: number, rule: FeastRule): Feast {
   if (rule.kind === 'relativeToEaster') {
     const easter = orthodoxEaster(year);
+    const shiftedUTC = addDaysUTC(easter, rule.offsetDays);
     return {
       key: rule.key,
       titleRu: rule.titleRu,
-      date: startOfDayLocal(addDaysUTC(easter, rule.offsetDays)),
+      // Use UTC components to avoid west-of-UTC off-by-one regressions.
+      date: localDateFromUTCDate(shiftedUTC),
     };
   }
 
@@ -66,7 +68,8 @@ export function materializeFeast(year: number, rule: FeastRule): Feast {
   return {
     key: rule.key,
     titleRu: rule.titleRu,
-    date: startOfDayLocal(shifted),
+    // Use UTC components to avoid west-of-UTC off-by-one regressions.
+    date: localDateFromUTCDate(shifted),
   };
 }
 

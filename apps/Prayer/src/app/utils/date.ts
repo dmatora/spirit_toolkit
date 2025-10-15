@@ -24,6 +24,14 @@ export function startOfDayUTC(d: Date): Date {
 }
 
 /**
+ * Returns a local midnight Date constructed from the UTC Y-M-D of the input.
+ * Use this to convert a UTC-midnight date into the same civil date locally without timezone drift.
+ */
+export function localDateFromUTCDate(d: Date): Date {
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/**
  * Computes the difference in full UTC days between two dates.
  */
 export function daysBetweenUTC(a: Date, b: Date): number {
