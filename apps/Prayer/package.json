@@ -3,22 +3,25 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@nx/eslint-plugin": "*",
+    "@nx/react": "*",
+    "@nx/webpack": "*",
     "@react-native/metro-config": "*",
+    "@react-navigation/bottom-tabs": "*",
+    "@react-navigation/native": "*",
     "@testing-library/jest-native": "*",
     "@testing-library/react-native": "*",
-    "react": "*",
-    "react-native": "*",
-    "react-native-svg": "*",
     "metro-config": "*",
-    "@nx/eslint-plugin": "*",
-    "react-native-svg-transformer": "*",
-    "react-dom": "*",
-    "@nx/webpack": "*",
-    "@nx/react": "*",
-    "@react-navigation/native": "*",
-    "@react-navigation/bottom-tabs": "*",
+    "react": "18.x",
+    "react-dom": "18.x",
+    "react-native": "0.74.x",
+    "react-native-safe-area-context": "*",
     "react-native-screens": "*",
-    "react-native-safe-area-context": "*"
+    "react-native-svg": "*",
+    "react-native-svg-transformer": "*",
+    "react-native-vector-icons": "^10.3.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/react-native-vector-icons": "^6.4.18"
+  }
 }
