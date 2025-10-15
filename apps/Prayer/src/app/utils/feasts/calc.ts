@@ -1,4 +1,4 @@
-import { daysBetweenUTC, startOfDayUTC, withUTC } from '../date';
+import { daysBetween, startOfDayLocal, startOfDayUTC, withUTC } from '../date';
 import { MAJOR_FEAST_RULES } from './rules';
 import { Feast, FeastRule } from './types';
 
@@ -10,6 +10,16 @@ function addDaysUTC(date: Date, days: number): Date {
 
 function julianToGregorianShift(year: number): number {
   return Math.floor(year / 100) - Math.floor(year / 400) - 2;
+}
+
+function julianToGregorianShiftForDate(year: number, month: number, day: number): number {
+  const isBeforeMarchFirst = month === 1 || month === 2 || (month === 3 && day < 1);
+
+  if (isBeforeMarchFirst) {
+    return julianToGregorianShift(year - 1);
+  }
+
+  return julianToGregorianShift(year);
 }
 
 /**
@@ -38,7 +48,7 @@ export function materializeFeast(year: number, rule: FeastRule): Feast {
     return {
       key: rule.key,
       titleRu: rule.titleRu,
-      date: startOfDayUTC(addDaysUTC(easter, rule.offsetDays)),
+      date: startOfDayLocal(addDaysUTC(easter, rule.offsetDays)),
     };
   }
 
@@ -46,16 +56,17 @@ export function materializeFeast(year: number, rule: FeastRule): Feast {
     return {
       key: rule.key,
       titleRu: rule.titleRu,
-      date: startOfDayUTC(withUTC(year, rule.month, rule.day)),
+      date: startOfDayLocal(new Date(year, rule.month - 1, rule.day)),
     };
   }
 
   const julianDate = withUTC(year, rule.month, rule.day);
-  const shifted = addDaysUTC(julianDate, julianToGregorianShift(year));
+  const shift = julianToGregorianShiftForDate(year, rule.month, rule.day);
+  const shifted = addDaysUTC(julianDate, shift);
   return {
     key: rule.key,
     titleRu: rule.titleRu,
-    date: startOfDayUTC(shifted),
+    date: startOfDayLocal(shifted),
   };
 }
 
@@ -81,8 +92,8 @@ export function getNextMajorFeast(from: Date = new Date()): {
   feast: Feast;
   daysLeft: number;
 } {
-  const pivot = startOfDayUTC(from);
-  const currentYear = pivot.getUTCFullYear();
+  const pivot = startOfDayLocal(from);
+  const currentYear = pivot.getFullYear();
   const feastsCurrent = generateMajorFeasts(currentYear);
 
   const upcoming =
@@ -91,6 +102,6 @@ export function getNextMajorFeast(from: Date = new Date()): {
 
   return {
     feast: upcoming,
-    daysLeft: daysBetweenUTC(pivot, upcoming.date),
+    daysLeft: daysBetween(pivot, upcoming.date),
   };
 }
