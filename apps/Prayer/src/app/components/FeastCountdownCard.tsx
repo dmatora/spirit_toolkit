@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { getNextMajorFeast } from '../utils/feasts';
@@ -47,20 +47,46 @@ const styles = StyleSheet.create({
 });
 
 const FeastCountdownCard = ({ referenceDate, style }: Props) => {
-  const fallbackDateRef = useRef<Date>();
+  const [now, setNow] = useState(() => new Date());
 
-  if (!fallbackDateRef.current) {
-    fallbackDateRef.current = new Date();
-  }
+  useEffect(() => {
+    if (referenceDate) {
+      return;
+    }
+
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleNextMidnight = () => {
+      const current = new Date();
+      const nextMidnight = new Date(
+        current.getFullYear(),
+        current.getMonth(),
+        current.getDate() + 1,
+      );
+      const timeoutMs = Math.max(0, nextMidnight.getTime() - current.getTime());
+      timeout = setTimeout(() => {
+        setNow(new Date());
+        scheduleNextMidnight();
+      }, timeoutMs);
+    };
+
+    scheduleNextMidnight();
+
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    };
+  }, [referenceDate]);
 
   const data = useMemo(() => {
     try {
-      const baseDate = referenceDate ?? fallbackDateRef.current!;
+      const baseDate = referenceDate ?? now;
       return getNextMajorFeast(baseDate);
     } catch (error) {
       return undefined;
     }
-  }, [referenceDate]);
+  }, [referenceDate, now]);
 
   if (!data) {
     return null;
