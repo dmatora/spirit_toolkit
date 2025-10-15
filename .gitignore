@@ -115,3 +115,7 @@ yarn-error.log
 update.sh
 .code-forge/
 .gemini/
+
+# Next.js
+.next
+out
