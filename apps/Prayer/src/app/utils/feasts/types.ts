@@ -29,7 +29,7 @@ export interface FeastRuleFixed {
   titleRu: string;
   month: number;
   day: number;
-  calendar: 'julianShifted13' | 'gregorian';
+  calendar: 'julian' | 'gregorian';
 }
 
 export interface FeastRuleRelative {
