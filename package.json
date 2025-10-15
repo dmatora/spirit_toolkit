@@ -16,6 +16,7 @@
     "@nx/eslint": "20.0.6",
     "@nx/eslint-plugin": "20.0.6",
     "@nx/js": "20.0.6",
+    "@nx/next": "^20.0.6",
     "@nx/react-native": "20.0.6",
     "@nx/web": "20.0.6",
     "@nx/webpack": "20.0.6",
