@@ -63,31 +63,9 @@ export function materializeFeast(year: number, rule: FeastRule): Feast {
  * Expands all major feast rules into concrete dates for the given year.
  */
 export function generateMajorFeasts(year: number): Feast[] {
-  const easter = orthodoxEaster(year);
-  return MAJOR_FEAST_RULES.map((rule) => {
-    if (rule.kind === 'relativeToEaster') {
-      return {
-        key: rule.key,
-        titleRu: rule.titleRu,
-        date: startOfDayUTC(addDaysUTC(easter, rule.offsetDays)),
-      };
-    }
-
-    if (rule.calendar === 'gregorian') {
-      return {
-        key: rule.key,
-        titleRu: rule.titleRu,
-        date: startOfDayUTC(withUTC(year, rule.month, rule.day)),
-      };
-    }
-
-    const julianDate = withUTC(year, rule.month, rule.day);
-    return {
-      key: rule.key,
-      titleRu: rule.titleRu,
-      date: startOfDayUTC(addDaysUTC(julianDate, 13)),
-    };
-  }).sort((a, b) => a.date.getTime() - b.date.getTime());
+  return MAJOR_FEAST_RULES.map((rule) => materializeFeast(year, rule)).sort(
+    (a, b) => a.date.getTime() - b.date.getTime(),
+  );
 }
 
 /**
