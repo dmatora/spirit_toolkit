@@ -7,7 +7,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Обрезание Господне',
     month: 1,
     day: 1,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -15,7 +15,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Крещение Господне (Богоявление)',
     month: 1,
     day: 6,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -23,7 +23,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Сретение Господне',
     month: 2,
     day: 2,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -31,7 +31,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Благовещение Пресвятой Богородицы',
     month: 3,
     day: 25,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'relativeToEaster',
@@ -63,7 +63,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Святых первоверховных апостолов Петра и Павла',
     month: 6,
     day: 29,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -71,7 +71,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Преображение Господне',
     month: 8,
     day: 6,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -79,7 +79,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Успение Пресвятой Богородицы',
     month: 8,
     day: 15,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -87,7 +87,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Усекновение главы Иоанна Предтечи',
     month: 8,
     day: 29,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -95,7 +95,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Рождество Пресвятой Богородицы',
     month: 9,
     day: 8,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -103,7 +103,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Воздвижение Креста Господня',
     month: 9,
     day: 14,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -111,7 +111,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Покров Пресвятой Богородицы',
     month: 10,
     day: 1,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -119,7 +119,7 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Введение во храм Пресвятой Богородицы',
     month: 11,
     day: 21,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
   {
     kind: 'fixed',
@@ -127,6 +127,6 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     titleRu: 'Рождество Христово',
     month: 12,
     day: 25,
-    calendar: 'julianShifted13',
+    calendar: 'julian',
   },
 ];
