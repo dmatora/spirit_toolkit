@@ -51,7 +51,7 @@ export function materializeFeast(year: number, rule: FeastRule): Feast {
   }
 
   const julianDate = withUTC(year, rule.month, rule.day);
-  const shifted = addDaysUTC(julianDate, 13);
+  const shifted = addDaysUTC(julianDate, julianToGregorianShift(year));
   return {
     key: rule.key,
     titleRu: rule.titleRu,
