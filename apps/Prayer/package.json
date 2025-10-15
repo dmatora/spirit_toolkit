@@ -14,7 +14,11 @@
     "react-native-svg-transformer": "*",
     "react-dom": "*",
     "@nx/webpack": "*",
-    "@nx/react": "*"
+    "@nx/react": "*",
+    "@react-navigation/native": "*",
+    "@react-navigation/bottom-tabs": "*",
+    "react-native-screens": "*",
+    "react-native-safe-area-context": "*"
   },
   "devDependencies": {}
 }
