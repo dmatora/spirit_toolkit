@@ -1,6 +1,22 @@
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
+ * Returns the date truncated to local midnight.
+ */
+export function startOfDayLocal(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+/**
+ * Computes the difference in full days using local midnight boundaries.
+ */
+export function daysBetween(a: Date, b: Date): number {
+  const start = startOfDayLocal(a).getTime();
+  const end = startOfDayLocal(b).getTime();
+  return Math.round((end - start) / MS_PER_DAY);
+}
+
+/**
  * Returns a copy of the given date truncated to 00:00:00 UTC.
  */
 export function startOfDayUTC(d: Date): Date {
