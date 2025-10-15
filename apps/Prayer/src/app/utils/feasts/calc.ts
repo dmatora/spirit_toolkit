@@ -88,7 +88,7 @@ export function generateMajorFeasts(year: number): Feast[] {
  * @example
  * ```ts
  * const { feast } = getNextMajorFeast(new Date('2024-04-29T10:00:00Z'));
- * // feast.key === 'ascension'
+ * // feast.key === 'easter' (Pascha, Gregorian 2024-05-05)
  * ```
  */
 export function getNextMajorFeast(from: Date = new Date()): {
