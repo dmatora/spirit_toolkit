@@ -1,15 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import FeastCountdownCard from '../components/FeastCountdownCard';
 
 const HomeScreen = () => (
-  <View style={styles.container}>
+  <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
     <FeastCountdownCard style={styles.cardSpacing} />
     <View style={styles.content}>
       <Text style={styles.title}>Главный экран</Text>
     </View>
-  </View>
+  </SafeAreaView>
 );
 
 const styles = StyleSheet.create({
