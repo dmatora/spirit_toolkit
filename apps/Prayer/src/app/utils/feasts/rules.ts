@@ -61,8 +61,8 @@ export const MAJOR_FEAST_RULES: FeastRule[] = [
     kind: 'fixed',
     key: 'peter_paul',
     titleRu: 'Святых первоверховных апостолов Петра и Павла',
-    month: 7,
-    day: 12,
+    month: 6,
+    day: 29,
     calendar: 'julianShifted13',
   },
   {
