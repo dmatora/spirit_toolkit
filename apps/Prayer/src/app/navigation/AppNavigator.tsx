@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import HomeScreen from '../screens/HomeScreen';
 import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import { palette } from '../theme';
 
 type TabParamList = {
   Главная: undefined;
@@ -33,8 +34,11 @@ const AppNavigator = () => (
         }
         return <Ionicons name={iconName} size={size} color={color} />;
       },
-      tabBarActiveTintColor: '#111',
-      tabBarInactiveTintColor: '#999',
+      tabBarActiveTintColor: palette.ink,
+      tabBarInactiveTintColor: palette.mutedInk,
+      tabBarStyle: { backgroundColor: palette.paper, borderTopColor: palette.divider },
+      headerStyle: { backgroundColor: palette.paper },
+      headerTintColor: palette.ink,
     })}
   >
     <Tab.Screen name="Главная" component={HomeScreen} />
