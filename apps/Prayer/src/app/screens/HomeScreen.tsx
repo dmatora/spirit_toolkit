@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import FeastCountdownCard from '../components/FeastCountdownCard';
+import { palette } from '../theme';
 
 const HomeScreen = () => (
   <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -15,6 +16,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingVertical: 24,
+    backgroundColor: palette.paper,
   },
   cardSpacing: {
     marginBottom: 24,
