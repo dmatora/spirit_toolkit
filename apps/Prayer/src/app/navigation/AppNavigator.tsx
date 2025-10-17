@@ -5,10 +5,19 @@ import HomeScreen from '../screens/HomeScreen';
 import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
-const Tab = createBottomTabNavigator();
+type TabParamList = {
+  Главная: undefined;
+  Журнал: undefined;
+  Настройки: undefined;
+};
+
+type TabNavigatorId = 'PrayerTabNavigator';
+
+const Tab = createBottomTabNavigator<TabParamList, TabNavigatorId>();
 
 const AppNavigator = () => (
   <Tab.Navigator
+    id="PrayerTabNavigator"
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarIcon: ({ focused, color, size }) => {
