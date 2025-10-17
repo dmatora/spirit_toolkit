@@ -16,7 +16,7 @@ const shadowStyle = Platform.select<ViewStyle>({
     elevation: 6,
   },
   default: {
-    shadowColor: '#000',
+    shadowColor: palette.ink,
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 10,
