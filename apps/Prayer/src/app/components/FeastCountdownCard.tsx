@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { getNextMajorFeast } from '../utils/feasts';
 import { pluralizeDaysRu } from '../utils/plural';
+import { palette } from '../theme';
 
 type Props = {
   referenceDate?: Date;
@@ -26,7 +27,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 20,
     borderRadius: 18,
-    backgroundColor: '#fff',
+    backgroundColor: palette.card,
     ...(shadowStyle ?? {}),
   },
   label: {
@@ -34,13 +35,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    color: '#6B7280',
+    color: palette.mutedInk,
     marginBottom: 8,
   },
   feastName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111111',
+    color: palette.ink,
     marginBottom: 12,
   },
   dateRow: {
@@ -51,14 +52,14 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: palette.mutedInk,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: palette.chipBg,
     borderRadius: 9999,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3730A3',
+    color: palette.accent,
   },
 });
 
@@ -138,11 +139,11 @@ const FeastCountdownCard = ({ referenceDate, style }: Props) => {
       <Text style={styles.label}>Ближайший праздник</Text>
       <Text style={styles.feastName}>{feast.titleRu}</Text>
       <View style={styles.dateRow}>
-        <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+        <Ionicons name="calendar-outline" size={16} color={palette.mutedInk} />
         <Text style={styles.dateText}>{localizedDate}</Text>
       </View>
       <View style={styles.chip}>
-        <Ionicons name="time-outline" size={16} color="#4F46E5" />
+        <Ionicons name="time-outline" size={16} color={palette.accent} />
         <Text style={styles.chipText}>{chipText}</Text>
       </View>
     </Pressable>
