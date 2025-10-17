@@ -8,6 +8,20 @@ module.exports = {
     },
     extensions: ['.web.tsx', '.web.ts', '.web.jsx', '.web.js'],
   },
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        include: /node_modules\/(react-native-vector-icons)/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-react'],
+          },
+        },
+      },
+    ],
+  },
   devServer: {
     port: 4200,
   },
