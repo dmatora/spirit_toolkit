@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "build": "NX_DAEMON=false nx run-many --target=build --all",
+    "build": "NX_INTERACTIVE=false NX_DAEMON=false nx run-many --target=build --all",
     "build:player": "nx build Prayer",
     "build:hub": "nx build hub"
   },
