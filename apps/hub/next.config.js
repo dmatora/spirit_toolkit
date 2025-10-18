@@ -1,27 +1,23 @@
-//@ts-check
+const { withNx } = require('@nx/next');
+const path = require('path');
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { composePlugins, withNx } = require('@nx/next');
-
-/**
- * @type {import('@nx/next/plugins/with-nx').WithNxOptions}
- **/
-const nextConfig = {
+module.exports = withNx({
   nx: {
-    // Set this to true if you would like to to use SVGR
-    // See: https://github.com/gregberge/svgr
     svgr: false,
   },
-
-  compiler: {
-    // For other options, see https://styled-components.com/docs/tooling#babel-plugin
-    styledComponents: true,
+  experimental: {
+    externalDir: true,
   },
-};
-
-const plugins = [
-  // Add more Next.js plugins to this list if needed.
-  withNx,
-];
-
-module.exports = composePlugins(...plugins)(nextConfig);
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      'react-native$': 'react-native-web',
+      'react-native-vector-icons/Ionicons': path.resolve(
+        __dirname,
+        '../../libs/prayer-feature/src/web/Ionicons.tsx',
+      ),
+    };
+    return config;
+  },
+  transpilePackages: ['react-native-vector-icons'],
+});
