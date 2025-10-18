@@ -1,1 +1,1 @@
-export { default as FeastCountdownCard } from './FeastCountdownCard';
+export { FeastCountdownCard } from '@spirit/prayer-feature';

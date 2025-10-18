@@ -2,8 +2,8 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import FeastCountdownCard from '../components/FeastCountdownCard';
-import { palette } from '../theme';
+import { FeastCountdownCard } from '@spirit/prayer-feature';
+import { palette } from '@spirit/prayer-feature/theme';
 
 const HomeScreen = () => (
   <SafeAreaView style={styles.container} edges={['top', 'bottom']}>

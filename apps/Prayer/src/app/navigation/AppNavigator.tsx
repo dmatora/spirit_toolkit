@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import HomeScreen from '../screens/HomeScreen';
 import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import { palette } from '../theme';
+import { palette } from '@spirit/prayer-feature/theme';
 
 type TabParamList = {
   Главная: undefined;
