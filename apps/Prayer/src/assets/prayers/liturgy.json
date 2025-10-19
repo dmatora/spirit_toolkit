@@ -1,7 +1,7 @@
 [
   {
     "type": "heading",
-    "content": "Божественная литургия",
+    "content": "Божественная литургия свт. Иоанна Златоуста",
     "role": "priest",
     "timestamp_minutes": 0
   },
@@ -14,175 +14,571 @@
   },
   {
     "type": "instruction",
-    "content": "Священник приготовляет хлеб и вино к освящению, читая тайные молитвы.",
+    "content": "Священник: Господи, благослови приготовление святых Даров, возносит просфоры и вынимает Агнец.",
     "role": "priest",
+    "timestamp_minutes": 1
+  },
+  {
+    "type": "instruction",
+    "content": "Диакон кадит алтарь и храм, молясь о поминовении живых и усопших, готовит кадило.",
+    "role": "deacon",
     "timestamp_minutes": 2
   },
   {
     "type": "paragraph",
-    "content": "Диакон кадит алтарь и храм, сопровождая молитвы проскомидии.",
-    "role": "deacon",
+    "content": "Священник: Яко Бог наш спасет нас, Господь, всяких земных скорбей избавит.",
+    "role": "priest",
     "timestamp_minutes": 4
   },
   {
-    "type": "heading",
-    "content": "Литургия оглашенных",
+    "type": "paragraph",
+    "content": "Диакон: Помяни, Господи, архиерея и всех, идеже священнодействуют честные и святыя дарования сии.",
     "role": "deacon",
+    "timestamp_minutes": 6
+  },
+  {
+    "type": "instruction",
+    "content": "Священник покрывает дары воздухом и возглашает: Слава Тебе, показавшему нам свет.",
+    "role": "priest",
+    "timestamp_minutes": 8
+  },
+  {
+    "type": "heading",
+    "content": "Благословение Царства",
+    "role": "priest",
     "is_major_section": true,
-    "timestamp_minutes": 15
+    "timestamp_minutes": 12
   },
   {
     "type": "paragraph",
-    "content": "Диакон возглашает: Благослови, владыко.",
+    "content": "Диакон: Благослови, владыко.",
     "role": "deacon",
-    "timestamp_minutes": 16
+    "timestamp_minutes": 12
   },
   {
     "type": "paragraph",
     "content": "Священник: Благословено Царство Отца и Сына и Святаго Духа, ныне и присно и во веки веков.",
     "role": "priest",
-    "timestamp_minutes": 17
+    "timestamp_minutes": 13
   },
   {
     "type": "paragraph",
-    "content": "Хор поет: Аминь.",
+    "content": "Хор: Аминь.",
     "role": "choir",
-    "timestamp_minutes": 17
+    "timestamp_minutes": 13
   },
   {
     "type": "heading",
     "content": "Великая ектения",
     "role": "deacon",
     "is_major_section": true,
+    "timestamp_minutes": 15
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Миром Господу помолимся.",
+    "role": "deacon",
+    "timestamp_minutes": 15
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Господи, помилуй.",
+    "role": "people",
+    "timestamp_minutes": 15
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон продолжает прошения о мире, архипастырях, властях и всем мире.",
+    "role": "deacon",
+    "timestamp_minutes": 16
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник тайно молится: Господи Боже наш, Который приял молитвы рабов Твоих, помилуй нас.",
+    "role": "priest",
+    "timestamp_minutes": 17
+  },
+  {
+    "type": "heading",
+    "content": "Антифоны",
+    "role": "choir",
+    "is_major_section": true,
     "timestamp_minutes": 20
   },
   {
     "type": "paragraph",
-    "content": "Диакон произносит прошения Великой ектении: О мире свыше, о спасении душ наших и проч.",
+    "content": "Хор поет первый антифон: Благослови, душе моя, Господа.",
+    "role": "choir",
+    "timestamp_minutes": 20
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон каждит перед иконостасом, призывая молящихся к вниманию.",
     "role": "deacon",
     "timestamp_minutes": 21
   },
   {
     "type": "paragraph",
-    "content": "Народ отвечает на каждое прошение: Господи, помилуй.",
-    "role": "people",
-    "timestamp_minutes": 21
+    "content": "Хор поет второй антифон: Хвали, душа моя, Господа, похвалю Господа в животе моем.",
+    "role": "choir",
+    "timestamp_minutes": 22
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник возглашает: Яко Твоя держава и Твое есть царство.",
+    "role": "priest",
+    "timestamp_minutes": 23
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор завершает третьим антифоном или блаженствами: Во царствии Твоем помяни нас, Господи.",
+    "role": "choir",
+    "timestamp_minutes": 24
+  },
+  {
+    "type": "heading",
+    "content": "Малый вход",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 28
   },
   {
     "type": "instruction",
-    "content": "Священник читает тайные молитвы литургии оглашенных.",
+    "content": "Диакон, держа Евангелие, и священник совершают вход перед Царскими вратами.",
+    "role": "deacon",
+    "timestamp_minutes": 29
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Придите, поклонимся и припадем ко Христу.",
     "role": "priest",
-    "timestamp_minutes": 22
+    "timestamp_minutes": 30
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет входной стих: Приидите, поклонимся и припадем ко Христу.",
+    "role": "choir",
+    "timestamp_minutes": 30
+  },
+  {
+    "type": "heading",
+    "content": "Трисвятое",
+    "role": "choir",
+    "is_major_section": true,
+    "timestamp_minutes": 32
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Вонмем! Премудрость, прости!",
+    "role": "deacon",
+    "timestamp_minutes": 32
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет: Свят Боже, Свят Крепок, Свят Безсмертен, помилуй нас.",
+    "role": "choir",
+    "timestamp_minutes": 33
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник молится: Свят еси, Боже наш, в святых почивающий.",
+    "role": "priest",
+    "timestamp_minutes": 34
+  },
+  {
+    "type": "heading",
+    "content": "Апостольское чтение",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 38
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Вонмем! Премудрость!",
+    "role": "deacon",
+    "timestamp_minutes": 38
+  },
+  {
+    "type": "paragraph",
+    "content": "Чтец: Прокимен, глас ... Псалом ...",
+    "role": "people",
+    "timestamp_minutes": 39
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Премудрость! Апостола чтение.",
+    "role": "deacon",
+    "timestamp_minutes": 40
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Вонмем!",
+    "role": "people",
+    "timestamp_minutes": 40
+  },
+  {
+    "type": "instruction",
+    "content": "Чтец оглашает отрывок из Апостола, по окончании хор поет: Аллилуия.",
+    "role": "people",
+    "timestamp_minutes": 42
+  },
+  {
+    "type": "heading",
+    "content": "Аллилуия и Евангелие",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 45
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Премудрость, прости! Услышим святого Евангелия.",
+    "role": "deacon",
+    "timestamp_minutes": 45
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Мир всем.",
+    "role": "priest",
+    "timestamp_minutes": 46
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: И духови твоему.",
+    "role": "people",
+    "timestamp_minutes": 46
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон объявляет чтение и читает святого Евангелия, совершая кадило.",
+    "role": "deacon",
+    "timestamp_minutes": 48
+  },
+  {
+    "type": "heading",
+    "content": "Сугубая ектения",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 50
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Рцем вси от всея души и от всего помышления нашего рцем.",
+    "role": "deacon",
+    "timestamp_minutes": 50
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Господи, помилуй. (трижды)",
+    "role": "people",
+    "timestamp_minutes": 51
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон возглашает прошения о святей соборней Церкви, архиерее, власти и народе.",
+    "role": "deacon",
+    "timestamp_minutes": 52
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник тайно молится о верных людях и граде сем.",
+    "role": "priest",
+    "timestamp_minutes": 53
+  },
+  {
+    "type": "heading",
+    "content": "Ектения об оглашенных",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 55
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Оглашеннии, помолитеся Господеви.",
+    "role": "deacon",
+    "timestamp_minutes": 55
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Господи, помилуй.",
+    "role": "people",
+    "timestamp_minutes": 55
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Оглашеннии, главы ваша Господеви приклоните.",
+    "role": "deacon",
+    "timestamp_minutes": 56
+  },
+  {
+    "type": "instruction",
+    "content": "Священник благословляет оглашенных, чтобы удалиться из храма до литургии верных.",
+    "role": "priest",
+    "timestamp_minutes": 57
   },
   {
     "type": "heading",
     "content": "Херувимская песнь",
     "role": "choir",
     "is_major_section": true,
-    "timestamp_minutes": 40
+    "timestamp_minutes": 60
   },
   {
     "type": "paragraph",
-    "content": "Хор поет Херувимскую песнь, подготавливая народ к входу с дарами.",
+    "content": "Хор: Иже Херувимы тайно образующе и животворящей Троице трисвятую песнь припевающе.",
     "role": "choir",
-    "timestamp_minutes": 41
+    "timestamp_minutes": 60
   },
   {
-    "type": "paragraph",
-    "content": "Диакон призывает: Вонмем.",
+    "type": "instruction",
+    "content": "Священник и диакон совершают кадило вокруг престола и народа.",
     "role": "deacon",
-    "timestamp_minutes": 41
+    "timestamp_minutes": 61
   },
   {
     "type": "paragraph",
-    "content": "Священник совершает великий вход с честными дарами.",
+    "content": "Священник: Всякое ныне житейское отложим попечение.",
     "role": "priest",
-    "timestamp_minutes": 42
+    "timestamp_minutes": 62
+  },
+  {
+    "type": "heading",
+    "content": "Великий вход",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 65
+  },
+  {
+    "type": "instruction",
+    "content": "Священник и диакон выносят честные Дары на жертвенник, поминая живых и усопших.",
+    "role": "priest",
+    "timestamp_minutes": 66
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет продолжение Херувимской: Яко да Царя всех подымем.",
+    "role": "choir",
+    "timestamp_minutes": 67
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Помяните мя, братия и сослужители.",
+    "role": "priest",
+    "timestamp_minutes": 68
+  },
+  {
+    "type": "heading",
+    "content": "Верую",
+    "role": "people",
+    "is_major_section": true,
+    "timestamp_minutes": 70
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ исповедует Символ веры: Верую во единаго Бога Отца Вседержителя.",
+    "role": "people",
+    "timestamp_minutes": 70
+  },
+  {
+    "type": "instruction",
+    "content": "Священник молится тайно о достойном причащении совершителей и народа.",
+    "role": "priest",
+    "timestamp_minutes": 72
   },
   {
     "type": "heading",
     "content": "Анафора",
     "role": "priest",
     "is_major_section": true,
-    "timestamp_minutes": 55
-  },
-  {
-    "type": "paragraph",
-    "content": "Священник возглашает: Возлюбим друг друга, да единомыслием исповедуем.",
-    "role": "priest",
-    "timestamp_minutes": 56
-  },
-  {
-    "type": "paragraph",
-    "content": "Хор: Отца и Сына и Святаго Духа, Троицу единосущную и нераздельную.",
-    "role": "choir",
-    "timestamp_minutes": 56
-  },
-  {
-    "type": "paragraph",
-    "content": "Народ исповедует Символ веры.",
-    "role": "people",
-    "timestamp_minutes": 58
-  },
-  {
-    "type": "instruction",
-    "content": "Священник совершает освящение Даров, читая молитву эпиклезы.",
-    "role": "priest",
-    "timestamp_minutes": 60
-  },
-  {
-    "type": "heading",
-    "content": "Причащение",
-    "role": "priest",
-    "is_major_section": true,
     "timestamp_minutes": 75
   },
   {
     "type": "paragraph",
-    "content": "Священник возглашает: Со страхом Божиим и верою приступите.",
+    "content": "Священник: Станем добре, станем со страхом, вонмем, святое возношение в мире приносите.",
     "role": "priest",
+    "timestamp_minutes": 75
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Милость мира, жертву хвалы.",
+    "role": "people",
     "timestamp_minutes": 76
   },
   {
     "type": "paragraph",
-    "content": "Хор поет причастен и песнопения благодарения.",
-    "role": "choir",
+    "content": "Священник возглашает благодарение Богу и воспоминает Тайную вечерю: Примите, ядите; пийте от нея вси.",
+    "role": "priest",
     "timestamp_minutes": 78
   },
   {
-    "type": "instruction",
-    "content": "Народ подходит к чаше для причащения Святых Тела и Крови Христовых.",
-    "role": "people",
+    "type": "paragraph",
+    "content": "Хор поет анафоральные песнопения: Достойно и праведно Тебе пети.",
+    "role": "choir",
     "timestamp_minutes": 79
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник призывает Святого Духа на честные Дары, совершая эпиклезу.",
+    "role": "priest",
+    "timestamp_minutes": 80
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор: Достойно есть, яко воистинну блажити Тя, Богородицу.",
+    "role": "choir",
+    "timestamp_minutes": 81
   },
   {
     "type": "conditional",
     "condition": { "rule": "pascha_period" },
     "content": [
       {
-        "type": "heading",
-        "content": "Пасхальный возглас",
-        "role": "priest",
-        "timestamp_minutes": 80
-      },
-      {
         "type": "paragraph",
-        "content": "Священник: Христос воскресе из мертвых, смертию смерть поправ, и сущим во гробех живот даровав.",
-        "role": "priest",
-        "timestamp_minutes": 81
-      },
-      {
-        "type": "paragraph",
-        "content": "Хор отвечает: Христос воскресе из мертвых, смертию смерть поправ, и сущим во гробех живот даровав.",
+        "content": "Хор вместо \"Достойно есть\": Ангел вопияше Благодатней: Чистая Дево, радуйся.",
         "role": "choir",
         "timestamp_minutes": 81
       },
       {
         "type": "instruction",
-        "content": "Возглас и ответ повторяются трижды.",
-        "role": "choir",
+        "content": "Священник тихо читает положенную молитву, упоминая пасхальное торжество.",
+        "role": "priest",
         "timestamp_minutes": 82
       }
     ]
+  },
+  {
+    "type": "heading",
+    "content": "Молитва Господня",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 84
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Исподобившеся молитву Господню дерзновенно призывати.",
+    "role": "priest",
+    "timestamp_minutes": 84
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ читает: Отче наш, Иже еси на небесех.",
+    "role": "people",
+    "timestamp_minutes": 85
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Яко Твое есть царство и сила и слава.",
+    "role": "priest",
+    "timestamp_minutes": 86
+  },
+  {
+    "type": "heading",
+    "content": "Причащение",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 87
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Святая святым.",
+    "role": "priest",
+    "timestamp_minutes": 87
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Един Свят, един Господь, Иисус Христос.",
+    "role": "people",
+    "timestamp_minutes": 88
+  },
+  {
+    "type": "instruction",
+    "content": "Священнослужители причащаются Святых Таин, затем священник вызывает: Со страхом Божиим и верою приступите.",
+    "role": "priest",
+    "timestamp_minutes": 89
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет причастен дня и благодарственные псалмы.",
+    "role": "choir",
+    "timestamp_minutes": 90
+  },
+  {
+    "type": "conditional",
+    "condition": { "rule": "pascha_period" },
+    "content": [
+      {
+        "type": "paragraph",
+        "content": "Священник возглашает: Христос воскресе из мертвых, смертию смерть поправ.",
+        "role": "priest",
+        "timestamp_minutes": 91
+      },
+      {
+        "type": "paragraph",
+        "content": "Хор отвечает: Христос воскресе из мертвых, смертию смерть поправ.",
+        "role": "choir",
+        "timestamp_minutes": 91
+      },
+      {
+        "type": "instruction",
+        "content": "Возглас повторяется трижды, после чего продолжается причащение.",
+        "role": "choir",
+        "timestamp_minutes": 92
+      }
+    ]
+  },
+  {
+    "type": "heading",
+    "content": "Благодарственные песнопения",
+    "role": "choir",
+    "is_major_section": true,
+    "timestamp_minutes": 94
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор: Да исполнятся уста наша хваления Твоего, Господи.",
+    "role": "choir",
+    "timestamp_minutes": 94
+  },
+  {
+    "type": "instruction",
+    "content": "Священник выносит Святую Чашу в алтарь, совершая благодарственные молитвы.",
+    "role": "priest",
+    "timestamp_minutes": 95
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Прямо, принявше божественные, святые, пречистые, бессмертные, небесные и животворящие страшные Христовы Тайны.",
+    "role": "deacon",
+    "timestamp_minutes": 96
+  },
+  {
+    "type": "heading",
+    "content": "Отпуст",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 100
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Благословение Господне на вас Того благодатию и человеколюбием.",
+    "role": "priest",
+    "timestamp_minutes": 100
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Аминь.",
+    "role": "people",
+    "timestamp_minutes": 101
+  },
+  {
+    "type": "instruction",
+    "content": "Священник совершает отпуст: Христос, истинный Бог наш, молитвами Пречистыя своея Матери...",
+    "role": "priest",
+    "timestamp_minutes": 102
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор заключает: Будь имя Господне благословено отныне и до века.",
+    "role": "choir",
+    "timestamp_minutes": 103
   }
 ]
