@@ -42,14 +42,17 @@ const PrayerScreen = () => {
   const prayerId: string = route?.params?.prayerId ?? 'liturgy';
   const scrollRef = useRef<ScrollView | null>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
+  const lastScrollYRef = useRef(0);
   const programmaticScrollRef = useRef<{
     active: boolean;
     targetY: number | null;
     timeoutId: ReturnType<typeof setTimeout> | null;
+    guardMomentum: boolean;
   }>({
     active: false,
     targetY: null,
     timeoutId: null,
+    guardMomentum: false,
   });
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
 
@@ -79,6 +82,21 @@ const PrayerScreen = () => {
 
   const isPositionsReady =
     sections.length > 0 && Object.keys(sectionPositionsRef.current).length >= sections.length;
+
+  function computeActiveSectionIdForY(y: number): string | undefined {
+    const positions = sectionPositionsRef.current as Record<string, number>;
+    let current: { id: string; y: number } | undefined;
+    for (const section of sections) {
+      const sectionY = positions[section.id];
+      if (typeof sectionY === 'number' && sectionY <= y + 1) {
+        if (!current || sectionY > current.y) {
+          current = { id: section.id, y: sectionY };
+        }
+      }
+    }
+    const fallback = sections.find((section) => typeof positions[section.id] === 'number');
+    return current?.id ?? fallback?.id;
+  }
 
   function endProgrammaticScroll() {
     const ref = programmaticScrollRef.current;
@@ -130,6 +148,7 @@ const PrayerScreen = () => {
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = event.nativeEvent.contentOffset.y;
+      lastScrollYRef.current = y;
       if (programmaticScrollRef.current.active) {
         const target = programmaticScrollRef.current.targetY;
         if (typeof target === 'number' && Math.abs(y - target) <= PROGRAMMATIC_SCROLL_THRESHOLD) {
@@ -139,23 +158,10 @@ const PrayerScreen = () => {
           return;
         }
       }
-      const positions = sectionPositionsRef.current as Record<string, number>;
-      let current: { id: string; y: number } | undefined;
-
-      for (const section of sections) {
-        const sectionY = positions[section.id];
-        if (typeof sectionY === 'number' && sectionY <= y + 1) {
-          if (!current || sectionY > current.y) {
-            current = { id: section.id, y: sectionY };
-          }
-        }
-      }
-
-      const fallback = sections.find((section) => typeof positions[section.id] === 'number');
-      const nextId = current?.id ?? fallback?.id;
+      const nextId = computeActiveSectionIdForY(y);
       setActiveSectionId(nextId);
     },
-    [sections, endProgrammaticScroll],
+    [sections, endProgrammaticScroll, computeActiveSectionIdForY],
   );
 
   const handleSelectSection = useCallback(
@@ -225,6 +231,9 @@ const PrayerScreen = () => {
         }}
         onMomentumScrollEnd={() => {
           endProgrammaticScroll();
+          const finalY = lastScrollYRef.current || 0;
+          const id = computeActiveSectionIdForY(finalY);
+          setActiveSectionId(id);
         }}
         scrollEventThrottle={16}
       >
