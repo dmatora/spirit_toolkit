@@ -144,6 +144,17 @@ const PrayerScreen = () => {
       clearTimeout(ref.timeoutId);
     }
     ref.timeoutId = setTimeout(() => {
+      const finalY = lastScrollYRef.current || 0;
+      const id = computeActiveSectionIdForY(finalY);
+      if (id) {
+        const positions = sectionPositionsRef.current as Record<string, number>;
+        const pos = positions[id];
+        if (typeof pos === 'number' && scrollRef.current) {
+          scrollRef.current.scrollTo({ y: pos, animated: false });
+        }
+        setActiveSectionId(id);
+      }
+      programmaticScrollRef.current.guardMomentum = false;
       endProgrammaticScroll();
     }, dynamicTimeout);
   }
