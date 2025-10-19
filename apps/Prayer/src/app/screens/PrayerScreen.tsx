@@ -49,6 +49,7 @@ const PrayerScreen = () => {
   const lastScrollYRef = useRef(0);
   const contentHeightRef = useRef<number>(0);
   const containerHeightRef = useRef<number>(0);
+  const skipMomentumEndCountRef = useRef(0);
   const getMaxScrollableY = () =>
     Math.max(0, contentHeightRef.current - containerHeightRef.current);
   const programmaticScrollRef = useRef<{
@@ -310,6 +311,16 @@ const PrayerScreen = () => {
 
   const handleSelectSection = useCallback(
     (sectionId: string) => {
+      const currentY = lastScrollYRef.current || 0;
+      scrollRef.current?.scrollTo({ y: Math.max(0, currentY), animated: false });
+      endProgrammaticScroll();
+      programmaticScrollRef.current.guardMomentum = false;
+      skipMomentumEndCountRef.current += 1;
+      console.debug('[PrayerScreen] force-cancelled momentum prior to programmatic select', {
+        sectionId,
+        skipCount: skipMomentumEndCountRef.current,
+      });
+
       setActiveSectionId(sectionId);
       const positions = sectionPositionsRef.current;
       let targetOffset: number | null = null;
@@ -393,6 +404,26 @@ const PrayerScreen = () => {
           }
         }}
         onMomentumScrollEnd={() => {
+          if (skipMomentumEndCountRef.current > 0) {
+            skipMomentumEndCountRef.current -= 1;
+            console.debug('[PrayerScreen] skipped stale momentum-end event', {
+              remainingSkips: skipMomentumEndCountRef.current,
+            });
+            return;
+          }
+          if (
+            programmaticScrollRef.current.active ||
+            programmaticScrollRef.current.guardMomentum
+          ) {
+            console.debug(
+              '[PrayerScreen] ignored momentum-end while programmatic scroll is guarding',
+              {
+                active: programmaticScrollRef.current.active,
+                guard: programmaticScrollRef.current.guardMomentum,
+              },
+            );
+            return;
+          }
           endProgrammaticScroll();
           programmaticScrollRef.current.guardMomentum = false;
           const finalY = lastScrollYRef.current || 0;
