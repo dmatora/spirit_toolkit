@@ -6,6 +6,7 @@ import PrayerRenderer from '../components/PrayerRenderer';
 import ServiceMap from '../components/ServiceMap';
 import ServiceClockBar from '../components/ServiceClockBar';
 import { computeSectionRanges, extractMajorSections } from '../utils/serviceMap';
+import useEvaluationDate from '../hooks/useEvaluationDate';
 import { useServiceProgress } from '../hooks/useServiceProgress';
 import type { PrayerBlock } from '../types/prayer';
 
@@ -48,7 +49,7 @@ const PrayerScreen = () => {
     return payload as unknown as PrayerBlock[];
   }, [prayerId]);
 
-  const evaluationDate = useMemo(() => new Date(), [data]);
+  const evaluationDate = useEvaluationDate();
 
   const sections = useMemo(
     () => extractMajorSections(data, evaluationDate),
