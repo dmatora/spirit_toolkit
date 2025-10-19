@@ -1,15 +1,17 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { palette } from '@spirit/prayer-feature/theme';
 import HomeScreen from '../screens/HomeScreen';
 import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import { palette } from '@spirit/prayer-feature/theme';
+import PrayerNavigator from './PrayerNavigator';
 
 type TabParamList = {
   Главная: undefined;
   Журнал: undefined;
   Настройки: undefined;
+  Молитвослов: undefined;
 };
 
 type TabNavigatorId = 'PrayerTabNavigator';
@@ -27,6 +29,8 @@ const AppNavigator = () => (
           iconName = focused ? 'home' : 'home-outline';
         } else if (route.name === 'Журнал') {
           iconName = focused ? 'book' : 'book-outline';
+        } else if (route.name === 'Молитвослов') {
+          iconName = focused ? 'book' : 'book-outline';
         } else if (route.name === 'Настройки') {
           iconName = focused ? 'settings' : 'settings-outline';
         } else {
@@ -43,6 +47,7 @@ const AppNavigator = () => (
   >
     <Tab.Screen name="Главная" component={HomeScreen} />
     <Tab.Screen name="Журнал" component={JournalScreen} />
+    <Tab.Screen name="Молитвослов" component={PrayerNavigator} />
     <Tab.Screen name="Настройки" component={SettingsScreen} />
   </Tab.Navigator>
 );
