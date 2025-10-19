@@ -65,6 +65,7 @@ const PrayerScreen = () => {
     settleTimeoutId: null,
   });
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
+  const [measuredCount, setMeasuredCount] = useState<number>(0);
 
   useEffect(() => {
     console.log(`EVENT: Prayer screen opened for '${prayerId}'`);
@@ -82,6 +83,7 @@ const PrayerScreen = () => {
     [data, evaluationDate],
   );
 
+  const sectionsCount = sections.length;
   const sectionIndexLookup = useMemo(() => {
     const lookup: Record<number, string> = {};
     sections.forEach((section) => {
@@ -90,10 +92,10 @@ const PrayerScreen = () => {
     return lookup;
   }, [sections]);
 
-  const isPositionsReady =
-    sections.length > 0 && Object.keys(sectionPositionsRef.current).length >= sections.length;
+  const isPositionsReady = sectionsCount > 0 && measuredCount >= sectionsCount;
 
-  function computeActiveSectionIdForY(y: number): string | undefined {
+  const computeActiveSectionIdForY = useCallback(
+    (y: number): string | undefined => {
     const maxY = typeof getMaxScrollableY === 'function' ? getMaxScrollableY() : 0;
     const clampedY = Math.max(0, Math.min(y, maxY));
     const positions = sectionPositionsRef.current as Record<string, number>;
@@ -108,7 +110,9 @@ const PrayerScreen = () => {
     }
     const fallback = sections.find((section) => typeof positions[section.id] === 'number');
     return current?.id ?? fallback?.id;
-  }
+    },
+    [sections],
+  );
 
   function endProgrammaticScroll() {
     const ref = programmaticScrollRef.current;
@@ -163,6 +167,7 @@ const PrayerScreen = () => {
   useEffect(() => {
     sectionPositionsRef.current = {};
     setActiveSectionId(undefined);
+    setMeasuredCount(0);
   }, [sections]);
 
   useEffect(() => {
@@ -183,46 +188,40 @@ const PrayerScreen = () => {
     };
   }, []);
 
-  const computeActiveSectionIdAtOffset = (
-    sourceSections: { id: string }[],
-    positions: Record<string, number>,
-    y: number,
-  ): string | undefined => {
-    let current: { id: string; y: number } | undefined;
-
-    for (const section of sourceSections) {
-      const sectionY = positions[section.id];
-      if (typeof sectionY === 'number' && sectionY <= y + 1) {
-        if (!current || sectionY > current.y) {
-          current = { id: section.id, y: sectionY };
-        }
+  useEffect(() => {
+    if (!sections.length) {
+      return;
+    }
+    if (!activeSectionId && isPositionsReady) {
+      const y = lastScrollYRef.current || 0;
+      const id = computeActiveSectionIdForY(y);
+      if (id) {
+        setActiveSectionId(id);
       }
     }
-
-    if (current?.id) {
-      return current.id;
-    }
-
-    const firstMeasured = sourceSections.find((section) => typeof positions[section.id] === 'number');
-    return firstMeasured?.id;
-  };
-
-  useEffect(() => {
-    if (!isPositionsReady || activeSectionId) return;
-    const positions = sectionPositionsRef.current as Record<string, number>;
-    const initialId = computeActiveSectionIdAtOffset(sections, positions, 0);
-    if (initialId) {
-      setActiveSectionId(initialId);
-    }
-  }, [isPositionsReady, sections, activeSectionId]);
+  }, [isPositionsReady, activeSectionId, sections, computeActiveSectionIdForY]);
 
   const handleSectionLayout = useCallback(
     (_block: PrayerBlock, index: number, y: number) => {
       const sectionId = sectionIndexLookup[index];
       if (!sectionId) return;
-      sectionPositionsRef.current[sectionId] = y;
+      const positions = sectionPositionsRef.current as Record<string, number>;
+      if (typeof positions[sectionId] !== 'number') {
+        positions[sectionId] = y;
+        setMeasuredCount((count) => {
+          const next = count + 1;
+          if (!activeSectionId && next === sectionsCount) {
+            const initialY = lastScrollYRef.current || 0;
+            const initialId = computeActiveSectionIdForY(initialY);
+            if (initialId) {
+              setActiveSectionId(initialId);
+            }
+          }
+          return next;
+        });
+      }
     },
-    [sectionIndexLookup],
+    [sectionIndexLookup, activeSectionId, sectionsCount, computeActiveSectionIdForY],
   );
 
   const handleScroll = useCallback(
@@ -259,7 +258,7 @@ const PrayerScreen = () => {
       const nextId = computeActiveSectionIdForY(y);
       setActiveSectionId(nextId);
     },
-    [sections, endProgrammaticScroll, computeActiveSectionIdForY],
+    [endProgrammaticScroll, computeActiveSectionIdForY],
   );
 
   const handleSelectSection = useCallback(
