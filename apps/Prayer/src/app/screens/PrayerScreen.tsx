@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Text,
   View,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
@@ -15,6 +17,7 @@ import ServiceMap from '../components/ServiceMap';
 import { extractMajorSections } from '../utils/serviceMap';
 import { getSectionsSignature } from '../utils/sections';
 import useEvaluationDate from '../hooks/useEvaluationDate';
+import { loadPrayer } from '../utils/prayerLoader';
 import type { PrayerBlock } from '../types/prayer';
 
 const PENDING_END_DEBOUNCE_MS = 100;
@@ -30,12 +33,23 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   scroll: { paddingBottom: 24 },
+  statusContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: palette.paper,
+    alignItems: 'center',
+  },
+  statusText: {
+    marginTop: 8,
+    color: palette.mutedInk,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: palette.accent,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });
-
-const PRAYERS: Record<string, PrayerBlock[]> = {
-  liturgy: require('../../assets/prayers/liturgy.json'),
-  evening: require('../../assets/prayers/evening.json'),
-};
 
 const PrayerScreen = () => {
   const route = useRoute<any>();
@@ -58,6 +72,9 @@ const PrayerScreen = () => {
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
   const [measuredCount, setMeasuredCount] = useState<number>(0);
   const prevSectionsSigRef = useRef<string | null>(null);
+  const [data, setData] = useState<PrayerBlock[] | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   useEffect(() => {
     console.log(`EVENT: Prayer screen opened for '${prayerId}'`);
@@ -79,16 +96,38 @@ const PrayerScreen = () => {
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [prayerId]);
 
-  const data: PrayerBlock[] = useMemo(() => {
-    const payload = PRAYERS[prayerId] ?? PRAYERS['liturgy'];
-    return payload as unknown as PrayerBlock[];
+  useEffect(() => {
+    let isActive = true;
+
+    setIsLoading(true);
+    setData(null);
+    setLoadError(null);
+
+    loadPrayer(prayerId as any)
+      .then((blocks) => {
+        if (!isActive) return;
+        setData(blocks);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        if (!isActive) return;
+        const resolvedError = error instanceof Error ? error : new Error(String(error));
+        setLoadError(resolvedError);
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [prayerId]);
+
+  const resolvedData = data ?? ([] as PrayerBlock[]);
 
   const evaluationDate = useEvaluationDate();
 
   const sections = useMemo(
-    () => extractMajorSections(data, evaluationDate),
-    [data, evaluationDate],
+    () => extractMajorSections(resolvedData, evaluationDate),
+    [resolvedData, evaluationDate],
   );
 
   const sectionsSig = useMemo(() => getSectionsSignature(sections), [sections]);
@@ -300,7 +339,7 @@ const PrayerScreen = () => {
           activeSectionId={activeSectionId}
           onSelect={handleSelectSection}
           style={styles.mapContainer}
-          isDisabled={!isPositionsReady}
+          isDisabled={!isPositionsReady || isLoading}
         />
         {isCalculating && (
           <MeasureProgressBar
@@ -310,6 +349,18 @@ const PrayerScreen = () => {
           />
         )}
       </View>
+      {isLoading && (
+        <View style={styles.statusContainer}>
+          <ActivityIndicator size="small" accessibilityLabel="Загрузка молитвы" />
+          <Text style={styles.statusText}>Загрузка молитвы...</Text>
+        </View>
+      )}
+      {!isLoading && loadError && (
+        <View style={styles.statusContainer}>
+          <Text style={styles.errorText}>Не удалось загрузить молитву</Text>
+          <Text style={styles.statusText}>{loadError.message}</Text>
+        </View>
+      )}
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scroll}
@@ -343,12 +394,14 @@ const PrayerScreen = () => {
         }}
         scrollEventThrottle={16}
       >
-        <PrayerRenderer
-          blocks={data}
-          onMajorSectionLayout={handleSectionLayout}
-          sectionIdLookup={sectionIndexLookup}
-          evaluationDate={evaluationDate}
-        />
+        {!isLoading && !loadError ? (
+          <PrayerRenderer
+            blocks={resolvedData}
+            onMajorSectionLayout={handleSectionLayout}
+            sectionIdLookup={sectionIndexLookup}
+            evaluationDate={evaluationDate}
+          />
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
