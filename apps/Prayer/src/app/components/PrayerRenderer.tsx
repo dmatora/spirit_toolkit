@@ -59,6 +59,7 @@ type Props = {
   sectionIdLookup?: Record<number, string>;
   activeSectionId?: string;
   activeSectionRange?: { startIndex: number; endIndexExclusive: number };
+  evaluationDate?: Date;
 };
 
 type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' | 'instruction' }>;
@@ -109,9 +110,11 @@ const PrayerRenderer = ({
   onMajorSectionLayout,
   sectionIdLookup,
   activeSectionRange,
+  evaluationDate,
 }: Props) => {
   let globalIndex = -1;
   let conditionalCounter = 0;
+  const effectiveEvaluationDate = evaluationDate ?? new Date();
 
   const isInActiveRange = (index: number) => {
     if (!activeSectionRange) return false;
@@ -121,7 +124,7 @@ const PrayerRenderer = ({
 
   const renderBlockRecursive = (block: PrayerBlock): React.ReactNode => {
     if (block.type === 'conditional') {
-      if (!evaluateCondition(block)) {
+      if (!evaluateCondition(block, effectiveEvaluationDate)) {
         return null;
       }
 
