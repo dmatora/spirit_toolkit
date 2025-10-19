@@ -15,11 +15,14 @@
     "react": "18.x",
     "react-dom": "18.x",
     "react-native": "0.74.x",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "~3.7.2",
     "react-native-safe-area-context": "*",
     "react-native-screens": "*",
     "react-native-svg": "*",
     "react-native-svg-transformer": "*",
-    "react-native-vector-icons": "^10.3.0"
+    "react-native-vector-icons": "^10.3.0",
+    "@react-navigation/drawer": "*"
   },
   "devDependencies": {
     "@types/react-native-vector-icons": "^6.4.18"
