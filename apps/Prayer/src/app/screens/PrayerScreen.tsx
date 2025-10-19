@@ -212,6 +212,7 @@ const PrayerScreen = () => {
     [sectionIndexLookup, sectionsCount],
   );
 
+  // Programmatic scrolls debounce their own completion; once the timer fires we settle on the final section.
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = event.nativeEvent.contentOffset.y;
@@ -324,7 +325,6 @@ const PrayerScreen = () => {
             endProgrammaticScroll();
           }
         }}
-        onMomentumScrollBegin={() => {}}
         onMomentumScrollEnd={() => {
           if (skipMomentumEndCountRef.current > 0) {
             skipMomentumEndCountRef.current -= 1;
