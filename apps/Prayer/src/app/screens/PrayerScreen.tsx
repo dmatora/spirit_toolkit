@@ -15,7 +15,7 @@ import { extractMajorSections } from '../utils/serviceMap';
 import useEvaluationDate from '../hooks/useEvaluationDate';
 import type { PrayerBlock } from '../types/prayer';
 
-const PROGRAMMATIC_SCROLL_THRESHOLD = 4;
+const PROGRAMMATIC_SCROLL_THRESHOLD = 12; // widened to reduce rounding misses
 const PROGRAMMATIC_SCROLL_BASE_MS = 400; // base duration
 const PROGRAMMATIC_SCROLL_PER_PX_MS = 0.6; // ms per px distance
 
