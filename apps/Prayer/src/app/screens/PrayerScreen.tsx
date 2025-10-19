@@ -17,11 +17,7 @@ import { getSectionsSignature } from '../utils/sections';
 import useEvaluationDate from '../hooks/useEvaluationDate';
 import type { PrayerBlock } from '../types/prayer';
 
-const PROGRAMMATIC_SCROLL_THRESHOLD = 12; // widened to reduce rounding misses
 const PENDING_END_DEBOUNCE_MS = 100;
-const PROGRAMMATIC_SCROLL_BASE_MS = 400; // base duration
-const PROGRAMMATIC_SCROLL_PER_PX_MS = 0.6; // ms per px distance
-const MIN_PROGRAMMATIC_SCROLL_MS = 1200;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.paper },
@@ -50,24 +46,14 @@ const PrayerScreen = () => {
   const contentHeightRef = useRef<number>(0);
   const containerHeightRef = useRef<number>(0);
   const skipMomentumEndCountRef = useRef(0);
-  const userCommandEpochRef = useRef(0);
-  const momentumEpochRef = useRef(0);
   const getMaxScrollableY = () =>
     Math.max(0, contentHeightRef.current - containerHeightRef.current);
   const programmaticScrollRef = useRef<{
     active: boolean;
-    targetY: number | null;
-    timeoutId: ReturnType<typeof setTimeout> | null;
-    guardMomentum: boolean;
-    pendingEnd: boolean;
-    settleTimeoutId: ReturnType<typeof setTimeout> | null;
+    endTimerId: ReturnType<typeof setTimeout> | null;
   }>({
     active: false,
-    targetY: null,
-    timeoutId: null,
-    guardMomentum: false,
-    pendingEnd: false,
-    settleTimeoutId: null,
+    endTimerId: null,
   });
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
   const [measuredCount, setMeasuredCount] = useState<number>(0);
@@ -79,20 +65,11 @@ const PrayerScreen = () => {
 
   useEffect(() => {
     const ref = programmaticScrollRef.current;
-    if (ref.timeoutId) {
-      clearTimeout(ref.timeoutId);
+    if (ref.endTimerId) {
+      clearTimeout(ref.endTimerId);
+      ref.endTimerId = null;
     }
-    if (ref.settleTimeoutId) {
-      clearTimeout(ref.settleTimeoutId);
-    }
-    programmaticScrollRef.current = {
-      active: false,
-      targetY: null,
-      timeoutId: null,
-      guardMomentum: false,
-      pendingEnd: false,
-      settleTimeoutId: null,
-    };
+    ref.active = false;
     sectionPositionsRef.current = {};
     lastScrollYRef.current = 0;
     contentHeightRef.current = 0;
@@ -151,52 +128,20 @@ const PrayerScreen = () => {
 
   function endProgrammaticScroll() {
     const ref = programmaticScrollRef.current;
+    if (ref.endTimerId) {
+      clearTimeout(ref.endTimerId);
+      ref.endTimerId = null;
+    }
     ref.active = false;
-    ref.targetY = null;
-    ref.pendingEnd = false;
-    if (ref.settleTimeoutId) {
-      clearTimeout(ref.settleTimeoutId);
-      ref.settleTimeoutId = null;
-    }
-    if (ref.timeoutId) {
-      clearTimeout(ref.timeoutId);
-      ref.timeoutId = null;
-    }
   }
 
   function beginProgrammaticScroll(targetY: number) {
     const ref = programmaticScrollRef.current;
-    const currentY = lastScrollYRef.current ?? 0;
-    const distance = Math.abs(currentY - targetY);
-    const dynamicTimeout = Math.max(
-      MIN_PROGRAMMATIC_SCROLL_MS,
-      Math.ceil(PROGRAMMATIC_SCROLL_BASE_MS + PROGRAMMATIC_SCROLL_PER_PX_MS * distance),
-    );
     ref.active = true;
-    ref.targetY = targetY;
-    ref.guardMomentum = true;
-    ref.pendingEnd = false;
-    if (ref.settleTimeoutId) {
-      clearTimeout(ref.settleTimeoutId);
-      ref.settleTimeoutId = null;
+    if (ref.endTimerId) {
+      clearTimeout(ref.endTimerId);
+      ref.endTimerId = null;
     }
-    if (ref.timeoutId) {
-      clearTimeout(ref.timeoutId);
-    }
-    ref.timeoutId = setTimeout(() => {
-      const finalY = lastScrollYRef.current || 0;
-      const id = computeActiveSectionIdForY(finalY);
-      if (id) {
-        const positions = sectionPositionsRef.current as Record<string, number>;
-        const pos = positions[id];
-        if (typeof pos === 'number' && scrollRef.current) {
-          scrollRef.current.scrollTo({ y: pos, animated: false });
-        }
-        setActiveSectionId(id);
-      }
-      programmaticScrollRef.current.guardMomentum = false;
-      endProgrammaticScroll();
-    }, dynamicTimeout);
   }
 
   useEffect(() => {
@@ -229,18 +174,11 @@ const PrayerScreen = () => {
   useEffect(() => {
     return () => {
       const ref = programmaticScrollRef.current;
-      if (ref.timeoutId) {
-        clearTimeout(ref.timeoutId);
-        ref.timeoutId = null;
-      }
-      if (ref.settleTimeoutId) {
-        clearTimeout(ref.settleTimeoutId);
-        ref.settleTimeoutId = null;
+      if (ref.endTimerId) {
+        clearTimeout(ref.endTimerId);
+        ref.endTimerId = null;
       }
       ref.active = false;
-      ref.targetY = null;
-      ref.pendingEnd = false;
-      ref.guardMomentum = false;
     };
   }, []);
 
@@ -280,29 +218,17 @@ const PrayerScreen = () => {
       lastScrollYRef.current = y;
       const ref = programmaticScrollRef.current;
       if (ref.active) {
-        const target = ref.targetY;
-        if (typeof target === 'number' && Math.abs(y - target) <= PROGRAMMATIC_SCROLL_THRESHOLD) {
-          ref.pendingEnd = true;
-          if (ref.settleTimeoutId) {
-            clearTimeout(ref.settleTimeoutId);
-          }
-          const scheduledY = y;
-          ref.settleTimeoutId = setTimeout(() => {
-            const latestRef = programmaticScrollRef.current;
-            if (
-              latestRef.pendingEnd &&
-              Math.abs(lastScrollYRef.current - scheduledY) <= PROGRAMMATIC_SCROLL_THRESHOLD
-            ) {
-              const finalY = lastScrollYRef.current || 0;
-              const id = computeActiveSectionIdForY(finalY);
-              setActiveSectionId(id);
-              endProgrammaticScroll();
-            }
-          }, PENDING_END_DEBOUNCE_MS);
+        if (ref.endTimerId) {
+          clearTimeout(ref.endTimerId);
         }
-        return;
-      }
-      if (ref.guardMomentum) {
+        ref.endTimerId = setTimeout(() => {
+          const finalY = lastScrollYRef.current || 0;
+          const id = computeActiveSectionIdForY(finalY);
+          if (id) {
+            setActiveSectionId(id);
+          }
+          endProgrammaticScroll();
+        }, PENDING_END_DEBOUNCE_MS);
         return;
       }
       const nextId = computeActiveSectionIdForY(y);
@@ -316,13 +242,10 @@ const PrayerScreen = () => {
       const currentY = lastScrollYRef.current || 0;
       scrollRef.current?.scrollTo({ y: Math.max(0, currentY), animated: false });
       endProgrammaticScroll();
-      programmaticScrollRef.current.guardMomentum = false;
       skipMomentumEndCountRef.current += 1;
-      userCommandEpochRef.current += 1;
       console.debug('[PrayerScreen] force-cancelled momentum prior to programmatic select', {
         sectionId,
         skipCount: skipMomentumEndCountRef.current,
-        epoch: userCommandEpochRef.current,
       });
 
       setActiveSectionId(sectionId);
@@ -399,15 +322,9 @@ const PrayerScreen = () => {
         onScrollBeginDrag={() => {
           if (programmaticScrollRef.current.active) {
             endProgrammaticScroll();
-            programmaticScrollRef.current.guardMomentum = false;
           }
         }}
-        onMomentumScrollBegin={() => {
-          momentumEpochRef.current = userCommandEpochRef.current;
-          if (programmaticScrollRef.current.active) {
-            programmaticScrollRef.current.guardMomentum = true;
-          }
-        }}
+        onMomentumScrollBegin={() => {}}
         onMomentumScrollEnd={() => {
           if (skipMomentumEndCountRef.current > 0) {
             skipMomentumEndCountRef.current -= 1;
@@ -416,28 +333,10 @@ const PrayerScreen = () => {
             });
             return;
           }
-          if (
-            programmaticScrollRef.current.active ||
-            programmaticScrollRef.current.guardMomentum
-          ) {
-            console.debug(
-              '[PrayerScreen] ignored momentum-end while programmatic scroll is guarding',
-              {
-                active: programmaticScrollRef.current.active,
-                guard: programmaticScrollRef.current.guardMomentum,
-              },
-            );
+          if (programmaticScrollRef.current.active) {
+            console.debug('[PrayerScreen] ignored momentum-end while programmatic scroll active');
             return;
           }
-          if (momentumEpochRef.current < userCommandEpochRef.current) {
-            console.debug('[PrayerScreen] ignored momentum-end from older epoch', {
-              momentumEpoch: momentumEpochRef.current,
-              userEpoch: userCommandEpochRef.current,
-            });
-            return;
-          }
-          endProgrammaticScroll();
-          programmaticScrollRef.current.guardMomentum = false;
           const finalY = lastScrollYRef.current || 0;
           const id = computeActiveSectionIdForY(finalY);
           setActiveSectionId(id);
