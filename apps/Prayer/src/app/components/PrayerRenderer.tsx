@@ -6,8 +6,6 @@ import {
   TextStyle,
   LayoutChangeEvent,
   AccessibilityRole,
-  AccessibilityState,
-  ViewStyle,
 } from 'react-native';
 import { palette } from '@spirit/prayer-feature/theme';
 import type { PrayerBlock, PrayerRole } from '../types/prayer';
@@ -42,15 +40,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: palette.mutedInk,
   },
-  activeHighlight: {
-    backgroundColor: palette.accentSoft,
-    borderLeftColor: palette.accent,
-  },
-  activeSectionHeader: {
-    borderLeftWidth: 4,
-    borderLeftColor: palette.accent,
-    paddingLeft: 16,
-  },
 });
 
 type RoleStyleConfig = {
@@ -71,8 +60,6 @@ type Props = {
   blocks: PrayerBlock[];
   onMajorSectionLayout?: (block: PrayerBlock, index: number, y: number) => void;
   sectionIdLookup?: Record<number, string>;
-  activeSectionId?: string;
-  activeSectionRange?: { startIndex: number; endIndexExclusive: number };
   evaluationDate?: Date;
 };
 
@@ -80,10 +67,7 @@ type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' |
 
 type RenderOptions = {
   onLayout?: (event: LayoutChangeEvent) => void;
-  isActive?: boolean;
   accessibilityRole?: AccessibilityRole;
-  accessibilityState?: AccessibilityState;
-  highlightStyle?: ViewStyle;
 };
 
 const renderTextualBlock = (
@@ -93,7 +77,7 @@ const renderTextualBlock = (
   options: RenderOptions = {},
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
-  const { onLayout, isActive, accessibilityRole, accessibilityState, highlightStyle } = options;
+  const { onLayout, accessibilityRole } = options;
 
   return (
     <View
@@ -105,12 +89,9 @@ const renderTextualBlock = (
           borderLeftColor: roleStyle.borderColor,
           backgroundColor: roleStyle.backgroundColor ?? palette.paper,
         },
-        isActive && styles.activeHighlight,
-        highlightStyle,
       ]}
       onLayout={onLayout}
       accessibilityRole={accessibilityRole}
-      accessibilityState={accessibilityState}
     >
       {roleStyle && (
         <Text
@@ -129,19 +110,11 @@ const PrayerRenderer = ({
   blocks,
   onMajorSectionLayout,
   sectionIdLookup,
-  activeSectionId,
-  activeSectionRange,
   evaluationDate,
 }: Props) => {
   let globalIndex = -1;
   let conditionalCounter = 0;
   const effectiveEvaluationDate = evaluationDate ?? new Date();
-
-  const isInActiveRange = (index: number) => {
-    if (!activeSectionRange) return false;
-    const { startIndex, endIndexExclusive } = activeSectionRange;
-    return index >= startIndex && index < endIndexExclusive;
-  };
 
   const renderBlockRecursive = (block: PrayerBlock): React.ReactNode => {
     if (block.type === 'conditional') {
@@ -162,9 +135,7 @@ const PrayerRenderer = ({
     globalIndex += 1;
     const index = globalIndex;
     const hasSection = Boolean(sectionIdLookup?.[index]);
-    const sectionId = sectionIdLookup?.[index];
     const isMajorHeading = block.type === 'heading' && block.is_major_section;
-    const isActiveHeader = Boolean(activeSectionId && sectionId && sectionId === activeSectionId && isMajorHeading);
 
     const onLayout =
       block.is_major_section && hasSection
@@ -174,11 +145,8 @@ const PrayerRenderer = ({
         : undefined;
 
     const renderOptions: RenderOptions = {
-      isActive: isInActiveRange(index),
       onLayout,
       accessibilityRole: isMajorHeading ? 'header' : undefined,
-      accessibilityState: isActiveHeader ? { selected: true } : undefined,
-      highlightStyle: isActiveHeader ? styles.activeSectionHeader : undefined,
     };
 
     switch (block.type) {
