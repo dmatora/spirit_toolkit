@@ -16,6 +16,7 @@ import useEvaluationDate from '../hooks/useEvaluationDate';
 import type { PrayerBlock } from '../types/prayer';
 
 const PROGRAMMATIC_SCROLL_THRESHOLD = 12; // widened to reduce rounding misses
+const PENDING_END_DEBOUNCE_MS = 100;
 const PROGRAMMATIC_SCROLL_BASE_MS = 400; // base duration
 const PROGRAMMATIC_SCROLL_PER_PX_MS = 0.6; // ms per px distance
 
@@ -53,13 +54,15 @@ const PrayerScreen = () => {
     targetY: number | null;
     timeoutId: ReturnType<typeof setTimeout> | null;
     guardMomentum: boolean;
-    pendingEnd?: boolean;
-    settleTimeoutId?: ReturnType<typeof setTimeout> | null;
+    pendingEnd: boolean;
+    settleTimeoutId: ReturnType<typeof setTimeout> | null;
   }>({
     active: false,
     targetY: null,
     timeoutId: null,
     guardMomentum: false,
+    pendingEnd: false,
+    settleTimeoutId: null,
   });
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
 
@@ -111,6 +114,11 @@ const PrayerScreen = () => {
     const ref = programmaticScrollRef.current;
     ref.active = false;
     ref.targetY = null;
+    ref.pendingEnd = false;
+    if (ref.settleTimeoutId) {
+      clearTimeout(ref.settleTimeoutId);
+      ref.settleTimeoutId = null;
+    }
     if (ref.timeoutId) {
       clearTimeout(ref.timeoutId);
       ref.timeoutId = null;
@@ -127,6 +135,11 @@ const PrayerScreen = () => {
     ref.active = true;
     ref.targetY = targetY;
     ref.guardMomentum = true;
+    ref.pendingEnd = false;
+    if (ref.settleTimeoutId) {
+      clearTimeout(ref.settleTimeoutId);
+      ref.settleTimeoutId = null;
+    }
     if (ref.timeoutId) {
       clearTimeout(ref.timeoutId);
     }
@@ -147,8 +160,14 @@ const PrayerScreen = () => {
         clearTimeout(ref.timeoutId);
         ref.timeoutId = null;
       }
+      if (ref.settleTimeoutId) {
+        clearTimeout(ref.settleTimeoutId);
+        ref.settleTimeoutId = null;
+      }
       ref.active = false;
       ref.targetY = null;
+      ref.pendingEnd = false;
+      ref.guardMomentum = false;
     };
   }, []);
   const handleSectionLayout = useCallback(
@@ -164,16 +183,31 @@ const PrayerScreen = () => {
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = event.nativeEvent.contentOffset.y;
       lastScrollYRef.current = y;
-      if (programmaticScrollRef.current.active) {
-        const target = programmaticScrollRef.current.targetY;
+      const ref = programmaticScrollRef.current;
+      if (ref.active) {
+        const target = ref.targetY;
         if (typeof target === 'number' && Math.abs(y - target) <= PROGRAMMATIC_SCROLL_THRESHOLD) {
-          endProgrammaticScroll();
+          ref.pendingEnd = true;
+          if (ref.settleTimeoutId) {
+            clearTimeout(ref.settleTimeoutId);
+          }
+          const scheduledY = y;
+          ref.settleTimeoutId = setTimeout(() => {
+            const latestRef = programmaticScrollRef.current;
+            if (
+              latestRef.pendingEnd &&
+              Math.abs(lastScrollYRef.current - scheduledY) <= PROGRAMMATIC_SCROLL_THRESHOLD
+            ) {
+              const finalY = lastScrollYRef.current || 0;
+              const id = computeActiveSectionIdForY(finalY);
+              setActiveSectionId(id);
+              endProgrammaticScroll();
+            }
+          }, PENDING_END_DEBOUNCE_MS);
         }
-        if (programmaticScrollRef.current.active) {
-          return;
-        }
+        return;
       }
-      if (programmaticScrollRef.current.guardMomentum) {
+      if (ref.guardMomentum) {
         return;
       }
       const nextId = computeActiveSectionIdForY(y);
