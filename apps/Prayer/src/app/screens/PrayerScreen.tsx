@@ -182,6 +182,40 @@ const PrayerScreen = () => {
       ref.guardMomentum = false;
     };
   }, []);
+
+  const computeActiveSectionIdAtOffset = (
+    sourceSections: { id: string }[],
+    positions: Record<string, number>,
+    y: number,
+  ): string | undefined => {
+    let current: { id: string; y: number } | undefined;
+
+    for (const section of sourceSections) {
+      const sectionY = positions[section.id];
+      if (typeof sectionY === 'number' && sectionY <= y + 1) {
+        if (!current || sectionY > current.y) {
+          current = { id: section.id, y: sectionY };
+        }
+      }
+    }
+
+    if (current?.id) {
+      return current.id;
+    }
+
+    const firstMeasured = sourceSections.find((section) => typeof positions[section.id] === 'number');
+    return firstMeasured?.id;
+  };
+
+  useEffect(() => {
+    if (!isPositionsReady || activeSectionId) return;
+    const positions = sectionPositionsRef.current as Record<string, number>;
+    const initialId = computeActiveSectionIdAtOffset(sections, positions, 0);
+    if (initialId) {
+      setActiveSectionId(initialId);
+    }
+  }, [isPositionsReady, sections, activeSectionId]);
+
   const handleSectionLayout = useCallback(
     (_block: PrayerBlock, index: number, y: number) => {
       const sectionId = sectionIndexLookup[index];
