@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 20,
     alignItems: 'center',
   },
   chip: {
