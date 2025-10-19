@@ -50,6 +50,8 @@ const PrayerScreen = () => {
   const contentHeightRef = useRef<number>(0);
   const containerHeightRef = useRef<number>(0);
   const skipMomentumEndCountRef = useRef(0);
+  const userCommandEpochRef = useRef(0);
+  const momentumEpochRef = useRef(0);
   const getMaxScrollableY = () =>
     Math.max(0, contentHeightRef.current - containerHeightRef.current);
   const programmaticScrollRef = useRef<{
@@ -316,9 +318,11 @@ const PrayerScreen = () => {
       endProgrammaticScroll();
       programmaticScrollRef.current.guardMomentum = false;
       skipMomentumEndCountRef.current += 1;
+      userCommandEpochRef.current += 1;
       console.debug('[PrayerScreen] force-cancelled momentum prior to programmatic select', {
         sectionId,
         skipCount: skipMomentumEndCountRef.current,
+        epoch: userCommandEpochRef.current,
       });
 
       setActiveSectionId(sectionId);
@@ -399,6 +403,7 @@ const PrayerScreen = () => {
           }
         }}
         onMomentumScrollBegin={() => {
+          momentumEpochRef.current = userCommandEpochRef.current;
           if (programmaticScrollRef.current.active) {
             programmaticScrollRef.current.guardMomentum = true;
           }
@@ -422,6 +427,13 @@ const PrayerScreen = () => {
                 guard: programmaticScrollRef.current.guardMomentum,
               },
             );
+            return;
+          }
+          if (momentumEpochRef.current < userCommandEpochRef.current) {
+            console.debug('[PrayerScreen] ignored momentum-end from older epoch', {
+              momentumEpoch: momentumEpochRef.current,
+              userEpoch: userCommandEpochRef.current,
+            });
             return;
           }
           endProgrammaticScroll();
