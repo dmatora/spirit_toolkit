@@ -67,15 +67,43 @@ const ServiceMap = ({
   style,
   isDisabled = false,
 }: Props) => {
+  const scrollRef = React.useRef<ScrollView | null>(null);
+  const chipPositionsRef = React.useRef<Record<string, { x: number; width: number }>>({});
+  const containerWidthRef = React.useRef<number>(0);
+
+  React.useEffect(() => {
+    chipPositionsRef.current = {};
+  }, [sections]);
+
+  const scrollActiveIntoView = React.useCallback(() => {
+    if (!activeSectionId) return;
+    const position = chipPositionsRef.current[activeSectionId];
+    const containerWidth = containerWidthRef.current;
+
+    if (position && containerWidth && scrollRef.current) {
+      const targetX = Math.max(0, position.x + position.width / 2 - containerWidth / 2);
+      scrollRef.current.scrollTo({ x: targetX, animated: true });
+    }
+  }, [activeSectionId]);
+
+  React.useEffect(() => {
+    scrollActiveIntoView();
+  }, [scrollActiveIntoView]);
+
   if (!sections.length) return null;
 
   return (
     <ScrollView
+      ref={scrollRef}
       horizontal
       style={[styles.container, style]}
       contentContainerStyle={styles.content}
       showsHorizontalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
+      onLayout={(event) => {
+        containerWidthRef.current = event.nativeEvent.layout.width;
+        scrollActiveIntoView();
+      }}
     >
       {sections.map((section, index) => {
         const isActive = section.id === activeSectionId;
@@ -90,6 +118,15 @@ const ServiceMap = ({
             key={section.id}
             onPress={isDisabled ? undefined : () => onSelect(section.id)}
             disabled={isDisabled}
+            onLayout={(event) => {
+              chipPositionsRef.current[section.id] = {
+                x: event.nativeEvent.layout.x,
+                width: event.nativeEvent.layout.width,
+              };
+              if (section.id === activeSectionId) {
+                scrollActiveIntoView();
+              }
+            }}
             style={({ pressed }) => [
               ...baseChipStyle,
               isActive && styles.chipActive,
