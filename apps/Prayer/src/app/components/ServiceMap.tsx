@@ -8,6 +8,7 @@ type Props = {
   activeSectionId?: string;
   onSelect: (id: string) => void;
   style?: StyleProp<ViewStyle>;
+  isDisabled?: boolean;
 };
 
 const styles = StyleSheet.create({
@@ -38,6 +39,9 @@ const styles = StyleSheet.create({
   chipPressed: {
     opacity: 0.8,
   },
+  chipDisabled: {
+    opacity: 0.5,
+  },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
@@ -56,7 +60,13 @@ const styles = StyleSheet.create({
   },
 });
 
-const ServiceMap = ({ sections, activeSectionId, onSelect, style }: Props) => {
+const ServiceMap = ({
+  sections,
+  activeSectionId,
+  onSelect,
+  style,
+  isDisabled = false,
+}: Props) => {
   if (!sections.length) return null;
 
   return (
@@ -69,20 +79,28 @@ const ServiceMap = ({ sections, activeSectionId, onSelect, style }: Props) => {
     >
       {sections.map((section, index) => {
         const isActive = section.id === activeSectionId;
-        const baseChipStyle = [styles.chip, index === sections.length - 1 && styles.lastChip];
+        const baseChipStyle = [
+          styles.chip,
+          index === sections.length - 1 && styles.lastChip,
+          isDisabled && styles.chipDisabled,
+        ];
 
         return (
           <Pressable
             key={section.id}
-            onPress={() => onSelect(section.id)}
+            onPress={isDisabled ? undefined : () => onSelect(section.id)}
+            disabled={isDisabled}
             style={({ pressed }) => [
               ...baseChipStyle,
               isActive && styles.chipActive,
-              pressed && styles.chipPressed,
+              pressed && !isDisabled && styles.chipPressed,
             ]}
             accessibilityRole="button"
-            accessibilityState={{ selected: isActive }}
+            accessibilityState={{ selected: isActive, disabled: isDisabled }}
             accessibilityLabel={`Перейти к разделу ${section.title}`}
+            accessibilityHint={
+              isDisabled ? 'Позиции разделов загружаются' : undefined
+            }
           >
             <Text style={[styles.chipText, isActive && styles.chipTextActive]} numberOfLines={1}>
               {section.title}

@@ -74,6 +74,9 @@ const PrayerScreen = () => {
     [sectionRanges, activeSectionId],
   );
 
+  const isPositionsReady =
+    sections.length > 0 && Object.keys(sectionPositionsRef.current).length >= sections.length;
+
   const handleStartTimeChange = useCallback(
     (next: Date) => {
       setStartTime(next);
@@ -145,6 +148,7 @@ const PrayerScreen = () => {
           activeSectionId={activeSectionId}
           onSelect={handleSelectSection}
           style={styles.mapContainer}
+          isDisabled={!isPositionsReady}
         />
       </View>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll}>
