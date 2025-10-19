@@ -1,4 +1,5 @@
 import type { PrayerBlock } from '../types/prayer';
+import { evaluateCondition } from './conditions';
 
 export type ServiceSection = {
   id: string;
@@ -12,34 +13,112 @@ type HeadingSnapshot = {
   timestamp_minutes?: number;
 };
 
+type TraversalState = {
+  globalIndex: number;
+  lastHeading: HeadingSnapshot | null;
+};
+
+type TraverseCallbackArgs = {
+  block: PrayerBlock;
+  index: number;
+  lastHeading: HeadingSnapshot | null;
+};
+
+type TraverseCallback = (args: TraverseCallbackArgs) => void;
+
 const fallbackTitle = (count: number) => `Раздел ${count + 1}`;
 
-export const extractMajorSections = (blocks: PrayerBlock[]): ServiceSection[] => {
-  const sections: ServiceSection[] = [];
-  let lastHeading: HeadingSnapshot | null = null;
+const traverseBlocks = (
+  blocks: PrayerBlock[],
+  now: Date,
+  state: TraversalState,
+  callback?: TraverseCallback,
+) => {
+  blocks.forEach((block) => {
+    if (block.type === 'conditional') {
+      if (evaluateCondition(block, now)) {
+        traverseBlocks(block.content, now, state, callback);
+      }
+      return;
+    }
 
-  blocks.forEach((block, index) => {
     if (block.type === 'heading') {
-      lastHeading = { title: block.content, timestamp_minutes: block.timestamp_minutes };
+      state.lastHeading = {
+        title: block.content,
+        timestamp_minutes: block.timestamp_minutes,
+      };
     }
 
-    if (block.is_major_section) {
-      const directTitle =
-        block.type === 'heading' || block.type === 'paragraph' || block.type === 'instruction'
-          ? block.content
-          : undefined;
+    const index = state.globalIndex;
 
-      const title = directTitle ?? lastHeading?.title ?? fallbackTitle(sections.length);
-      const timestamp = block.timestamp_minutes ?? lastHeading?.timestamp_minutes;
+    callback?.({
+      block,
+      index,
+      lastHeading: state.lastHeading,
+    });
 
-      sections.push({
-        id: `section-${index}`,
-        title,
-        index,
-        ...(typeof timestamp === 'number' ? { timestamp_minutes: timestamp } : {}),
-      });
+    state.globalIndex += 1;
+  });
+};
+
+export const extractMajorSections = (
+  blocks: PrayerBlock[],
+  now: Date = new Date(),
+): ServiceSection[] => {
+  const sections: ServiceSection[] = [];
+  const state: TraversalState = { globalIndex: 0, lastHeading: null };
+
+  traverseBlocks(blocks, now, state, ({ block, index, lastHeading }) => {
+    if (!block.is_major_section) {
+      return;
     }
+
+    const directTitle =
+      block.type === 'heading' || block.type === 'paragraph' || block.type === 'instruction'
+        ? block.content
+        : undefined;
+    const title = directTitle ?? lastHeading?.title ?? fallbackTitle(sections.length);
+    const timestamp = block.timestamp_minutes ?? lastHeading?.timestamp_minutes;
+
+    sections.push({
+      id: `section-${index}`,
+      title,
+      index,
+      ...(typeof timestamp === 'number' ? { timestamp_minutes: timestamp } : {}),
+    });
   });
 
   return sections;
+};
+
+export type ServiceSectionRange = {
+  id: string;
+  startIndex: number;
+  endIndexExclusive: number;
+};
+
+export const computeSectionRanges = (
+  blocks: PrayerBlock[],
+  sections: ServiceSection[],
+  now: Date = new Date(),
+): ServiceSectionRange[] => {
+  const state: TraversalState = { globalIndex: 0, lastHeading: null };
+  traverseBlocks(blocks, now, state);
+
+  const totalRenderedCount = state.globalIndex;
+
+  if (sections.length === 0) {
+    return [];
+  }
+
+  const sortedSections = [...sections].sort((a, b) => a.index - b.index);
+
+  return sortedSections.map((section, idx) => {
+    const nextSection = sortedSections[idx + 1];
+    return {
+      id: section.id,
+      startIndex: section.index,
+      endIndexExclusive: nextSection ? nextSection.index : totalRenderedCount,
+    };
+  });
 };
