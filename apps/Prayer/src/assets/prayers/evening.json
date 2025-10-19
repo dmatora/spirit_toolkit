@@ -1,0 +1,12 @@
+[
+  { "type": "heading", "content": "Вечерня" },
+  { "type": "paragraph", "content": "Свете тихий святыя славы бессмертного Отца небесного..." },
+  { "type": "instruction", "content": "Читается стоя." },
+  {
+    "type": "conditional",
+    "condition": { "rule": "pascha_period" },
+    "content": [
+      { "type": "paragraph", "content": "Во дни Пасхи поется: Христос воскресе из мертвых..." }
+    ]
+  }
+]

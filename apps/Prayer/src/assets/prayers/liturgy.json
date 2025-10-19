@@ -1,0 +1,14 @@
+[
+  { "type": "heading", "content": "Божественная литургия" },
+  { "type": "paragraph", "content": "Со страхом Божиим и верою приступите." },
+  { "type": "instruction", "content": "Народ отвечает: Аминь." },
+  {
+    "type": "conditional",
+    "condition": { "rule": "pascha_period" },
+    "content": [
+      { "type": "heading", "content": "Пасхальный возглас" },
+      { "type": "paragraph", "content": "Христос воскресе из мёртвых, смертию смерть поправ..." },
+      { "type": "instruction", "content": "Трижды." }
+    ]
+  }
+]
