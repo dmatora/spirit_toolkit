@@ -1,12 +1,158 @@
 [
-  { "type": "heading", "content": "Вечерня" },
-  { "type": "paragraph", "content": "Свете тихий святыя славы бессмертного Отца небесного..." },
-  { "type": "instruction", "content": "Читается стоя." },
+  {
+    "type": "heading",
+    "content": "Вечерня",
+    "role": "priest",
+    "timestamp_minutes": 0
+  },
+  {
+    "type": "heading",
+    "content": "Начальный возглас",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 0
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник возглашает: Благословен Бог наш всегда, ныне и присно и во веки веков.",
+    "role": "priest",
+    "timestamp_minutes": 1
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор отвечает: Аминь.",
+    "role": "choir",
+    "timestamp_minutes": 1
+  },
+  {
+    "type": "heading",
+    "content": "Мирная ектения",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 5
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон произносит прошения о мире всего мира, о святом храме сем и о благоговейных людях.",
+    "role": "deacon",
+    "timestamp_minutes": 6
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ на каждое прошение отвечает: Господи, помилуй.",
+    "role": "people",
+    "timestamp_minutes": 6
+  },
+  {
+    "type": "instruction",
+    "content": "Священник читает молитву Мирной ектении тайно.",
+    "role": "priest",
+    "timestamp_minutes": 7
+  },
+  {
+    "type": "heading",
+    "content": "Свете тихий",
+    "role": "choir",
+    "is_major_section": true,
+    "timestamp_minutes": 15
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет гимн \"Свете тихий святыя славы\" во время входа со светильниками.",
+    "role": "choir",
+    "timestamp_minutes": 16
+  },
+  {
+    "type": "instruction",
+    "content": "Народ слушает песнопение стоя со свечами.",
+    "role": "people",
+    "timestamp_minutes": 16
+  },
+  {
+    "type": "heading",
+    "content": "Псалом",
+    "role": "choir",
+    "is_major_section": true,
+    "timestamp_minutes": 20
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор читает стихиры на \"Господи, воззвах\", чередуя стихи псалма и песнопения.",
+    "role": "choir",
+    "timestamp_minutes": 21
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон кадит храм во время пения стихир.",
+    "role": "deacon",
+    "timestamp_minutes": 22
+  },
+  {
+    "type": "heading",
+    "content": "Сугубая ектения",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 25
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон произносит усиленные прошения о священноначалии, Отечестве и всем народе.",
+    "role": "deacon",
+    "timestamp_minutes": 26
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ отвечает многократно: Господи, помилуй.",
+    "role": "people",
+    "timestamp_minutes": 26
+  },
+  {
+    "type": "instruction",
+    "content": "Священник читает молитву Сугубой ектении.",
+    "role": "priest",
+    "timestamp_minutes": 27
+  },
+  {
+    "type": "heading",
+    "content": "Отпуст",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 35
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник произносит заключительный возглас: Слава Тебе, Христе Боже, упование наше, слава Тебе.",
+    "role": "priest",
+    "timestamp_minutes": 36
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор отвечает: Слава Отцу и Сыну и Святому Духу...",
+    "role": "choir",
+    "timestamp_minutes": 36
+  },
+  {
+    "type": "instruction",
+    "content": "Народ принимает благословение и расходится мирно.",
+    "role": "people",
+    "timestamp_minutes": 37
+  },
   {
     "type": "conditional",
     "condition": { "rule": "pascha_period" },
     "content": [
-      { "type": "paragraph", "content": "Во дни Пасхи поется: Христос воскресе из мертвых..." }
+      {
+        "type": "paragraph",
+        "content": "Во дни Пасхи священник возглашает: Христос воскресе из мертвых!",
+        "role": "priest",
+        "timestamp_minutes": 38
+      },
+      {
+        "type": "paragraph",
+        "content": "Хор и народ отвечают: Воистину воскресе!",
+        "role": "people",
+        "timestamp_minutes": 38
+      }
     ]
   }
 ]
