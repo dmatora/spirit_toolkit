@@ -236,57 +236,57 @@
     "content": "\"Ныне отпущаеши\"",
     "role": "priest",
     "is_major_section": true,
-    "timestamp_minutes": 36
+    "timestamp_minutes": 40
   },
   {
     "type": "paragraph",
     "content": "Священник: Ныне отпущаеши раба Твоего, Владыко.",
     "role": "priest",
-    "timestamp_minutes": 36
+    "timestamp_minutes": 40
   },
   {
     "type": "paragraph",
     "content": "Народ повторяет песнь Симеона, поклоняясь Господу.",
     "role": "people",
-    "timestamp_minutes": 37
+    "timestamp_minutes": 41
   },
   {
     "type": "heading",
     "content": "Трисвятое и завершающие молитвы",
     "role": "choir",
     "is_major_section": true,
-    "timestamp_minutes": 39
+    "timestamp_minutes": 42
   },
   {
     "type": "paragraph",
     "content": "Хор поет: Свят Боже, Свят Крепок, Свят Безсмертен, помилуй нас.",
     "role": "choir",
-    "timestamp_minutes": 39
+    "timestamp_minutes": 42
   },
   {
     "type": "paragraph",
     "content": "Священник читает молитву главопреклонения и благословляет молящихся.",
     "role": "priest",
-    "timestamp_minutes": 40
+    "timestamp_minutes": 43
   },
   {
     "type": "heading",
     "content": "Отпуст",
     "role": "priest",
     "is_major_section": true,
-    "timestamp_minutes": 42
+    "timestamp_minutes": 45
   },
   {
     "type": "paragraph",
     "content": "Священник: Христос, истинный Бог наш, молитвами Пречистыя Матери Своей да помилует и спасет нас.",
     "role": "priest",
-    "timestamp_minutes": 42
+    "timestamp_minutes": 45
   },
   {
     "type": "paragraph",
     "content": "Хор отвечает славословием: Аминь. Будь имя Господне благословено отныне и до века.",
     "role": "choir",
-    "timestamp_minutes": 43
+    "timestamp_minutes": 46
   },
   {
     "type": "conditional",
@@ -296,13 +296,13 @@
         "type": "paragraph",
         "content": "Священник возглашает: Христос воскресе из мертвых!",
         "role": "priest",
-        "timestamp_minutes": 44
+        "timestamp_minutes": 47
       },
       {
         "type": "paragraph",
         "content": "Хор и народ отвечают: Воистину воскресе!",
         "role": "people",
-        "timestamp_minutes": 44
+        "timestamp_minutes": 47
       }
     ]
   }
