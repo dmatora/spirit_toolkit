@@ -13,6 +13,7 @@ import PrayerRenderer from '../components/PrayerRenderer';
 import MeasureProgressBar from '../components/MeasureProgressBar';
 import ServiceMap from '../components/ServiceMap';
 import { extractMajorSections } from '../utils/serviceMap';
+import { getSectionsSignature } from '../utils/sections';
 import useEvaluationDate from '../hooks/useEvaluationDate';
 import type { PrayerBlock } from '../types/prayer';
 
@@ -67,6 +68,7 @@ const PrayerScreen = () => {
   });
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
   const [measuredCount, setMeasuredCount] = useState<number>(0);
+  const prevSectionsSigRef = useRef<string | null>(null);
 
   useEffect(() => {
     console.log(`EVENT: Prayer screen opened for '${prayerId}'`);
@@ -108,6 +110,8 @@ const PrayerScreen = () => {
     () => extractMajorSections(data, evaluationDate),
     [data, evaluationDate],
   );
+
+  const sectionsSig = useMemo(() => getSectionsSignature(sections), [sections]);
 
   const sectionsCount = sections.length;
   const sectionIndexLookup = useMemo(() => {
@@ -193,10 +197,31 @@ const PrayerScreen = () => {
   }
 
   useEffect(() => {
-    sectionPositionsRef.current = {};
-    setActiveSectionId(undefined);
-    setMeasuredCount(0);
-  }, [sections]);
+    const prevSig = prevSectionsSigRef.current;
+    if (prevSig === null) {
+      prevSectionsSigRef.current = sectionsSig;
+      sectionPositionsRef.current = {};
+      setActiveSectionId(undefined);
+      setMeasuredCount(0);
+      console.debug('[PrayerScreen] sections signature initialized; performed initial reset');
+      return;
+    }
+
+    if (prevSig !== sectionsSig) {
+      prevSectionsSigRef.current = sectionsSig;
+      sectionPositionsRef.current = {};
+      setActiveSectionId(undefined);
+      setMeasuredCount(0);
+      console.debug('[PrayerScreen] sections signature changed; reset measurement state', {
+        prevSig,
+        sectionsSig,
+      });
+    } else {
+      console.debug(
+        '[PrayerScreen] sections signature unchanged; preserving measurement state',
+      );
+    }
+  }, [sectionsSig]);
 
   useEffect(() => {
     return () => {
