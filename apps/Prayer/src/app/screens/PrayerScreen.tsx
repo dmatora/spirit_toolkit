@@ -44,6 +44,10 @@ const PrayerScreen = () => {
   const scrollRef = useRef<ScrollView | null>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
   const lastScrollYRef = useRef(0);
+  const contentHeightRef = useRef<number>(0);
+  const containerHeightRef = useRef<number>(0);
+  const getMaxScrollableY = () =>
+    Math.max(0, contentHeightRef.current - containerHeightRef.current);
   const programmaticScrollRef = useRef<{
     active: boolean;
     targetY: number | null;
@@ -85,11 +89,13 @@ const PrayerScreen = () => {
     sections.length > 0 && Object.keys(sectionPositionsRef.current).length >= sections.length;
 
   function computeActiveSectionIdForY(y: number): string | undefined {
+    const maxY = typeof getMaxScrollableY === 'function' ? getMaxScrollableY() : 0;
+    const clampedY = Math.max(0, Math.min(y, maxY));
     const positions = sectionPositionsRef.current as Record<string, number>;
     let current: { id: string; y: number } | undefined;
     for (const section of sections) {
       const sectionY = positions[section.id];
-      if (typeof sectionY === 'number' && sectionY <= y + 1) {
+      if (typeof sectionY === 'number' && sectionY <= clampedY + 1) {
         if (!current || sectionY > current.y) {
           current = { id: section.id, y: sectionY };
         }
@@ -232,6 +238,12 @@ const PrayerScreen = () => {
       <ScrollView
         ref={scrollRef}
         contentContainerStyle={styles.scroll}
+        onContentSizeChange={(_w, h) => {
+          contentHeightRef.current = h;
+        }}
+        onLayout={(event) => {
+          containerHeightRef.current = event.nativeEvent.layout.height;
+        }}
         onScroll={handleScroll}
         onScrollBeginDrag={() => {
           if (programmaticScrollRef.current.active) {
