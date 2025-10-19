@@ -1,13 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  View,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
 import PrayerRenderer from '../components/PrayerRenderer';
 import ServiceMap from '../components/ServiceMap';
-import ServiceClockBar from '../components/ServiceClockBar';
-import { computeSectionRanges, extractMajorSections } from '../utils/serviceMap';
+import { extractMajorSections } from '../utils/serviceMap';
 import useEvaluationDate from '../hooks/useEvaluationDate';
-import { useServiceProgress } from '../hooks/useServiceProgress';
 import type { PrayerBlock } from '../types/prayer';
 
 const styles = StyleSheet.create({
@@ -16,11 +21,6 @@ const styles = StyleSheet.create({
     backgroundColor: palette.paper,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: palette.divider,
-  },
-  clockBar: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
   },
   mapContainer: {
     paddingHorizontal: 20,
@@ -39,6 +39,7 @@ const PrayerScreen = () => {
   const prayerId: string = route?.params?.prayerId ?? 'liturgy';
   const scrollRef = useRef<ScrollView | null>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
+  const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     console.log(`EVENT: Prayer screen opened for '${prayerId}'`);
@@ -55,7 +56,6 @@ const PrayerScreen = () => {
     () => extractMajorSections(data, evaluationDate),
     [data, evaluationDate],
   );
-  const { startTime, setStartTime, minutesSinceStart, activeSectionId } = useServiceProgress(sections);
 
   const sectionIndexLookup = useMemo(() => {
     const lookup: Record<number, string> = {};
@@ -65,28 +65,12 @@ const PrayerScreen = () => {
     return lookup;
   }, [sections]);
 
-  const sectionRanges = useMemo(
-    () => computeSectionRanges(data, sections, evaluationDate),
-    [data, sections, evaluationDate],
-  );
-
-  const activeSectionRange = useMemo(
-    () => sectionRanges.find((range) => range.id === activeSectionId),
-    [sectionRanges, activeSectionId],
-  );
-
   const isPositionsReady =
     sections.length > 0 && Object.keys(sectionPositionsRef.current).length >= sections.length;
 
-  const handleStartTimeChange = useCallback(
-    (next: Date) => {
-      setStartTime(next);
-    },
-    [setStartTime],
-  );
-
   useEffect(() => {
     sectionPositionsRef.current = {};
+    setActiveSectionId(undefined);
   }, [sections]);
 
   const handleSectionLayout = useCallback(
@@ -98,8 +82,31 @@ const PrayerScreen = () => {
     [sectionIndexLookup],
   );
 
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = event.nativeEvent.contentOffset.y;
+      const positions = sectionPositionsRef.current as Record<string, number>;
+      let current: { id: string; y: number } | undefined;
+
+      for (const section of sections) {
+        const sectionY = positions[section.id];
+        if (typeof sectionY === 'number' && sectionY <= y + 1) {
+          if (!current || sectionY > current.y) {
+            current = { id: section.id, y: sectionY };
+          }
+        }
+      }
+
+      const fallback = sections.find((section) => typeof positions[section.id] === 'number');
+      const nextId = current?.id ?? fallback?.id;
+      setActiveSectionId(nextId);
+    },
+    [sections],
+  );
+
   const handleSelectSection = useCallback(
     (sectionId: string) => {
+      setActiveSectionId(sectionId);
       const positions = sectionPositionsRef.current;
       const directOffset = positions[sectionId];
 
@@ -138,12 +145,6 @@ const PrayerScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
-        <ServiceClockBar
-          startTime={startTime}
-          minutesSinceStart={minutesSinceStart}
-          onChange={handleStartTimeChange}
-          style={styles.clockBar}
-        />
         <ServiceMap
           sections={sections}
           activeSectionId={activeSectionId}
@@ -152,13 +153,16 @@ const PrayerScreen = () => {
           isDisabled={!isPositionsReady}
         />
       </View>
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scroll}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <PrayerRenderer
           blocks={data}
           onMajorSectionLayout={handleSectionLayout}
           sectionIdLookup={sectionIndexLookup}
-          activeSectionId={activeSectionId}
-          activeSectionRange={activeSectionRange}
           evaluationDate={evaluationDate}
         />
       </ScrollView>
