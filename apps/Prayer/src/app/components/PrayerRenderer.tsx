@@ -37,6 +37,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     color: palette.mutedInk,
   },
+  activeHighlight: {
+    backgroundColor: palette.accentSoft,
+    borderLeftColor: palette.accent,
+  },
 });
 
 type RoleStyleConfig = {
@@ -72,18 +76,26 @@ function evaluateCondition(block: PrayerConditionalBlock, now: Date = new Date()
 type Props = {
   blocks: PrayerBlock[];
   onMajorSectionLayout?: (block: PrayerBlock, index: number, y: number) => void;
+  sectionIdLookup?: Record<number, string>;
+  activeSectionId?: string;
 };
 
 type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' | 'instruction' }>;
+
+type RenderOptions = {
+  onLayout?: (event: LayoutChangeEvent) => void;
+  isActive?: boolean;
+};
 
 const renderTextualBlock = (
   block: TextualPrayerBlock,
   index: number,
   textStyle: TextStyle,
   keyPrefix: string,
-  onLayout?: (event: LayoutChangeEvent) => void,
+  options: RenderOptions = {},
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
+  const { onLayout, isActive } = options;
 
   return (
     <View
@@ -95,6 +107,7 @@ const renderTextualBlock = (
           borderLeftColor: roleStyle.borderColor,
           backgroundColor: roleStyle.backgroundColor ?? palette.paper,
         },
+        isActive && styles.activeHighlight,
       ]}
       onLayout={onLayout}
     >
@@ -111,8 +124,11 @@ const renderTextualBlock = (
   );
 };
 
-const PrayerRenderer = ({ blocks, onMajorSectionLayout }: Props) => {
+const PrayerRenderer = ({ blocks, onMajorSectionLayout, sectionIdLookup, activeSectionId }: Props) => {
   const renderBlock = (block: PrayerBlock, index: number): React.ReactNode => {
+    const sectionId = sectionIdLookup?.[index];
+    const isActive = Boolean(sectionId && sectionId === activeSectionId);
+
     switch (block.type) {
       case 'heading':
         return renderTextualBlock(
@@ -120,11 +136,14 @@ const PrayerRenderer = ({ blocks, onMajorSectionLayout }: Props) => {
           index,
           styles.heading,
           'heading',
-          block.is_major_section
-            ? (event) => {
-                onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
-              }
-            : undefined,
+          {
+            isActive,
+            onLayout: block.is_major_section
+              ? (event) => {
+                  onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+                }
+              : undefined,
+          },
         );
       case 'paragraph':
         return renderTextualBlock(
@@ -132,11 +151,14 @@ const PrayerRenderer = ({ blocks, onMajorSectionLayout }: Props) => {
           index,
           styles.paragraph,
           'paragraph',
-          block.is_major_section
-            ? (event) => {
-                onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
-              }
-            : undefined,
+          {
+            isActive,
+            onLayout: block.is_major_section
+              ? (event) => {
+                  onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+                }
+              : undefined,
+          },
         );
       case 'instruction':
         return renderTextualBlock(
@@ -144,11 +166,14 @@ const PrayerRenderer = ({ blocks, onMajorSectionLayout }: Props) => {
           index,
           styles.instruction,
           'instruction',
-          block.is_major_section
-            ? (event) => {
-                onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
-              }
-            : undefined,
+          {
+            isActive,
+            onLayout: block.is_major_section
+              ? (event) => {
+                  onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+                }
+              : undefined,
+          },
         );
       case 'conditional': {
         const shouldShow = evaluateCondition(block);

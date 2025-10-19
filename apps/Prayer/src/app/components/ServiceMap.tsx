@@ -81,6 +81,7 @@ const ServiceMap = ({ sections, activeSectionId, onSelect, style }: Props) => {
               pressed && styles.chipPressed,
             ]}
             accessibilityRole="button"
+            accessibilityState={{ selected: isActive }}
             accessibilityLabel={`Перейти к разделу ${section.title}`}
           >
             <Text style={[styles.chipText, isActive && styles.chipTextActive]} numberOfLines={1}>

@@ -1,21 +1,29 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
 import PrayerRenderer from '../components/PrayerRenderer';
 import ServiceMap from '../components/ServiceMap';
+import ServiceClockBar from '../components/ServiceClockBar';
 import { extractMajorSections } from '../utils/serviceMap';
+import { useServiceProgress } from '../hooks/useServiceProgress';
 import type { PrayerBlock } from '../types/prayer';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.paper },
-  mapContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
+  topBar: {
     backgroundColor: palette.paper,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: palette.divider,
+  },
+  clockBar: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  mapContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
   scroll: { paddingBottom: 24 },
 });
@@ -41,6 +49,7 @@ const PrayerScreen = () => {
   }, [prayerId]);
 
   const sections = useMemo(() => extractMajorSections(data), [data]);
+  const { startTime, setStartTime, minutesSinceStart, activeSectionId } = useServiceProgress(sections);
 
   const sectionIndexLookup = useMemo(() => {
     const lookup: Record<number, string> = {};
@@ -49,6 +58,13 @@ const PrayerScreen = () => {
     });
     return lookup;
   }, [sections]);
+
+  const handleStartTimeChange = useCallback(
+    (next: Date) => {
+      setStartTime(next);
+    },
+    [setStartTime],
+  );
 
   useEffect(() => {
     sectionPositionsRef.current = {};
@@ -72,9 +88,27 @@ const PrayerScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ServiceMap sections={sections} onSelect={handleSelectSection} style={styles.mapContainer} />
+      <View style={styles.topBar}>
+        <ServiceClockBar
+          startTime={startTime}
+          minutesSinceStart={minutesSinceStart}
+          onChange={handleStartTimeChange}
+          style={styles.clockBar}
+        />
+        <ServiceMap
+          sections={sections}
+          activeSectionId={activeSectionId}
+          onSelect={handleSelectSection}
+          style={styles.mapContainer}
+        />
+      </View>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.scroll}>
-        <PrayerRenderer blocks={data} onMajorSectionLayout={handleSectionLayout} />
+        <PrayerRenderer
+          blocks={data}
+          onMajorSectionLayout={handleSectionLayout}
+          sectionIdLookup={sectionIndexLookup}
+          activeSectionId={activeSectionId}
+        />
       </ScrollView>
     </SafeAreaView>
   );
