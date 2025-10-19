@@ -53,6 +53,8 @@ const PrayerScreen = () => {
     targetY: number | null;
     timeoutId: ReturnType<typeof setTimeout> | null;
     guardMomentum: boolean;
+    pendingEnd?: boolean;
+    settleTimeoutId?: ReturnType<typeof setTimeout> | null;
   }>({
     active: false,
     targetY: null,
@@ -124,6 +126,7 @@ const PrayerScreen = () => {
     );
     ref.active = true;
     ref.targetY = targetY;
+    ref.guardMomentum = true;
     if (ref.timeoutId) {
       clearTimeout(ref.timeoutId);
     }
@@ -248,6 +251,7 @@ const PrayerScreen = () => {
         onScrollBeginDrag={() => {
           if (programmaticScrollRef.current.active) {
             endProgrammaticScroll();
+            programmaticScrollRef.current.guardMomentum = false;
           }
         }}
         onMomentumScrollBegin={() => {
