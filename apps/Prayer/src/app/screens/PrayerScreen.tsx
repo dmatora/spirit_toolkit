@@ -29,7 +29,6 @@ const styles = StyleSheet.create({
     borderBottomColor: palette.divider,
   },
   mapContainer: {
-    paddingHorizontal: 20,
     paddingBottom: 8,
   },
   scroll: { paddingBottom: 24 },
