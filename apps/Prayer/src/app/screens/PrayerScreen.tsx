@@ -16,7 +16,8 @@ import useEvaluationDate from '../hooks/useEvaluationDate';
 import type { PrayerBlock } from '../types/prayer';
 
 const PROGRAMMATIC_SCROLL_THRESHOLD = 4;
-const PROGRAMMATIC_SCROLL_TIMEOUT_MS = 1200;
+const PROGRAMMATIC_SCROLL_BASE_MS = 400; // base duration
+const PROGRAMMATIC_SCROLL_PER_PX_MS = 0.6; // ms per px distance
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.paper },
@@ -110,6 +111,11 @@ const PrayerScreen = () => {
 
   function beginProgrammaticScroll(targetY: number) {
     const ref = programmaticScrollRef.current;
+    const currentY = lastScrollYRef.current ?? 0;
+    const distance = Math.abs(currentY - targetY);
+    const dynamicTimeout = Math.ceil(
+      PROGRAMMATIC_SCROLL_BASE_MS + PROGRAMMATIC_SCROLL_PER_PX_MS * distance,
+    );
     ref.active = true;
     ref.targetY = targetY;
     if (ref.timeoutId) {
@@ -117,7 +123,7 @@ const PrayerScreen = () => {
     }
     ref.timeoutId = setTimeout(() => {
       endProgrammaticScroll();
-    }, PROGRAMMATIC_SCROLL_TIMEOUT_MS);
+    }, dynamicTimeout);
   }
 
   useEffect(() => {
@@ -157,6 +163,9 @@ const PrayerScreen = () => {
         if (programmaticScrollRef.current.active) {
           return;
         }
+      }
+      if (programmaticScrollRef.current.guardMomentum) {
+        return;
       }
       const nextId = computeActiveSectionIdForY(y);
       setActiveSectionId(nextId);
@@ -229,8 +238,14 @@ const PrayerScreen = () => {
             endProgrammaticScroll();
           }
         }}
+        onMomentumScrollBegin={() => {
+          if (programmaticScrollRef.current.active) {
+            programmaticScrollRef.current.guardMomentum = true;
+          }
+        }}
         onMomentumScrollEnd={() => {
           endProgrammaticScroll();
+          programmaticScrollRef.current.guardMomentum = false;
           const finalY = lastScrollYRef.current || 0;
           const id = computeActiveSectionIdForY(finalY);
           setActiveSectionId(id);
