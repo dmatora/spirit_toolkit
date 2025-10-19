@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TextStyle } from 'react-native';
+import { View, Text, StyleSheet, TextStyle, LayoutChangeEvent } from 'react-native';
 import { palette } from '@spirit/prayer-feature/theme';
 import { orthodoxEaster } from '@spirit/prayer-feature/utils/feasts';
 import type {
@@ -69,7 +69,10 @@ function evaluateCondition(block: PrayerConditionalBlock, now: Date = new Date()
   return false;
 }
 
-type Props = { blocks: PrayerBlock[] };
+type Props = {
+  blocks: PrayerBlock[];
+  onMajorSectionLayout?: (block: PrayerBlock, index: number, y: number) => void;
+};
 
 type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' | 'instruction' }>;
 
@@ -78,6 +81,7 @@ const renderTextualBlock = (
   index: number,
   textStyle: TextStyle,
   keyPrefix: string,
+  onLayout?: (event: LayoutChangeEvent) => void,
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
 
@@ -92,6 +96,7 @@ const renderTextualBlock = (
           backgroundColor: roleStyle.backgroundColor ?? palette.paper,
         },
       ]}
+      onLayout={onLayout}
     >
       {roleStyle && (
         <Text
@@ -106,15 +111,45 @@ const renderTextualBlock = (
   );
 };
 
-const PrayerRenderer = ({ blocks }: Props) => {
+const PrayerRenderer = ({ blocks, onMajorSectionLayout }: Props) => {
   const renderBlock = (block: PrayerBlock, index: number): React.ReactNode => {
     switch (block.type) {
       case 'heading':
-        return renderTextualBlock(block, index, styles.heading, 'heading');
+        return renderTextualBlock(
+          block,
+          index,
+          styles.heading,
+          'heading',
+          block.is_major_section
+            ? (event) => {
+                onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+              }
+            : undefined,
+        );
       case 'paragraph':
-        return renderTextualBlock(block, index, styles.paragraph, 'paragraph');
+        return renderTextualBlock(
+          block,
+          index,
+          styles.paragraph,
+          'paragraph',
+          block.is_major_section
+            ? (event) => {
+                onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+              }
+            : undefined,
+        );
       case 'instruction':
-        return renderTextualBlock(block, index, styles.instruction, 'instruction');
+        return renderTextualBlock(
+          block,
+          index,
+          styles.instruction,
+          'instruction',
+          block.is_major_section
+            ? (event) => {
+                onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+              }
+            : undefined,
+        );
       case 'conditional': {
         const shouldShow = evaluateCondition(block);
         if (!shouldShow) return null;
