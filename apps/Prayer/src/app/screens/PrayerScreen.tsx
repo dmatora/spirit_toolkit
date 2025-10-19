@@ -158,6 +158,7 @@ const PrayerScreen = () => {
           sectionIdLookup={sectionIndexLookup}
           activeSectionId={activeSectionId}
           activeSectionRange={activeSectionRange}
+          evaluationDate={evaluationDate}
         />
       </ScrollView>
     </SafeAreaView>
