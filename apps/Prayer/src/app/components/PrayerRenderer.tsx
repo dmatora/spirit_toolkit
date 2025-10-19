@@ -58,6 +58,7 @@ type Props = {
   onMajorSectionLayout?: (block: PrayerBlock, index: number, y: number) => void;
   sectionIdLookup?: Record<number, string>;
   activeSectionId?: string;
+  activeSectionRange?: { startIndex: number; endIndexExclusive: number };
 };
 
 type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' | 'instruction' }>;
@@ -71,7 +72,6 @@ const renderTextualBlock = (
   block: TextualPrayerBlock,
   index: number,
   textStyle: TextStyle,
-  keyPrefix: string,
   options: RenderOptions = {},
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
@@ -79,7 +79,7 @@ const renderTextualBlock = (
 
   return (
     <View
-      key={`${keyPrefix}-${index}`}
+      key={`b-${index}`}
       style={[
         styles.blockWrapper,
         roleStyle && styles.roleWrapper,
@@ -104,72 +104,66 @@ const renderTextualBlock = (
   );
 };
 
-const PrayerRenderer = ({ blocks, onMajorSectionLayout, sectionIdLookup, activeSectionId }: Props) => {
-  const renderBlock = (block: PrayerBlock, index: number): React.ReactNode => {
-    const sectionId = sectionIdLookup?.[index];
-    const isActive = Boolean(sectionId && sectionId === activeSectionId);
+const PrayerRenderer = ({
+  blocks,
+  onMajorSectionLayout,
+  sectionIdLookup,
+  activeSectionRange,
+}: Props) => {
+  let globalIndex = -1;
+  let conditionalCounter = 0;
+
+  const isInActiveRange = (index: number) => {
+    if (!activeSectionRange) return false;
+    const { startIndex, endIndexExclusive } = activeSectionRange;
+    return index >= startIndex && index < endIndexExclusive;
+  };
+
+  const renderBlockRecursive = (block: PrayerBlock): React.ReactNode => {
+    if (block.type === 'conditional') {
+      if (!evaluateCondition(block)) {
+        return null;
+      }
+
+      const conditionalKey = conditionalCounter;
+      conditionalCounter += 1;
+
+      return (
+        <View key={`conditional-${conditionalKey}`} style={styles.conditionalBox}>
+          {block.content.map((child) => renderBlockRecursive(child))}
+        </View>
+      );
+    }
+
+    globalIndex += 1;
+    const index = globalIndex;
+    const hasSection = Boolean(sectionIdLookup?.[index]);
+
+    const onLayout =
+      block.is_major_section && hasSection
+        ? (event: LayoutChangeEvent) => {
+            onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
+          }
+        : undefined;
+
+    const renderOptions: RenderOptions = {
+      isActive: isInActiveRange(index),
+      onLayout,
+    };
 
     switch (block.type) {
       case 'heading':
-        return renderTextualBlock(
-          block,
-          index,
-          styles.heading,
-          'heading',
-          {
-            isActive,
-            onLayout: block.is_major_section
-              ? (event) => {
-                  onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
-                }
-              : undefined,
-          },
-        );
+        return renderTextualBlock(block, index, styles.heading, renderOptions);
       case 'paragraph':
-        return renderTextualBlock(
-          block,
-          index,
-          styles.paragraph,
-          'paragraph',
-          {
-            isActive,
-            onLayout: block.is_major_section
-              ? (event) => {
-                  onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
-                }
-              : undefined,
-          },
-        );
+        return renderTextualBlock(block, index, styles.paragraph, renderOptions);
       case 'instruction':
-        return renderTextualBlock(
-          block,
-          index,
-          styles.instruction,
-          'instruction',
-          {
-            isActive,
-            onLayout: block.is_major_section
-              ? (event) => {
-                  onMajorSectionLayout?.(block, index, event.nativeEvent.layout.y);
-                }
-              : undefined,
-          },
-        );
-      case 'conditional': {
-        const shouldShow = evaluateCondition(block);
-        if (!shouldShow) return null;
-        return (
-          <View key={`conditional-${index}`} style={styles.conditionalBox}>
-            {block.content.map((child, i) => renderBlock(child, i))}
-          </View>
-        );
-      }
+        return renderTextualBlock(block, index, styles.instruction, renderOptions);
       default:
         return null;
     }
   };
 
-  return <View style={styles.container}>{blocks.map((b, i) => renderBlock(b, i))}</View>;
+  return <View style={styles.container}>{blocks.map((block) => renderBlockRecursive(block))}</View>;
 };
 
 export default PrayerRenderer;
