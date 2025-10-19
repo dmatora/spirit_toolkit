@@ -2,6 +2,7 @@
   {
     "type": "heading",
     "content": "Божественная литургия свт. Иоанна Златоуста",
+    "is_major_section": true,
     "timestamp_minutes": 0
   },
   {
@@ -75,13 +76,13 @@
   {
     "type": "heading",
     "content": "Литургия оглашаемых",
+    "is_major_section": true,
     "timestamp_minutes": 12
   },
   {
     "type": "paragraph",
     "role": "deacon",
     "content": "Благослови, владыко.",
-    "is_major_section": true,
     "timestamp_minutes": 12
   },
   {
