@@ -10,6 +10,7 @@ import {
 import { useRoute } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
 import PrayerRenderer from '../components/PrayerRenderer';
+import MeasureProgressBar from '../components/MeasureProgressBar';
 import ServiceMap from '../components/ServiceMap';
 import { extractMajorSections } from '../utils/serviceMap';
 import useEvaluationDate from '../hooks/useEvaluationDate';
@@ -71,6 +72,31 @@ const PrayerScreen = () => {
     console.log(`EVENT: Prayer screen opened for '${prayerId}'`);
   }, [prayerId]);
 
+  useEffect(() => {
+    const ref = programmaticScrollRef.current;
+    if (ref.timeoutId) {
+      clearTimeout(ref.timeoutId);
+    }
+    if (ref.settleTimeoutId) {
+      clearTimeout(ref.settleTimeoutId);
+    }
+    programmaticScrollRef.current = {
+      active: false,
+      targetY: null,
+      timeoutId: null,
+      guardMomentum: false,
+      pendingEnd: false,
+      settleTimeoutId: null,
+    };
+    sectionPositionsRef.current = {};
+    lastScrollYRef.current = 0;
+    contentHeightRef.current = 0;
+    containerHeightRef.current = 0;
+    setMeasuredCount(0);
+    setActiveSectionId(undefined);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [prayerId]);
+
   const data: PrayerBlock[] = useMemo(() => {
     const payload = PRAYERS[prayerId] ?? PRAYERS['liturgy'];
     return payload as unknown as PrayerBlock[];
@@ -92,6 +118,8 @@ const PrayerScreen = () => {
     return lookup;
   }, [sections]);
 
+  const isCalculating = sectionsCount > 0 && measuredCount < sectionsCount;
+  const calcProgress = sectionsCount > 0 ? measuredCount / sectionsCount : 0;
   const isPositionsReady = sectionsCount > 0 && measuredCount >= sectionsCount;
 
   const computeActiveSectionIdForY = useCallback(
@@ -316,6 +344,13 @@ const PrayerScreen = () => {
           style={styles.mapContainer}
           isDisabled={!isPositionsReady}
         />
+        {isCalculating && (
+          <MeasureProgressBar
+            progress={calcProgress}
+            label={`Рассчёт разделов: ${measuredCount}/${sectionsCount}`}
+            style={{ paddingHorizontal: 20, paddingBottom: 8 }}
+          />
+        )}
       </View>
       <ScrollView
         ref={scrollRef}
