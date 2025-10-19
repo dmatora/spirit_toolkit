@@ -216,6 +216,7 @@ const PrayerScreen = () => {
     };
   }, []);
 
+  // Single source of truth: initialize activeSectionId only here when positions are ready.
   useEffect(() => {
     if (!sections.length) {
       return;
@@ -238,18 +239,11 @@ const PrayerScreen = () => {
         positions[sectionId] = y;
         setMeasuredCount((count) => {
           const next = count + 1;
-          if (!activeSectionId && next === sectionsCount) {
-            const initialY = lastScrollYRef.current || 0;
-            const initialId = computeActiveSectionIdForY(initialY);
-            if (initialId) {
-              setActiveSectionId(initialId);
-            }
-          }
           return next;
         });
       }
     },
-    [sectionIndexLookup, activeSectionId, sectionsCount, computeActiveSectionIdForY],
+    [sectionIndexLookup, sectionsCount],
   );
 
   const handleScroll = useCallback(
