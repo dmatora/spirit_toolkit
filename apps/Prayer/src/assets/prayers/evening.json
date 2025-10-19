@@ -1,7 +1,7 @@
 [
   {
     "type": "heading",
-    "content": "Вечерня",
+    "content": "Вечерня (Великая вечерня)",
     "role": "priest",
     "timestamp_minutes": 0
   },
@@ -14,128 +14,279 @@
   },
   {
     "type": "paragraph",
-    "content": "Священник возглашает: Благословен Бог наш всегда, ныне и присно и во веки веков.",
+    "content": "Священник: Благословен Бог наш всегда, ныне и присно и во веки веков.",
     "role": "priest",
-    "timestamp_minutes": 1
+    "timestamp_minutes": 0
   },
   {
     "type": "paragraph",
-    "content": "Хор отвечает: Аминь.",
+    "content": "Хор: Аминь. Слава Тебе, Боже наш, слава Тебе.",
     "role": "choir",
     "timestamp_minutes": 1
   },
   {
     "type": "heading",
-    "content": "Мирная ектения",
-    "role": "deacon",
+    "content": "Псалом 103",
+    "role": "choir",
     "is_major_section": true,
-    "timestamp_minutes": 5
+    "timestamp_minutes": 2
   },
   {
     "type": "paragraph",
-    "content": "Диакон произносит прошения о мире всего мира, о святом храме сем и о благоговейных людях.",
-    "role": "deacon",
-    "timestamp_minutes": 6
-  },
-  {
-    "type": "paragraph",
-    "content": "Народ на каждое прошение отвечает: Господи, помилуй.",
-    "role": "people",
-    "timestamp_minutes": 6
+    "content": "Чтец или хор читает Псалом 103: Благослови, душе моя, Господа.",
+    "role": "choir",
+    "timestamp_minutes": 3
   },
   {
     "type": "instruction",
-    "content": "Священник читает молитву Мирной ектении тайно.",
+    "content": "Священник и диакон читают тайные молитвы о сотворении мира и благословении вечера.",
     "role": "priest",
+    "timestamp_minutes": 4
+  },
+  {
+    "type": "heading",
+    "content": "Великая ектения",
+    "role": "deacon",
+    "is_major_section": true,
     "timestamp_minutes": 7
   },
   {
-    "type": "heading",
-    "content": "Свете тихий",
-    "role": "choir",
-    "is_major_section": true,
-    "timestamp_minutes": 15
+    "type": "paragraph",
+    "content": "Диакон: Миром Господу помолимся.",
+    "role": "deacon",
+    "timestamp_minutes": 7
   },
   {
     "type": "paragraph",
-    "content": "Хор поет гимн \"Свете тихий святыя славы\" во время входа со светильниками.",
-    "role": "choir",
-    "timestamp_minutes": 16
+    "content": "Народ отвечает на каждое прошение: Господи, помилуй.",
+    "role": "people",
+    "timestamp_minutes": 8
   },
   {
     "type": "instruction",
-    "content": "Народ слушает песнопение стоя со свечами.",
-    "role": "people",
-    "timestamp_minutes": 16
+    "content": "Священник тайно молится: Господи, Боже наш, помяни нас и благослови вечер сей.",
+    "role": "priest",
+    "timestamp_minutes": 9
   },
   {
     "type": "heading",
-    "content": "Псалом",
+    "content": "\"Господи, воззвах\" и кадило",
+    "role": "choir",
+    "is_major_section": true,
+    "timestamp_minutes": 12
+  },
+  {
+    "type": "paragraph",
+    "content": "Чтец: Господи, воззвах к Тебе, услыши мя, услыши мя, Господи.",
+    "role": "choir",
+    "timestamp_minutes": 12
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон кадит алтарь, иконостас и народ, обходя храм с кадилом.",
+    "role": "deacon",
+    "timestamp_minutes": 13
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет стихиры дня, вставляя стихины псалма: Да исправится молитва моя, яко кадило пред Тобою.",
+    "role": "choir",
+    "timestamp_minutes": 14
+  },
+  {
+    "type": "heading",
+    "content": "Малый вход",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 18
+  },
+  {
+    "type": "instruction",
+    "content": "Диакон с кадилом и свечой идет перед священником, выходя из алтаря.",
+    "role": "deacon",
+    "timestamp_minutes": 18
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Премудрость, прости.",
+    "role": "priest",
+    "timestamp_minutes": 19
+  },
+  {
+    "type": "heading",
+    "content": "\"Свете тихий\"",
     "role": "choir",
     "is_major_section": true,
     "timestamp_minutes": 20
   },
   {
     "type": "paragraph",
-    "content": "Хор читает стихиры на \"Господи, воззвах\", чередуя стихи псалма и песнопения.",
+    "content": "Хор: Свете тихий святыя славы бессмертнаго Отца небеснаго.",
     "role": "choir",
-    "timestamp_minutes": 21
+    "timestamp_minutes": 20
   },
   {
     "type": "paragraph",
-    "content": "Диакон кадит храм во время пения стихир.",
+    "content": "Священник встает перед Царскими вратами с возжженной свечой, благословляя народ.",
+    "role": "priest",
+    "timestamp_minutes": 21
+  },
+  {
+    "type": "heading",
+    "content": "Прокимен дня",
     "role": "deacon",
-    "timestamp_minutes": 22
+    "is_major_section": true,
+    "timestamp_minutes": 24
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Вонмем! Премудрость!",
+    "role": "deacon",
+    "timestamp_minutes": 24
+  },
+  {
+    "type": "paragraph",
+    "content": "Чтец возглашает прокимен дня, хор исполняет стих и припев.",
+    "role": "choir",
+    "timestamp_minutes": 25
   },
   {
     "type": "heading",
     "content": "Сугубая ектения",
     "role": "deacon",
     "is_major_section": true,
-    "timestamp_minutes": 25
+    "timestamp_minutes": 28
   },
   {
     "type": "paragraph",
-    "content": "Диакон произносит усиленные прошения о священноначалии, Отечестве и всем народе.",
+    "content": "Диакон: Рцем вси от всея души и от всего помышления нашего рцем.",
     "role": "deacon",
-    "timestamp_minutes": 26
+    "timestamp_minutes": 28
   },
   {
     "type": "paragraph",
-    "content": "Народ отвечает многократно: Господи, помилуй.",
+    "content": "Народ многократно отвечает: Господи, помилуй.",
     "role": "people",
-    "timestamp_minutes": 26
+    "timestamp_minutes": 29
   },
   {
     "type": "instruction",
-    "content": "Священник читает молитву Сугубой ектении.",
+    "content": "Священник читает молитву прошений, вознося поминовение архипастырей и власти.",
     "role": "priest",
-    "timestamp_minutes": 27
+    "timestamp_minutes": 30
+  },
+  {
+    "type": "heading",
+    "content": "Ектения просительная",
+    "role": "deacon",
+    "is_major_section": true,
+    "timestamp_minutes": 32
+  },
+  {
+    "type": "paragraph",
+    "content": "Диакон: Исполним вечернюю молитву нашу Господеви.",
+    "role": "deacon",
+    "timestamp_minutes": 32
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ: Подай, Господи.",
+    "role": "people",
+    "timestamp_minutes": 33
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник произносит вечернюю молитву о хранении ночи безгрешной.",
+    "role": "priest",
+    "timestamp_minutes": 34
+  },
+  {
+    "type": "conditional",
+    "condition": { "rule": "pascha_period" },
+    "content": [
+      {
+        "type": "heading",
+        "content": "Лития и артокласия",
+        "role": "priest",
+        "is_major_section": true,
+        "timestamp_minutes": 35
+      },
+      {
+        "type": "paragraph",
+        "content": "Священник выходит на середину храма и благословляет хлебы, пшеницу, вино и елей.",
+        "role": "priest",
+        "timestamp_minutes": 36
+      },
+      {
+        "type": "paragraph",
+        "content": "Хор поет стихиры литии славословя Воскресение Христово.",
+        "role": "choir",
+        "timestamp_minutes": 37
+      },
+      {
+        "type": "paragraph",
+        "content": "Диакон возглашает прошения: Спаси, Боже, люди Твоя и благослови достояние Твое.",
+        "role": "deacon",
+        "timestamp_minutes": 38
+      }
+    ]
+  },
+  {
+    "type": "heading",
+    "content": "\"Ныне отпущаеши\"",
+    "role": "priest",
+    "is_major_section": true,
+    "timestamp_minutes": 36
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник: Ныне отпущаеши раба Твоего, Владыко.",
+    "role": "priest",
+    "timestamp_minutes": 36
+  },
+  {
+    "type": "paragraph",
+    "content": "Народ повторяет песнь Симеона, поклоняясь Господу.",
+    "role": "people",
+    "timestamp_minutes": 37
+  },
+  {
+    "type": "heading",
+    "content": "Трисвятое и завершающие молитвы",
+    "role": "choir",
+    "is_major_section": true,
+    "timestamp_minutes": 39
+  },
+  {
+    "type": "paragraph",
+    "content": "Хор поет: Свят Боже, Свят Крепок, Свят Безсмертен, помилуй нас.",
+    "role": "choir",
+    "timestamp_minutes": 39
+  },
+  {
+    "type": "paragraph",
+    "content": "Священник читает молитву главопреклонения и благословляет молящихся.",
+    "role": "priest",
+    "timestamp_minutes": 40
   },
   {
     "type": "heading",
     "content": "Отпуст",
     "role": "priest",
     "is_major_section": true,
-    "timestamp_minutes": 35
+    "timestamp_minutes": 42
   },
   {
     "type": "paragraph",
-    "content": "Священник произносит заключительный возглас: Слава Тебе, Христе Боже, упование наше, слава Тебе.",
+    "content": "Священник: Христос, истинный Бог наш, молитвами Пречистыя Матери Своей да помилует и спасет нас.",
     "role": "priest",
-    "timestamp_minutes": 36
+    "timestamp_minutes": 42
   },
   {
     "type": "paragraph",
-    "content": "Хор отвечает: Слава Отцу и Сыну и Святому Духу...",
+    "content": "Хор отвечает славословием: Аминь. Будь имя Господне благословено отныне и до века.",
     "role": "choir",
-    "timestamp_minutes": 36
-  },
-  {
-    "type": "instruction",
-    "content": "Народ принимает благословение и расходится мирно.",
-    "role": "people",
-    "timestamp_minutes": 37
+    "timestamp_minutes": 43
   },
   {
     "type": "conditional",
@@ -143,15 +294,15 @@
     "content": [
       {
         "type": "paragraph",
-        "content": "Во дни Пасхи священник возглашает: Христос воскресе из мертвых!",
+        "content": "Священник возглашает: Христос воскресе из мертвых!",
         "role": "priest",
-        "timestamp_minutes": 38
+        "timestamp_minutes": 44
       },
       {
         "type": "paragraph",
         "content": "Хор и народ отвечают: Воистину воскресе!",
         "role": "people",
-        "timestamp_minutes": 38
+        "timestamp_minutes": 44
       }
     ]
   }
