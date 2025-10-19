@@ -19,6 +19,7 @@ const PROGRAMMATIC_SCROLL_THRESHOLD = 12; // widened to reduce rounding misses
 const PENDING_END_DEBOUNCE_MS = 100;
 const PROGRAMMATIC_SCROLL_BASE_MS = 400; // base duration
 const PROGRAMMATIC_SCROLL_PER_PX_MS = 0.6; // ms per px distance
+const MIN_PROGRAMMATIC_SCROLL_MS = 1200;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.paper },
@@ -129,8 +130,9 @@ const PrayerScreen = () => {
     const ref = programmaticScrollRef.current;
     const currentY = lastScrollYRef.current ?? 0;
     const distance = Math.abs(currentY - targetY);
-    const dynamicTimeout = Math.ceil(
-      PROGRAMMATIC_SCROLL_BASE_MS + PROGRAMMATIC_SCROLL_PER_PX_MS * distance,
+    const dynamicTimeout = Math.max(
+      MIN_PROGRAMMATIC_SCROLL_MS,
+      Math.ceil(PROGRAMMATIC_SCROLL_BASE_MS + PROGRAMMATIC_SCROLL_PER_PX_MS * distance),
     );
     ref.active = true;
     ref.targetY = targetY;
