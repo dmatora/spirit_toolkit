@@ -34,3 +34,12 @@ Conditional blocks wrap their own sequence:
 ```
 
 When rendering, role metadata enables per-speaker styling, while `timestamp_minutes` and `is_major_section` drive the service map and progress indicators.
+
+## Completeness checklist
+
+- Ensure each service enumerates every major milestone with the first block in that segment carrying `is_major_section: true`.
+- Provide a valid `role` for any spoken, sung, or instructional line so speaker styling remains accurate.
+- Keep `timestamp_minutes` non-decreasing throughout the file and include them on all major sections (adding them to intermediate blocks is strongly encouraged).
+- Gate Pascha-specific variations with `condition: { "rule": "pascha_period" }` and avoid introducing other rule identifiers without schema updates.
+- Verify the JSON matches the structures defined in `apps/Prayer/src/app/types/prayer.ts` before committing.
+- Remember that conditional content only contributes to rendered indices when its rule evaluates to `true` for the chosen evaluation date; align structural assumptions accordingly.
