@@ -5,7 +5,8 @@
   "scripts": {
     "build": "NX_INTERACTIVE=false NX_DAEMON=false nx run-many --target=build --all",
     "build:player": "nx build Prayer",
-    "build:hub": "nx build hub"
+    "build:hub": "nx build hub",
+    "validate:prayers": "node apps/Prayer/scripts/validatePrayerAssetsRunner.cjs"
   },
   "private": true,
   "dependencies": {
