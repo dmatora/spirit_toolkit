@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 type UseActiveSectionObserverArgs = {
-  containerId: string;
+  containerId?: string;
   sectionIds: string[];
+  rootStrategy?: 'container' | 'viewport';
 };
 
 type UseActiveSectionObserverResult = {
@@ -16,6 +17,7 @@ const noop = () => {};
 export function useActiveSectionObserver({
   containerId,
   sectionIds,
+  rootStrategy = 'container',
 }: UseActiveSectionObserverArgs): UseActiveSectionObserverResult {
   const isWeb = Platform.OS === 'web' && typeof window !== 'undefined';
   const [activeSectionId, setActiveSectionId] = useState<string | undefined>(undefined);
@@ -44,8 +46,9 @@ export function useActiveSectionObserver({
       return noop;
     }
 
-    const container = document.getElementById(containerId);
-    if (!container) {
+    const useContainerRoot = rootStrategy === 'container';
+    const container = useContainerRoot && containerId ? document.getElementById(containerId) : null;
+    if (useContainerRoot && !container) {
       return noop;
     }
 
@@ -85,7 +88,7 @@ export function useActiveSectionObserver({
           }
         },
         {
-          root: container,
+          root: useContainerRoot ? container : null,
           threshold: [0, 0.25, 0.5, 0.75, 1],
           rootMargin: '-40% 0px -40% 0px',
         },
@@ -115,9 +118,12 @@ export function useActiveSectionObserver({
           return;
         }
         const rect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const top = Math.max(rect.top, containerRect.top);
-        const bottom = Math.min(rect.bottom, containerRect.bottom);
+        const { top: boundsTop, bottom: boundsBottom } =
+          useContainerRoot && container
+            ? container.getBoundingClientRect()
+            : { top: 0, bottom: window.innerHeight ?? 0 };
+        const top = Math.max(rect.top, boundsTop);
+        const bottom = Math.min(rect.bottom, boundsBottom);
         const visible = Math.max(0, bottom - top);
         const ratio = rect.height > 0 ? visible / rect.height : 0;
         if (ratio <= 0) {
@@ -138,15 +144,24 @@ export function useActiveSectionObserver({
       window.requestAnimationFrame(selectBestVisibleSection);
     };
 
-    container.addEventListener('scroll', throttledHandler, { passive: true });
+    const cleanup = () => {
+      window.removeEventListener('resize', throttledHandler);
+      window.removeEventListener('scroll', throttledHandler);
+      if (useContainerRoot && container) {
+        container.removeEventListener('scroll', throttledHandler);
+      }
+    };
+
+    if (useContainerRoot && container) {
+      container.addEventListener('scroll', throttledHandler, { passive: true });
+    } else {
+      window.addEventListener('scroll', throttledHandler, { passive: true });
+    }
     window.addEventListener('resize', throttledHandler);
     throttledHandler();
 
-    return () => {
-      container.removeEventListener('scroll', throttledHandler);
-      window.removeEventListener('resize', throttledHandler);
-    };
-  }, [activeSectionId, containerId, isWeb, sectionIds]);
+    return cleanup;
+  }, [activeSectionId, containerId, isWeb, rootStrategy, sectionIds]);
 
   return useMemo(
     () => ({
