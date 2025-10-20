@@ -7,5 +7,10 @@ type Props = { prayerId: string };
 
 export default function PrayerScreenClient({ prayerId }: Props) {
   const id = (prayerId as PrayerId) ?? 'liturgy';
-  return <PrayerScreen prayerId={id} scrollSource="external" />;
+  return (
+    <PrayerScreen
+      prayerId={id}
+      scrollSource="external"
+    />
+  );
 }
