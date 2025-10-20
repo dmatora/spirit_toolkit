@@ -24,6 +24,7 @@ import { useActiveSectionObserver } from '../../web/useActiveSectionObserver';
 
 type PrayerScreenProps = {
   prayerId?: PrayerId;
+  scrollSource?: 'internal' | 'external';
 };
 
 const PENDING_END_DEBOUNCE_MS = 100;
@@ -34,6 +35,13 @@ const styles = StyleSheet.create({
     backgroundColor: palette.paper,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: palette.divider,
+    ...(Platform.OS === 'web'
+      ? ({
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+        } as any)
+      : null),
   },
   mapContainer: {
     paddingBottom: 8,
@@ -57,15 +65,19 @@ const styles = StyleSheet.create({
   },
 });
 
-const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
+const PrayerScreen: React.FC<PrayerScreenProps> = ({
+  prayerId,
+  scrollSource = 'internal',
+}) => {
   let route: any;
   try {
     route = useRoute();
   } catch (_err) {
     route = undefined as any;
   }
-  const resolvedPrayerId: PrayerId = (props.prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
+  const resolvedPrayerId: PrayerId = (prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
   const isWeb = Platform.OS === 'web';
+  const useExternalScroll = isWeb && scrollSource === 'external';
   const isDev =
     (typeof __DEV__ !== 'undefined' && __DEV__ === true) ||
     (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production');
@@ -167,10 +179,18 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
     return lookup;
   }, [sections]);
 
-  const webObserver = useActiveSectionObserver({
-    containerId: 'prayer-scroll-container',
-    sectionIds,
-  });
+  const webObserver = useActiveSectionObserver(
+    useExternalScroll
+      ? {
+          sectionIds,
+          rootStrategy: 'viewport',
+        }
+      : {
+          containerId: 'prayer-scroll-container',
+          sectionIds,
+          rootStrategy: 'container',
+        },
+  );
 
   const effectiveActiveSectionId = isWeb
     ? webObserver.activeSectionId ?? activeSectionId
@@ -376,6 +396,60 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
     [beginProgrammaticScroll, debugLog, isWeb, sections, webObserver],
   );
 
+  const prayerContent = !isLoading && !loadError ? (
+    <PrayerRenderer
+      blocks={resolvedData}
+      onMajorSectionLayout={handleSectionLayout}
+      sectionIdLookup={sectionIndexLookup}
+      evaluationDate={evaluationDate}
+    />
+  ) : null;
+
+  const scrollableContent = useExternalScroll ? (
+    <View nativeID="prayer-scroll-container" style={styles.scroll}>
+      {prayerContent}
+    </View>
+  ) : (
+    <ScrollView
+      nativeID="prayer-scroll-container"
+      ref={scrollRef}
+      contentContainerStyle={styles.scroll}
+      onContentSizeChange={(_w, h) => {
+        contentHeightRef.current = h;
+      }}
+      onLayout={(event) => {
+        containerHeightRef.current = event.nativeEvent.layout.height;
+      }}
+      onScroll={handleScroll}
+      onScrollBeginDrag={() => {
+        if (programmaticScrollRef.current.active) {
+          endProgrammaticScroll();
+        }
+      }}
+      onMomentumScrollEnd={() => {
+        if (skipMomentumEndCountRef.current > 0) {
+          skipMomentumEndCountRef.current -= 1;
+          debugLog('[PrayerScreen] skipped stale momentum-end event', {
+            remainingSkips: skipMomentumEndCountRef.current,
+          });
+          return;
+        }
+        if (programmaticScrollRef.current.active) {
+          debugLog('[PrayerScreen] ignored momentum-end while programmatic scroll active');
+          return;
+        }
+        if (!isWeb) {
+          const finalY = lastScrollYRef.current || 0;
+          const id = computeActiveSectionIdForY(finalY);
+          setActiveSectionId(id);
+        }
+      }}
+      scrollEventThrottle={16}
+    >
+      {prayerContent}
+    </ScrollView>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
@@ -406,51 +480,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
           <Text style={styles.statusText}>{loadError.message}</Text>
         </View>
       )}
-      <ScrollView
-        nativeID="prayer-scroll-container"
-        ref={scrollRef}
-        contentContainerStyle={styles.scroll}
-        onContentSizeChange={(_w, h) => {
-          contentHeightRef.current = h;
-        }}
-        onLayout={(event) => {
-          containerHeightRef.current = event.nativeEvent.layout.height;
-        }}
-        onScroll={handleScroll}
-        onScrollBeginDrag={() => {
-          if (programmaticScrollRef.current.active) {
-            endProgrammaticScroll();
-          }
-        }}
-        onMomentumScrollEnd={() => {
-          if (skipMomentumEndCountRef.current > 0) {
-            skipMomentumEndCountRef.current -= 1;
-            debugLog('[PrayerScreen] skipped stale momentum-end event', {
-              remainingSkips: skipMomentumEndCountRef.current,
-            });
-            return;
-          }
-          if (programmaticScrollRef.current.active) {
-            debugLog('[PrayerScreen] ignored momentum-end while programmatic scroll active');
-            return;
-          }
-          if (!isWeb) {
-            const finalY = lastScrollYRef.current || 0;
-            const id = computeActiveSectionIdForY(finalY);
-            setActiveSectionId(id);
-          }
-        }}
-        scrollEventThrottle={16}
-      >
-        {!isLoading && !loadError ? (
-          <PrayerRenderer
-            blocks={resolvedData}
-            onMajorSectionLayout={handleSectionLayout}
-            sectionIdLookup={sectionIndexLookup}
-            evaluationDate={evaluationDate}
-          />
-        ) : null}
-      </ScrollView>
+      {scrollableContent}
     </SafeAreaView>
   );
 };
