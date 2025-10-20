@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import type { PrayerId } from '@spirit/prayer-feature';
+import { loadPrayer, type PrayerId } from '@spirit/prayer-feature/prayer/utils/prayerLoader';
 
 import { PRAYERS, type PrayerLink } from '../prayers';
 import PrayerContent from './PrayerContent';
@@ -21,14 +21,16 @@ const resolvePrayer = (prayerId: string): PrayerLink | undefined => {
   return PRAYERS.find((item) => item.id === typedId);
 };
 
-const PrayerPage = ({ params }: PrayerPageProps) => {
+const PrayerPage = async ({ params }: PrayerPageProps) => {
   const prayer = resolvePrayer(params.prayerId);
 
   if (!prayer) {
     notFound();
   }
 
-  return <PrayerContent prayer={prayer} blocks={[]} />;
+  const blocks = await loadPrayer(prayer.id);
+
+  return <PrayerContent prayer={prayer} blocks={blocks} />;
 };
 
 export default PrayerPage;
