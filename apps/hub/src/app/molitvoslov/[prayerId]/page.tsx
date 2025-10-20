@@ -28,7 +28,7 @@ const PrayerPage = ({ params }: PrayerPageProps) => {
     notFound();
   }
 
-  return <PrayerContent prayer={prayer} />;
+  return <PrayerContent prayer={prayer} blocks={[]} />;
 };
 
 export default PrayerPage;

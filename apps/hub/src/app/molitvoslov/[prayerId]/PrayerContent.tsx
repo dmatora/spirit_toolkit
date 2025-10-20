@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import styled from 'styled-components';
-
 import { palette } from '@spirit/prayer-feature/theme/palette';
-
+import { PrayerRenderer } from '@spirit/prayer-feature';
+import type { PrayerBlock } from '@spirit/prayer-feature';
 import type { PrayerLink } from '../prayers';
 
 const Container = styled.main`
@@ -42,24 +42,14 @@ const Title = styled.h1`
   font-size: 1.8rem;
 `;
 
-const Placeholder = styled.p`
-  margin: 0;
-  color: ${palette.mutedInk};
-  line-height: 1.5;
-`;
+type PrayerContentProps = { prayer: PrayerLink; blocks: PrayerBlock[] };
 
-type PrayerContentProps = {
-  prayer: PrayerLink;
-};
-
-const PrayerContent = ({ prayer }: PrayerContentProps) => (
+const PrayerContent = ({ prayer, blocks }: PrayerContentProps) => (
   <Container>
     <BackLink href="/molitvoslov">← Ко списку молитв</BackLink>
     <Card>
       <Title>{prayer.title}</Title>
-      <Placeholder>
-        Страница-заглушка. Текст молитвы будет добавлен позже.
-      </Placeholder>
+      <PrayerRenderer blocks={blocks} />
     </Card>
   </Container>
 );
