@@ -68,6 +68,7 @@ type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' |
 type RenderOptions = {
   onLayout?: (event: LayoutChangeEvent) => void;
   accessibilityRole?: AccessibilityRole;
+  nativeID?: string;
 };
 
 const renderTextualBlock = (
@@ -77,11 +78,12 @@ const renderTextualBlock = (
   options: RenderOptions = {},
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
-  const { onLayout, accessibilityRole } = options;
+  const { onLayout, accessibilityRole, nativeID } = options;
 
   return (
     <View
       key={`b-${index}`}
+      nativeID={nativeID}
       style={[
         styles.blockWrapper,
         roleStyle && styles.roleWrapper,
@@ -148,6 +150,9 @@ const PrayerRenderer = ({
       onLayout,
       accessibilityRole: isMajorHeading ? 'header' : undefined,
     };
+    if (hasSection && block.is_major_section) {
+      renderOptions.nativeID = sectionIdLookup?.[index];
+    }
 
     switch (block.type) {
       case 'heading':
