@@ -1,6 +1,6 @@
 {
   "name": "@app/source",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "scripts": {
     "build": "NX_INTERACTIVE=false NX_DAEMON=false nx run-many --target=build --all",
