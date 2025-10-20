@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import { getSectionsSignature } from '../utils/sections';
 import useEvaluationDate from '../hooks/useEvaluationDate';
 import { loadPrayer, type PrayerId } from '../utils/prayerLoader';
 import type { PrayerBlock } from '../types/prayer';
+import { useActiveSectionObserver } from '../../web/useActiveSectionObserver';
 
 type PrayerScreenProps = {
   prayerId?: PrayerId;
@@ -63,6 +65,18 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
     route = undefined as any;
   }
   const resolvedPrayerId: PrayerId = (props.prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
+  const isWeb = Platform.OS === 'web';
+  const isDev =
+    (typeof __DEV__ !== 'undefined' && __DEV__ === true) ||
+    (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production');
+  const debugLog = useCallback(
+    (...args: Parameters<typeof console.debug>) => {
+      if (isDev) {
+        console.debug(...args);
+      }
+    },
+    [isDev],
+  );
   const scrollRef = useRef<ScrollView | null>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
   const lastScrollYRef = useRef(0);
@@ -86,8 +100,10 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
   const [loadError, setLoadError] = useState<Error | null>(null);
 
   useEffect(() => {
-    console.log(`EVENT: Prayer screen opened for '${resolvedPrayerId}'`);
-  }, [resolvedPrayerId]);
+    if (isDev) {
+      console.log(`EVENT: Prayer screen opened for '${resolvedPrayerId}'`);
+    }
+  }, [isDev, resolvedPrayerId]);
 
   useEffect(() => {
     const ref = programmaticScrollRef.current;
@@ -142,6 +158,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
   const sectionsSig = useMemo(() => getSectionsSignature(sections), [sections]);
 
   const sectionsCount = sections.length;
+  const sectionIds = useMemo(() => sections.map((section) => section.id), [sections]);
   const sectionIndexLookup = useMemo(() => {
     const lookup: Record<number, string> = {};
     sections.forEach((section) => {
@@ -149,6 +166,15 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
     });
     return lookup;
   }, [sections]);
+
+  const webObserver = useActiveSectionObserver({
+    containerId: 'prayer-scroll-container',
+    sectionIds,
+  });
+
+  const effectiveActiveSectionId = isWeb
+    ? webObserver.activeSectionId ?? activeSectionId
+    : activeSectionId;
 
   const isCalculating = sectionsCount > 0 && measuredCount < sectionsCount;
   const calcProgress = sectionsCount > 0 ? measuredCount / sectionsCount : 0;
@@ -199,7 +225,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
       sectionPositionsRef.current = {};
       setActiveSectionId(undefined);
       setMeasuredCount(0);
-      console.debug('[PrayerScreen] sections signature initialized; performed initial reset');
+      debugLog('[PrayerScreen] sections signature initialized; performed initial reset');
       return;
     }
 
@@ -208,16 +234,16 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
       sectionPositionsRef.current = {};
       setActiveSectionId(undefined);
       setMeasuredCount(0);
-      console.debug('[PrayerScreen] sections signature changed; reset measurement state', {
+      debugLog('[PrayerScreen] sections signature changed; reset measurement state', {
         prevSig,
         sectionsSig,
       });
     } else {
-      console.debug(
+      debugLog(
         '[PrayerScreen] sections signature unchanged; preserving measurement state',
       );
     }
-  }, [sectionsSig]);
+  }, [debugLog, sectionsSig]);
 
   useEffect(() => {
     return () => {
@@ -272,27 +298,37 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
         }
         ref.endTimerId = setTimeout(() => {
           const finalY = lastScrollYRef.current || 0;
-          const id = computeActiveSectionIdForY(finalY);
-          if (id) {
-            setActiveSectionId(id);
+          if (!isWeb) {
+            const id = computeActiveSectionIdForY(finalY);
+            if (id) {
+              setActiveSectionId(id);
+            }
           }
           endProgrammaticScroll();
         }, PENDING_END_DEBOUNCE_MS);
         return;
       }
-      const nextId = computeActiveSectionIdForY(y);
-      setActiveSectionId(nextId);
+      if (!isWeb) {
+        const nextId = computeActiveSectionIdForY(y);
+        setActiveSectionId(nextId);
+      }
     },
-    [endProgrammaticScroll, computeActiveSectionIdForY],
+    [computeActiveSectionIdForY, endProgrammaticScroll, isWeb],
   );
 
   const handleSelectSection = useCallback(
     (sectionId: string) => {
+      if (isWeb) {
+        webObserver.scrollToSection(sectionId);
+        setActiveSectionId(sectionId);
+        return;
+      }
+
       const currentY = lastScrollYRef.current || 0;
       scrollRef.current?.scrollTo({ y: Math.max(0, currentY), animated: false });
       endProgrammaticScroll();
       skipMomentumEndCountRef.current += 1;
-      console.debug('[PrayerScreen] force-cancelled momentum prior to programmatic select', {
+      debugLog('[PrayerScreen] force-cancelled momentum prior to programmatic select', {
         sectionId,
         skipCount: skipMomentumEndCountRef.current,
       });
@@ -337,7 +373,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
       beginProgrammaticScroll(finalOffset);
       scrollRef.current?.scrollTo({ y: finalOffset, animated: true });
     },
-    [sections, beginProgrammaticScroll],
+    [beginProgrammaticScroll, debugLog, isWeb, sections, webObserver],
   );
 
   return (
@@ -345,7 +381,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
       <View style={styles.topBar}>
         <ServiceMap
           sections={sections}
-          activeSectionId={activeSectionId}
+          activeSectionId={effectiveActiveSectionId}
           onSelect={handleSelectSection}
           style={styles.mapContainer}
           isDisabled={!isPositionsReady || isLoading}
@@ -371,6 +407,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
         </View>
       )}
       <ScrollView
+        nativeID="prayer-scroll-container"
         ref={scrollRef}
         contentContainerStyle={styles.scroll}
         onContentSizeChange={(_w, h) => {
@@ -388,18 +425,20 @@ const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
         onMomentumScrollEnd={() => {
           if (skipMomentumEndCountRef.current > 0) {
             skipMomentumEndCountRef.current -= 1;
-            console.debug('[PrayerScreen] skipped stale momentum-end event', {
+            debugLog('[PrayerScreen] skipped stale momentum-end event', {
               remainingSkips: skipMomentumEndCountRef.current,
             });
             return;
           }
           if (programmaticScrollRef.current.active) {
-            console.debug('[PrayerScreen] ignored momentum-end while programmatic scroll active');
+            debugLog('[PrayerScreen] ignored momentum-end while programmatic scroll active');
             return;
           }
-          const finalY = lastScrollYRef.current || 0;
-          const id = computeActiveSectionIdForY(finalY);
-          setActiveSectionId(id);
+          if (!isWeb) {
+            const finalY = lastScrollYRef.current || 0;
+            const id = computeActiveSectionIdForY(finalY);
+            setActiveSectionId(id);
+          }
         }}
         scrollEventThrottle={16}
       >
