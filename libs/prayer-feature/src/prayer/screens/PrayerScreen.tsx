@@ -56,7 +56,12 @@ const styles = StyleSheet.create({
 });
 
 const PrayerScreen: React.FC<PrayerScreenProps> = (props) => {
-  const route = useRoute<any>();
+  let route: any;
+  try {
+    route = useRoute();
+  } catch (_err) {
+    route = undefined as any;
+  }
   const resolvedPrayerId: PrayerId = (props.prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
   const scrollRef = useRef<ScrollView | null>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
