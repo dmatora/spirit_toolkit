@@ -1,4 +1,4 @@
-import type { ServiceSection } from '../utils/serviceMap';
+import type { ServiceSection } from './serviceMap';
 
 /**
  * Produces a stable signature for a sequence of sections using ordered ids.

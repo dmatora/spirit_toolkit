@@ -1,13 +1,13 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import type { PrayerBlock, PrayerConditionalBlock } from '../src/app/types/prayer';
-import { evaluateCondition } from '../src/app/utils/conditions';
+import type { PrayerBlock, PrayerConditionalBlock } from '@spirit/prayer-feature/prayer/types/prayer';
+import { evaluateCondition } from '@spirit/prayer-feature/prayer/utils/conditions';
 import {
   computeSectionRanges,
   extractMajorSections,
-} from '../src/app/utils/serviceMap';
+} from '@spirit/prayer-feature/prayer/utils/serviceMap';
 
-const ASSETS_DIR = path.resolve(__dirname, '../src/assets/prayers');
+const ASSETS_DIR = path.resolve(__dirname, '../../libs/prayer-feature/src/prayer/assets/prayers');
 const ALLOWED_ROLES = new Set<PrayerBlock['role']>(['priest', 'deacon', 'choir', 'people']);
 
 type ValidationDate = {

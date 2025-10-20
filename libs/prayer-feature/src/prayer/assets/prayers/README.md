@@ -1,6 +1,6 @@
 # Prayer Content Schema
 
-Prayer assets are stored as arrays of `PrayerBlock` objects in JSON files. The TypeScript types live in `apps/Prayer/src/app/types/prayer.ts`.
+Prayer assets are stored as arrays of `PrayerBlock` objects in JSON files. The TypeScript types live in `libs/prayer-feature/src/prayer/types/prayer.ts`.
 
 - `type`: one of `heading`, `paragraph`, `instruction`, or `conditional`.
 - `content`: display text for the block. For `conditional` blocks this is a nested array of `PrayerBlock`.
@@ -41,5 +41,5 @@ When rendering, role metadata enables per-speaker styling, while `timestamp_minu
 - Provide a valid `role` for any spoken, sung, or instructional line so speaker styling remains accurate.
 - Keep `timestamp_minutes` non-decreasing throughout the file and include them on all major sections (adding them to intermediate blocks is strongly encouraged).
 - Gate Pascha-specific variations with `condition: { "rule": "pascha_period" }` and avoid introducing other rule identifiers without schema updates.
-- Verify the JSON matches the structures defined in `apps/Prayer/src/app/types/prayer.ts` before committing.
+- Verify the JSON matches the structures defined in `libs/prayer-feature/src/prayer/types/prayer.ts` before committing.
 - Remember that conditional content only contributes to rendered indices when its rule evaluates to `true` for the chosen evaluation date; align structural assumptions accordingly.

@@ -20,13 +20,13 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
 
         switch (resolvedId) {
           case 'liturgy':
-            data = require('../../assets/prayers/liturgy.json');
+            data = require('../assets/prayers/liturgy.json');
             break;
           case 'evening':
-            data = require('../../assets/prayers/evening.json');
+            data = require('../assets/prayers/evening.json');
             break;
           default:
-            data = require('../../assets/prayers/liturgy.json');
+            data = require('../assets/prayers/liturgy.json');
             break;
         }
 

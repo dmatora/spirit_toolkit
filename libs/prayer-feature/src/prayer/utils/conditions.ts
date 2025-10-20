@@ -1,4 +1,4 @@
-import { orthodoxEaster } from '@spirit/prayer-feature/utils/feasts';
+import { orthodoxEaster } from '../../utils/feasts';
 import type { PrayerConditionalBlock } from '../types/prayer';
 
 function startOfDay(date: Date): Date {
