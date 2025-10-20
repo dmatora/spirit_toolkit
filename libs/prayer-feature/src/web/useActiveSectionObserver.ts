@@ -14,6 +14,14 @@ type UseActiveSectionObserverResult = {
 
 const noop = () => {};
 
+const getStickyOffsetPx = (): number => {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || typeof document === 'undefined') {
+    return 0;
+  }
+
+  return document.getElementById('prayer-topbar')?.getBoundingClientRect().height ?? 0;
+};
+
 export function useActiveSectionObserver({
   containerId,
   sectionIds,
@@ -26,28 +34,60 @@ export function useActiveSectionObserver({
 
   const scrollToSection = useCallback(
     (id: string) => {
-      if (!isWeb) {
+      if (
+        !isWeb ||
+        typeof document === 'undefined' ||
+        typeof window === 'undefined'
+      ) {
         return;
       }
+
       const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-          inline: 'nearest',
-        });
+      if (!element) {
+        return;
       }
+
+      const sticky = getStickyOffsetPx();
+      const breathingRoom = 9;
+
+      if (rootStrategy === 'container' && containerId) {
+        const container = document.getElementById(containerId);
+        if (container) {
+          const elementRect = element.getBoundingClientRect();
+          const containerRect = container.getBoundingClientRect();
+          const deltaTop = elementRect.top - containerRect.top;
+          const targetTop = container.scrollTop + deltaTop - sticky - breathingRoom;
+          container.scrollTo({
+            top: Math.max(0, targetTop),
+            behavior: 'smooth',
+          });
+          return;
+        }
+      }
+
+      const targetY =
+        window.scrollY + element.getBoundingClientRect().top - sticky - breathingRoom;
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: 'smooth',
+      });
     },
-    [isWeb],
+    [containerId, isWeb, rootStrategy],
   );
 
   useEffect(() => {
-    if (!isWeb) {
+    if (
+      !isWeb ||
+      typeof document === 'undefined' ||
+      typeof window === 'undefined'
+    ) {
       return noop;
     }
 
     const useContainerRoot = rootStrategy === 'container';
-    const container = useContainerRoot && containerId ? document.getElementById(containerId) : null;
+    const container =
+      useContainerRoot && containerId ? document.getElementById(containerId) : null;
+
     if (useContainerRoot && !container) {
       return noop;
     }
@@ -57,72 +97,107 @@ export function useActiveSectionObserver({
       trackedElementsRef.current.clear();
     };
 
-    if (typeof window.IntersectionObserver === 'function') {
+    const disconnectObserver = () => {
       cleanupTrackedElements();
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
 
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          let candidate: IntersectionObserverEntry | undefined;
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) {
-              return;
-            }
-            if (!candidate) {
-              candidate = entry;
-              return;
-            }
-            if (entry.intersectionRatio > candidate.intersectionRatio) {
-              candidate = entry;
-              return;
-            }
-            if (
-              entry.intersectionRatio === candidate.intersectionRatio &&
-              entry.boundingClientRect.top < candidate.boundingClientRect.top
-            ) {
-              candidate = entry;
-            }
-          });
+    if (typeof window.IntersectionObserver === 'function') {
+      const recreateObserver = () => {
+        disconnectObserver();
 
-          if (candidate?.target?.id && candidate.target.id !== activeSectionId) {
-            setActiveSectionId(candidate.target.id);
+        const sticky = getStickyOffsetPx();
+        const observer = new IntersectionObserver(
+          (entries) => {
+            let candidate: IntersectionObserverEntry | undefined;
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) {
+                return;
+              }
+              if (!candidate) {
+                candidate = entry;
+                return;
+              }
+              if (entry.intersectionRatio > candidate.intersectionRatio) {
+                candidate = entry;
+                return;
+              }
+              if (
+                entry.intersectionRatio === candidate.intersectionRatio &&
+                entry.boundingClientRect.top < candidate.boundingClientRect.top
+              ) {
+                candidate = entry;
+              }
+            });
+
+            const nextId = candidate?.target?.id;
+            if (nextId) {
+              setActiveSectionId((prev) => (prev === nextId ? prev : nextId));
+            }
+          },
+          {
+            root: useContainerRoot ? container : null,
+            threshold: [0, 0.25, 0.5, 0.75, 1],
+            rootMargin: `-${sticky}px 0px 0px 0px`,
+          },
+        );
+
+        observerRef.current = observer;
+
+        sectionIds.forEach((sectionId) => {
+          const element = document.getElementById(sectionId);
+          if (element) {
+            observer.observe(element);
+            trackedElementsRef.current.add(element);
           }
-        },
-        {
-          root: useContainerRoot ? container : null,
-          threshold: [0, 0.25, 0.5, 0.75, 1],
-          rootMargin: '-40% 0px -40% 0px',
-        },
-      );
+        });
+      };
 
-      sectionIds.forEach((sectionId) => {
-        const element = document.getElementById(sectionId);
-        if (element) {
-          observerRef.current?.observe(element);
-          trackedElementsRef.current.add(element);
+      recreateObserver();
+
+      let resizeFrame: number | null = null;
+      const handleResize = () => {
+        if (resizeFrame !== null) {
+          window.cancelAnimationFrame(resizeFrame);
         }
-      });
+        resizeFrame = window.requestAnimationFrame(() => {
+          resizeFrame = null;
+          recreateObserver();
+        });
+      };
+
+      window.addEventListener('resize', handleResize);
 
       return () => {
-        observerRef.current?.disconnect();
-        cleanupTrackedElements();
+        if (resizeFrame !== null) {
+          window.cancelAnimationFrame(resizeFrame);
+        }
+        window.removeEventListener('resize', handleResize);
+        disconnectObserver();
       };
     }
+
+    disconnectObserver();
 
     const selectBestVisibleSection = () => {
       let bestId: string | undefined;
       let bestRatio = 0;
+      const sticky = getStickyOffsetPx();
 
       sectionIds.forEach((sectionId) => {
         const el = document.getElementById(sectionId);
         if (!el) {
           return;
         }
+
         const rect = el.getBoundingClientRect();
         const { top: boundsTop, bottom: boundsBottom } =
           useContainerRoot && container
             ? container.getBoundingClientRect()
             : { top: 0, bottom: window.innerHeight ?? 0 };
-        const top = Math.max(rect.top, boundsTop);
+        const effectiveTopBound = boundsTop + sticky;
+        const top = Math.max(rect.top, effectiveTopBound);
         const bottom = Math.min(rect.bottom, boundsBottom);
         const visible = Math.max(0, bottom - top);
         const ratio = rect.height > 0 ? visible / rect.height : 0;
@@ -135,16 +210,26 @@ export function useActiveSectionObserver({
         }
       });
 
-      if (bestId && bestId !== activeSectionId) {
-        setActiveSectionId(bestId);
+      if (bestId) {
+        setActiveSectionId((prev) => (prev === bestId ? prev : bestId));
       }
     };
 
+    let rafId: number | null = null;
     const throttledHandler = () => {
-      window.requestAnimationFrame(selectBestVisibleSection);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        selectBestVisibleSection();
+      });
     };
 
     const cleanup = () => {
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
       window.removeEventListener('resize', throttledHandler);
       window.removeEventListener('scroll', throttledHandler);
       if (useContainerRoot && container) {
@@ -161,7 +246,7 @@ export function useActiveSectionObserver({
     throttledHandler();
 
     return cleanup;
-  }, [activeSectionId, containerId, isWeb, rootStrategy, sectionIds]);
+  }, [containerId, isWeb, rootStrategy, sectionIds]);
 
   return useMemo(
     () => ({
