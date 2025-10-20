@@ -1,6 +1,6 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import PrayerScreen from '../screens/PrayerScreen';
+import { PrayerScreen } from '@spirit/prayer-feature';
 
 export type PrayerDrawerParamList = {
   'Божественная литургия': { prayerId: 'liturgy' } | undefined;

@@ -5,7 +5,6 @@ export { default as PrayerRenderer } from './components/PrayerRenderer';
 export { default as ServiceMap } from './components/ServiceMap';
 export { default as MeasureProgressBar } from './components/MeasureProgressBar';
 
-export { default as useEvaluationDate } from './hooks/useEvaluationDate';
 export { useEvaluationDate } from './hooks/useEvaluationDate';
 
 export * from './types/prayer';
