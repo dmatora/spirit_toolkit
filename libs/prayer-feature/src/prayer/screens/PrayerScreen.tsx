@@ -452,7 +452,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topBar}>
+      <View nativeID="prayer-topbar" style={styles.topBar}>
         <ServiceMap
           sections={sections}
           activeSectionId={effectiveActiveSectionId}
