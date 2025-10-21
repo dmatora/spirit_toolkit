@@ -1,4 +1,4 @@
-We have /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/app/utils/feasts/calc.ts not /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/utils/feasts/calc.ts
-/Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/assets/prayers/liturgy.json not /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/app/assets/prayers/liturgy.json
-/Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/app/types/prayer.ts not /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/types/prayer.ts
+We have
 /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/app/screens/PrayerScreen.tsx not /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/screens/PrayerScreen.tsx
+/Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/app/screens/HomeScreen.tsx not /Users/dmatora/Developer/SpiritToolkit/apps/Prayer/src/screens/HomeScreen.tsx
+/Users/dmatora/Developer/SpiritToolkit/apps/hub/src/app/molitvoslov/page.tsx not /Users/dmatora/Developer/SpiritToolkit/apps/hub/src/page.tsx
