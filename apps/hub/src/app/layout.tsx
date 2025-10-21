@@ -1,4 +1,5 @@
 import './global.css';
+import GlobalLayoutClient from './global/GlobalLayoutClient';
 import { StyledComponentsRegistry } from './registry';
 
 export const metadata = {
@@ -17,7 +18,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body>
-        <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
+        <StyledComponentsRegistry>
+          <GlobalLayoutClient>{children}</GlobalLayoutClient>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );
