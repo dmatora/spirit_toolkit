@@ -12,7 +12,9 @@ const PrayerScreen = (props: Props) => {
   const resolvedId = (props.prayerId ?? routePrayerId ?? 'liturgy') as PrayerId;
 
   useEffect(() => {
-    addJournalEntry(resolvedId).catch(() => {});
+    addJournalEntry(resolvedId)
+      .then(() => console.log(`[PrayerScreen] journal entry added for '${resolvedId}'`))
+      .catch((e) => console.error('[PrayerScreen] failed to add journal entry', e));
   }, [resolvedId]);
 
   return <BasePrayerScreen {...props} prayerId={resolvedId} />;
