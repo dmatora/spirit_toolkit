@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styled, { css } from 'styled-components';
@@ -259,6 +259,30 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
 
   const isHomeActive = pathname === '/';
   const isMolitvoslovActive = pathname === '/molitvoslov' || pathname.startsWith('/molitvoslov/');
+  const sectionTitle = useMemo(() => {
+    const matchedPrayer = PRAYERS.find((prayer) => prayer.href === pathname);
+    if (matchedPrayer) {
+      return matchedPrayer.title;
+    }
+
+    if (pathname === '/') {
+      return 'Главная';
+    }
+
+    if (pathname.startsWith('/molitvoslov')) {
+      return 'Молитвослов';
+    }
+
+    if (pathname.startsWith('/settings')) {
+      return 'Настройки';
+    }
+
+    if (pathname.startsWith('/journal')) {
+      return 'Журнал';
+    }
+
+    return 'SpiritToolkit';
+  }, [pathname]);
 
   return (
     <Shell>
@@ -270,7 +294,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
         >
           <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
         </IconButton>
-        <Title>SpiritToolkit</Title>
+        <Title>{sectionTitle}</Title>
       </TopBar>
 
       <Sidebar data-open={isDesktop || isOpen ? 'true' : 'false'}>
