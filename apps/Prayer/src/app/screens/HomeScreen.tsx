@@ -4,10 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FeastCountdownCard } from '@spirit/dashboard-feature';
 import { palette } from '@spirit/prayer-feature/theme';
+import LiturgyAttendanceCard from '../components/LiturgyAttendanceCard';
 
 const HomeScreen = () => (
-  <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+  <SafeAreaView style={styles.container}>
     <FeastCountdownCard style={styles.cardSpacing} />
+    <LiturgyAttendanceCard />
   </SafeAreaView>
 );
 
