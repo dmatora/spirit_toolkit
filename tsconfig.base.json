@@ -16,7 +16,9 @@
     "baseUrl": ".",
     "paths": {
       "@spirit/prayer-feature": ["libs/prayer-feature/src/index.ts"],
-      "@spirit/prayer-feature/*": ["libs/prayer-feature/src/*"]
+      "@spirit/prayer-feature/*": ["libs/prayer-feature/src/*"],
+      "@spirit/dashboard-feature": ["libs/dashboard-feature/src/index.ts"],
+      "@spirit/dashboard-feature/*": ["libs/dashboard-feature/src/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]
