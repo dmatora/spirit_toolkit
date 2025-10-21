@@ -3,9 +3,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme/palette';
+import type { PrayerId } from '@spirit/prayer-feature';
 import type { PrayerLink } from '../prayers';
 
 type PrayerDrawerLayoutClientProps = {
@@ -14,21 +15,28 @@ type PrayerDrawerLayoutClientProps = {
   children: React.ReactNode;
 };
 
+const STICKY_DISABLED_TOPBAR_IDS = new Set<PrayerId>(['liturgy', 'evening']);
+
 const Shell = styled.div`
   display: flex;
   flex-direction: column;
 `;
 
-const TopBar = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 30;
+const TopBar = styled.header<{ $isSticky: boolean }>`
   background: ${palette.paper};
   border-bottom: 1px solid ${palette.divider};
   padding: 12px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
+  ${({ $isSticky }) =>
+    $isSticky
+      ? css`
+          position: sticky;
+          top: 0;
+          z-index: 30;
+        `
+      : null};
 `;
 
 const Title = styled.h1`
@@ -133,6 +141,7 @@ const PrayerDrawerLayoutClient = ({
 }: PrayerDrawerLayoutClientProps) => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const shouldUseStickyTopBar = !STICKY_DISABLED_TOPBAR_IDS.has(currentPrayer.id);
 
   const closeDrawer = useCallback(() => setIsOpen(false), []);
 
@@ -146,7 +155,7 @@ const PrayerDrawerLayoutClient = ({
 
   return (
     <Shell>
-      <TopBar id="prayer-topbar">
+      <TopBar id="prayer-topbar" $isSticky={shouldUseStickyTopBar}>
         <IconButton
           type="button"
           onClick={toggleDrawer}
