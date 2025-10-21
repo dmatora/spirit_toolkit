@@ -20,7 +20,7 @@ let initPromise: Promise<void> | null = null;
 const webStore: JournalEntry[] = [];
 let webIdCounter = 1;
 
-const ensureNativeInitialized = async () => {
+const ensureNativeInitialized = async (): Promise<void> => {
   if (initialized || isWeb) {
     return;
   }
@@ -41,16 +41,17 @@ const ensureNativeInitialized = async () => {
             synced INTEGER NOT NULL DEFAULT 0
           );`,
         );
+        console.log('[journalDb] SQLite initialized: database opened and table ensured');
         initialized = true;
       } catch (error) {
-        console.warn('[journalDb] Failed to initialize SQLite database', error);
+        console.error('[journalDb] Failed to initialize SQLite database', error);
       }
     })().finally(() => {
       initPromise = null;
     });
   }
 
-  return initPromise;
+  return initPromise ?? Promise.resolve();
 };
 
 export const ensureInitialized = async (): Promise<void> => {
@@ -78,7 +79,7 @@ export const addJournalEntry = async (
   await ensureNativeInitialized();
 
   if (!db) {
-    console.warn('[journalDb] SQLite database connection not available for insert');
+    console.error('[journalDb] SQLite database connection not available for insert');
     return;
   }
 
@@ -88,7 +89,7 @@ export const addJournalEntry = async (
       [prayerId, timestampSec, synced],
     );
   } catch (error) {
-    console.warn('[journalDb] Failed to add journal entry', error);
+    console.error('[journalDb] Failed to add journal entry', error);
   }
 };
 
@@ -100,7 +101,7 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
   await ensureNativeInitialized();
 
   if (!db) {
-    console.warn('[journalDb] SQLite database connection not available for select');
+    console.error('[journalDb] SQLite database connection not available for select');
     return [];
   }
 
@@ -121,8 +122,7 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
     }
     return entries;
   } catch (error) {
-    console.warn('[journalDb] Failed to fetch journal entries', error);
+    console.error('[journalDb] Failed to fetch journal entries', error);
     return [];
   }
 };
-
