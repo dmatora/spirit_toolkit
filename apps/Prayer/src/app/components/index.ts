@@ -1,1 +1,1 @@
-export { FeastCountdownCard } from '@spirit/prayer-feature';
+export { FeastCountdownCard } from '@spirit/dashboard-feature';

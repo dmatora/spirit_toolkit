@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FeastCountdownCard } from '@spirit/prayer-feature';
+import { FeastCountdownCard } from '@spirit/dashboard-feature';
 import { palette } from '@spirit/prayer-feature/theme';
 
 const HomeScreen = () => (

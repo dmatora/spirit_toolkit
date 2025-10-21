@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FeastCountdownCard } from '@spirit/prayer-feature';
+import { FeastCountdownCard } from '@spirit/dashboard-feature';
 
 export default function Page() {
   return (
