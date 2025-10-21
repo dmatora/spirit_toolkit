@@ -28,6 +28,7 @@ type PrayerScreenProps = {
 };
 
 const PENDING_END_DEBOUNCE_MS = 100;
+const PRAYER_TOPBAR_NATIVE_ID = 'prayer-topbar';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.paper },
@@ -452,7 +453,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <View nativeID="prayer-topbar" style={styles.topBar}>
+      <View nativeID={PRAYER_TOPBAR_NATIVE_ID} style={styles.topBar}>
         <ServiceMap
           sections={sections}
           activeSectionId={effectiveActiveSectionId}
