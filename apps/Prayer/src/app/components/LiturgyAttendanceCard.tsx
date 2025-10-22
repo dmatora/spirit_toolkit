@@ -3,6 +3,8 @@ import { Platform, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-na
 import { useFocusEffect } from '@react-navigation/native';
 import { getAllJournalEntries, type JournalEntry } from '../services/journalDb';
 import { palette } from '@spirit/prayer-feature/theme';
+import { startOfDayLocal } from '@spirit/prayer-feature/utils/date';
+import { pluralizeDaysRu } from '@spirit/prayer-feature/utils/plural';
 
 type Props = {
   style?: StyleProp<ViewStyle>;
@@ -49,14 +51,6 @@ const styles = StyleSheet.create({
     color: palette.ink,
   },
 });
-
-function startOfDayLocal(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function formatDateRu(d: Date): string {
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-}
 
 const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
   const [lastVisit, setLastVisit] = React.useState<Date | null>(null);
@@ -111,13 +105,33 @@ const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
     load();
   }, [load]);
 
+  const getDaysColor = React.useCallback((value?: number | null) => {
+    if (value == null) return palette.mutedInk;
+    if (value <= 7) return palette.ink;
+    if (value <= 21) return palette.mutedInk;
+    return palette.accent;
+  }, []);
+
+  const today = startOfDayLocal(new Date());
+  const daysSince = lastVisit
+    ? Math.max(
+        0,
+        Math.round(
+          (today.getTime() - startOfDayLocal(lastVisit).getTime()) / (24 * 60 * 60 * 1000),
+        ),
+      )
+    : null;
+  const daysDisplay =
+    daysSince === null ? '—' : daysSince === 0 ? '0' : `${daysSince} ${pluralizeDaysRu(daysSince)}`;
+  const daysColor = getDaysColor(daysSince);
+
   return (
     <View style={[styles.card, style]}>
       <Text style={styles.label}>Посещаемость</Text>
 
       <View style={styles.statRow}>
-        <Text style={styles.statLabel}>Последнее посещение Литургии:</Text>
-        <Text style={styles.statValue}>{lastVisit ? formatDateRu(lastVisit) : '—'}</Text>
+        <Text style={styles.statLabel}>Дней без Литургии:</Text>
+        <Text style={[styles.statValue, { color: daysColor }]}>{daysDisplay}</Text>
       </View>
 
       <View style={styles.statRow}>
