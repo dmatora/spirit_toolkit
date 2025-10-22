@@ -1,18 +1,18 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { PrayerScreen } from '@spirit/prayer-feature';
+import PrayerScreen from '../screens/PrayerScreen';
 
 export type PrayerDrawerParamList = {
   'Божественная литургия': { prayerId: 'liturgy' } | undefined;
   'Вечерня': { prayerId: 'evening' } | undefined;
 };
 
-const Drawer = createDrawerNavigator<PrayerDrawerParamList, 'PrayerDrawer'>();
+const Drawer = createDrawerNavigator<PrayerDrawerParamList>();
 
 const PrayerNavigator = () => {
   return (
     <Drawer.Navigator
-      id="PrayerDrawer"
+      id={undefined}
       screenOptions={{
         headerTitle: 'Молитвослов',
       }}
