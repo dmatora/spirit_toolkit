@@ -17,7 +17,7 @@ const PrayerScreen = (props: Props) => {
       .catch((e) => console.error('[PrayerScreen] failed to add journal entry', e));
   }, [resolvedId]);
 
-  return <BasePrayerScreen {...props} prayerId={resolvedId} />;
+  return <BasePrayerScreen prayerId={resolvedId} />;
 };
 
 export default PrayerScreen;
