@@ -1,33 +1,37 @@
 import React from 'react';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { PrayerId } from '@spirit/prayer-feature';
+
+import PrayerIndexScreen from '../screens/PrayerIndexScreen';
 import PrayerScreen from '../screens/PrayerScreen';
 
-export type PrayerDrawerParamList = {
-  'Божественная литургия': { prayerId: 'liturgy' } | undefined;
-  'Вечерня': { prayerId: 'evening' } | undefined;
+export type PrayerStackParamList = {
+  'Список молитв': undefined;
+  'Молитва': { prayerId: PrayerId };
 };
 
-const Drawer = createDrawerNavigator<PrayerDrawerParamList>();
+const Stack = createNativeStackNavigator<PrayerStackParamList>();
 
 const PrayerNavigator = () => {
   return (
-    <Drawer.Navigator
+    <Stack.Navigator
       id={undefined}
+      initialRouteName="Список молитв"
       screenOptions={{
         headerTitle: 'Молитвослов',
       }}
     >
-      <Drawer.Screen
-        name="Божественная литургия"
-        component={PrayerScreen}
-        initialParams={{ prayerId: 'liturgy' }}
+      <Stack.Screen
+        name="Список молитв"
+        component={PrayerIndexScreen}
+        options={{ headerTitle: 'Молитвослов' }}
       />
-      <Drawer.Screen
-        name="Вечерня"
+      <Stack.Screen
+        name="Молитва"
         component={PrayerScreen}
-        initialParams={{ prayerId: 'evening' }}
+        options={{ headerTitle: 'Молитвослов' }}
       />
-    </Drawer.Navigator>
+    </Stack.Navigator>
   );
 };
 

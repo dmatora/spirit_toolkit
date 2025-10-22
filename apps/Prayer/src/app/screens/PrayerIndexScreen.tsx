@@ -4,11 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 
 import { palette } from '@spirit/prayer-feature/theme';
-import type { PrayerId } from '@spirit/prayer-feature';
 
-import { PRAYER_OPTIONS } from '../constants/prayers';
+import { PRAYER_OPTIONS, type PrayerOption } from '../constants/prayers';
+import type { PrayerStackParamList } from '../navigation/PrayerNavigator';
 
-type PrayerNavigation = NavigationProp<{ 'Молитва': { prayerId: PrayerId } }>;
+type PrayerNavigation = NavigationProp<PrayerStackParamList>;
 
 const PrayerIndexScreen = () => {
   const navigation = useNavigation<PrayerNavigation>();
@@ -18,7 +18,7 @@ const PrayerIndexScreen = () => {
       <Text accessibilityRole="header" style={styles.header}>
         Выберите молитву
       </Text>
-      <FlatList
+      <FlatList<PrayerOption>
         data={PRAYER_OPTIONS}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
