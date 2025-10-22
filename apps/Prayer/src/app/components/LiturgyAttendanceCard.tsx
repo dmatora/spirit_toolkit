@@ -120,7 +120,7 @@ const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
     (value?: number | null) => {
       if (value == null) return palette.mutedInk;
       if (value <= thresholds.normal) return palette.ink;
-      if (value <= thresholds.warning) return palette.mutedInk;
+      if (value <= thresholds.warning) return palette.warning;
       return palette.accent;
     },
     [thresholds],
