@@ -97,6 +97,8 @@ const SettingsScreen = () => {
     }
   }, [normalValue, warningValue, updateThresholdState]);
 
+  const warningNumber = safeParseNumber(warningValue);
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Настройка ритма посещений</Text>
@@ -124,8 +126,10 @@ const SettingsScreen = () => {
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Тонкая настройка</Text>
-
-        <View style={styles.legendRow}>
+        <View
+          style={styles.legendRow}
+          accessibilityLabel="Легенда: Норма"
+        >
           <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
           <Text style={styles.legendText}>Норма</Text>
         </View>
@@ -135,13 +139,17 @@ const SettingsScreen = () => {
             accessibilityLabel="Норма (дней)"
             keyboardType="number-pad"
             value={normalValue}
-            onChangeText={setNormalValue}
+            onChangeText={(txt) => setNormalValue(txt.replace(/[^\d]/g, ''))}
             style={styles.input}
           />
         </View>
+        <Text style={styles.caption}>Пока не прошло столько дней, состояние считается нормальным</Text>
 
-        <View style={styles.legendRow}>
-          <View style={[styles.legendDot, { backgroundColor: palette.mutedInk }]} />
+        <View
+          style={styles.legendRow}
+          accessibilityLabel="Легенда: Предупреждение"
+        >
+          <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
           <Text style={styles.legendText}>Предупреждение</Text>
         </View>
         <View style={styles.inputRow}>
@@ -150,15 +158,25 @@ const SettingsScreen = () => {
             accessibilityLabel="Предупреждение (дней)"
             keyboardType="number-pad"
             value={warningValue}
-            onChangeText={setWarningValue}
+            onChangeText={(txt) => setWarningValue(txt.replace(/[^\d]/g, ''))}
             style={styles.input}
           />
         </View>
+        <Text style={styles.caption}>Состояние длится до этого количества дней</Text>
 
-        <View style={styles.legendRow}>
+        <View
+          style={styles.legendRow}
+          accessibilityLabel="Легенда: Тревога"
+        >
           <View style={[styles.legendDot, { backgroundColor: palette.accent }]} />
           <Text style={styles.legendText}>Тревога</Text>
         </View>
+        <Text style={styles.caption}>
+          Наступает, если прошло больше дней, чем указано в «Предупреждении»
+        </Text>
+        <Text style={[styles.caption, { color: palette.accent, fontWeight: '600' }]}>
+          Тревога: &gt; {warningNumber} дней
+        </Text>
       </View>
 
       <Pressable accessibilityRole="button" style={styles.saveButton} onPress={handleSave}>
@@ -192,8 +210,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   presetRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
+    alignItems: 'stretch',
   },
   chip: {
     paddingVertical: 8,
@@ -270,6 +289,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: palette.mutedInk,
     fontSize: 14,
+  },
+  caption: {
+    fontSize: 13,
+    color: palette.mutedInk,
+    marginBottom: 12,
   },
 });
 
