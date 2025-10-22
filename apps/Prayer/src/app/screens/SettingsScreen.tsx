@@ -168,13 +168,13 @@ const SettingsScreen = () => {
           style={styles.legendRow}
           accessibilityLabel="Легенда: Тревога"
         >
-          <View style={[styles.legendDot, { backgroundColor: palette.accent }]} />
+          <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
           <Text style={styles.legendText}>Тревога</Text>
         </View>
         <Text style={styles.caption}>
           Наступает, если прошло больше дней, чем указано в «Предупреждении»
         </Text>
-        <Text style={[styles.caption, { color: palette.accent, fontWeight: '600' }]}>
+        <Text style={[styles.caption, { color: palette.danger, fontWeight: '600' }]}>
           Тревога: &gt; {warningNumber} дней
         </Text>
       </View>
