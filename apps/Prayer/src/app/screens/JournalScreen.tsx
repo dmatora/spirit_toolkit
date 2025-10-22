@@ -1,10 +1,22 @@
 import React from 'react';
-import { View } from 'react-native';
-import { Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 
-import { getAllJournalEntries, type JournalEntry } from '../services/journalDb';
+import {
+  deleteJournalEntry,
+  getAllJournalEntries,
+  type JournalEntry,
+} from '../services/journalDb';
 
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp * 1000).toLocaleString('ru-RU');
@@ -13,6 +25,24 @@ const JournalScreen = () => {
   const [entries, setEntries] = React.useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
+
+  const handleDelete = (id: number) => {
+    Alert.alert('Удалить запись', 'Вы уверены, что хотите удалить эту запись?', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Удалить',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteJournalEntry(id);
+            setEntries((prev) => prev.filter((entry) => entry.id !== id));
+          } catch (err) {
+            console.warn('[JournalScreen] failed to delete entry', err);
+          }
+        },
+      },
+    ]);
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -55,8 +85,18 @@ const JournalScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <Text style={styles.prayerId}>{item.prayer_id}</Text>
-            <Text style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.prayerId}>{item.prayer_id}</Text>
+              <Text style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Удалить запись"
+              accessibilityRole="button"
+              onPress={() => handleDelete(item.id)}
+              style={styles.deleteBtn}
+            >
+              <Ionicons name="trash-outline" size={20} color="#7A1E3A" />
+            </Pressable>
           </View>
         )}
         ListEmptyComponent={
@@ -85,6 +125,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ddd',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   prayerId: {
     fontSize: 16,
@@ -104,6 +146,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#555',
+  },
+  deleteBtn: {
+    padding: 8,
+    alignSelf: 'center',
   },
 });
 
