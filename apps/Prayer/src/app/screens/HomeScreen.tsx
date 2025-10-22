@@ -6,7 +6,7 @@ import { FeastCountdownCard } from '@spirit/dashboard-feature';
 import { palette } from '@spirit/prayer-feature/theme';
 import LiturgyAttendanceCard from '../components/LiturgyAttendanceCard';
 
-const HomeScreen = () => (
+const HomeScreen: React.FC = () => (
   <SafeAreaView style={styles.container}>
     <FeastCountdownCard style={styles.cardSpacing} />
     <LiturgyAttendanceCard />
