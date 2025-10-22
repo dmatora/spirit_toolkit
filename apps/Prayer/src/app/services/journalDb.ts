@@ -126,3 +126,26 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
     return [];
   }
 };
+
+export const deleteJournalEntry = async (id: number): Promise<void> => {
+  if (isWeb) {
+    const index = webStore.findIndex((entry) => entry.id === id);
+    if (index !== -1) {
+      webStore.splice(index, 1);
+    }
+    return;
+  }
+
+  await ensureNativeInitialized();
+
+  if (!db) {
+    console.error('[journalDb] SQLite database connection not available for delete');
+    return;
+  }
+
+  try {
+    await db.executeSql(`DELETE FROM ${tableName} WHERE id = ?;`, [id]);
+  } catch (error) {
+    console.error('[journalDb] Failed to delete journal entry', error);
+  }
+};
