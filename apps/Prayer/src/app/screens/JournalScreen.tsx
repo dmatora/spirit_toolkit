@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -11,20 +11,23 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
+import { palette } from '@spirit/prayer-feature/theme';
 
 import {
   deleteJournalEntry,
   getAllJournalEntries,
   type JournalEntry,
 } from '../services/journalDb';
+import AddJournalEntryModal from '../components/AddJournalEntryModal';
 
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp * 1000).toLocaleString('ru-RU');
 
 const JournalScreen = () => {
-  const [entries, setEntries] = React.useState<JournalEntry[]>([]);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | undefined>();
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const handleDelete = (id: number) => {
     Alert.alert('Удалить запись', 'Вы уверены, что хотите удалить эту запись?', [
@@ -44,36 +47,42 @@ const JournalScreen = () => {
     ]);
   };
 
+  const loadEntries = useCallback(
+    async (shouldUpdate: () => boolean = () => true) => {
+      if (shouldUpdate()) {
+        setIsLoading(true);
+      }
+
+      try {
+        const rows = await getAllJournalEntries();
+        if (shouldUpdate()) {
+          setEntries(rows);
+          setError(undefined);
+        }
+      } catch (err) {
+        console.warn('[JournalScreen] failed to load journal entries', err);
+        if (shouldUpdate()) {
+          setError('Не удалось загрузить записи');
+        }
+      } finally {
+        if (shouldUpdate()) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       let isActive = true;
 
-      const loadEntries = async () => {
-        setIsLoading(true);
-        try {
-          const rows = await getAllJournalEntries();
-          if (isActive) {
-            setEntries(rows);
-            setError(undefined);
-          }
-        } catch (err) {
-          console.warn('[JournalScreen] failed to load journal entries', err);
-          if (isActive) {
-            setError('Не удалось загрузить записи');
-          }
-        } finally {
-          if (isActive) {
-            setIsLoading(false);
-          }
-        }
-      };
-
-      loadEntries();
+      loadEntries(() => isActive);
 
       return () => {
         isActive = false;
       };
-    }, []),
+    }, [loadEntries]),
   );
 
   return (
@@ -102,7 +111,26 @@ const JournalScreen = () => {
         ListEmptyComponent={
           !isLoading ? <Text style={styles.emptyText}>Записей пока нет</Text> : null
         }
-        contentContainerStyle={entries.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={
+          entries.length === 0
+            ? [styles.emptyContainer, styles.listContent]
+            : styles.listContent
+        }
+      />
+      <Pressable
+        style={styles.fab}
+        accessibilityLabel="Добавить запись"
+        accessibilityRole="button"
+        onPress={() => setIsAddOpen(true)}
+      >
+        <Ionicons name="add" size={28} color={palette.paper} />
+      </Pressable>
+      <AddJournalEntryModal
+        visible={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        onSaved={() => {
+          loadEntries();
+        }}
       />
     </SafeAreaView>
   );
@@ -112,7 +140,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: palette.paper,
   },
   loader: {
     marginBottom: 12,
@@ -143,6 +171,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  listContent: {
+    paddingBottom: 96,
+  },
   emptyText: {
     fontSize: 16,
     color: '#555',
@@ -150,6 +181,22 @@ const styles = StyleSheet.create({
   deleteBtn: {
     padding: 8,
     alignSelf: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: palette.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
   },
 });
 

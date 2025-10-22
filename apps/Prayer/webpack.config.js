@@ -11,12 +11,12 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(js|jsx)$/,
-        include: /node_modules\/(react-native-vector-icons)/,
+        test: /\.(js|jsx|ts|tsx)$/,
+        include: /node_modules\/(react-native-vector-icons|@react-native-community\/datetimepicker)/,
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-react'],
+            presets: ['@react-native/babel-preset'],
           },
         },
       },
