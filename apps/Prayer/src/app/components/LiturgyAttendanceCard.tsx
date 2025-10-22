@@ -1,10 +1,15 @@
 import React from 'react';
 import { Platform, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { getAllJournalEntries, type JournalEntry } from '../services/journalDb';
 import { palette } from '@spirit/prayer-feature/theme';
 import { startOfDayLocal } from '@spirit/prayer-feature/utils/date';
 import { pluralizeDaysRu } from '@spirit/prayer-feature/utils/plural';
+import { getAllJournalEntries, type JournalEntry } from '../services/journalDb';
+import {
+  ensureSettingsInitialized,
+  getLiturgyThresholds,
+  type Thresholds,
+} from '../services/attendanceConfig';
 
 type Props = {
   style?: StyleProp<ViewStyle>;
@@ -55,6 +60,7 @@ const styles = StyleSheet.create({
 const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
   const [lastVisit, setLastVisit] = React.useState<Date | null>(null);
   const [count30, setCount30] = React.useState<number>(0);
+  const [thresholds, setThresholds] = React.useState<Thresholds>({ normal: 7, warning: 21 });
 
   const computeStats = React.useCallback((rows: JournalEntry[]) => {
     const liturgyRows = rows.filter((r) => r.prayer_id === 'liturgy');
@@ -81,10 +87,15 @@ const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
     setCount30(uniqueDays.size);
   }, []);
 
-  const load = React.useCallback(async () => {
+  const refresh = React.useCallback(async () => {
     try {
-      const all = await getAllJournalEntries();
-      computeStats(all);
+      await ensureSettingsInitialized();
+      const [entries, liturgyThresholds] = await Promise.all([
+        getAllJournalEntries(),
+        getLiturgyThresholds(),
+      ]);
+      computeStats(entries);
+      setThresholds(liturgyThresholds);
     } catch (_err) {
       // ignore
     }
@@ -94,23 +105,26 @@ const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
     React.useCallback(() => {
       let active = true;
       (async () => {
-        if (active) await load();
+        if (active) await refresh();
       })();
       return () => {
         active = false;
       };
-    }, [load]),
+    }, [refresh]),
   );
   React.useEffect(() => {
-    load();
-  }, [load]);
+    refresh();
+  }, [refresh]);
 
-  const getDaysColor = React.useCallback((value?: number | null) => {
-    if (value == null) return palette.mutedInk;
-    if (value <= 7) return palette.ink;
-    if (value <= 21) return palette.mutedInk;
-    return palette.accent;
-  }, []);
+  const getDaysColor = React.useCallback(
+    (value?: number | null) => {
+      if (value == null) return palette.mutedInk;
+      if (value <= thresholds.normal) return palette.ink;
+      if (value <= thresholds.warning) return palette.mutedInk;
+      return palette.accent;
+    },
+    [thresholds],
+  );
 
   const today = startOfDayLocal(new Date());
   const daysSince = lastVisit
