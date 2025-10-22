@@ -3,6 +3,7 @@ export const palette = {
   card: '#FFFFFF',
   ink: '#3B2F2F',
   mutedInk: '#6B5E55',
+  warning: '#F59E0B',
   accent: '#7A1E3A',
   accentSoft: '#EBD6DC',
   chipBg: '#F2F0E8',
