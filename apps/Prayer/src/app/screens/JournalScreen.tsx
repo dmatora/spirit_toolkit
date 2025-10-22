@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
+import { Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { getAllJournalEntries, type JournalEntry } from '../services/journalDb';
@@ -45,7 +47,7 @@ const JournalScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {isLoading ? <ActivityIndicator style={styles.loader} /> : null}
       <FlatList
@@ -62,7 +64,7 @@ const JournalScreen = () => {
         }
         contentContainerStyle={entries.length === 0 ? styles.emptyContainer : undefined}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
