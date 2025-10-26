@@ -22,7 +22,10 @@ const TopBar = styled.header<{ $isSticky: boolean }>`
   border-bottom: 1px solid ${palette.divider};
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* iOS 12 Safari: flex-gap fallback */
+  & > * + * {
+    margin-left: 12px;
+  }
   padding: 12px 16px;
 
   ${({ $isSticky }) =>
