@@ -17,6 +17,14 @@ module.exports = withNx({
         '../../libs/prayer-feature/src/web/Ionicons.tsx',
       ),
     };
+    config.resolve.extensions = Array.from(
+      new Set([
+        '.web.ts',
+        '.web.tsx',
+        '.web.js',
+        ...((config.resolve.extensions ?? []).filter(Boolean)),
+      ]),
+    );
     return config;
   },
   transpilePackages: ['react-native-vector-icons'],

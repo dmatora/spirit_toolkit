@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styled, { css } from 'styled-components';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { palette } from '@spirit/prayer-feature/theme/palette';
 import { ensureInitialized } from '../../../../Prayer/src/app/services/journalDb.web';
 import { ensureSettingsInitialized } from '../../../../Prayer/src/app/services/attendanceConfig.web';
@@ -308,10 +309,11 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   }, [pathname]);
 
   return (
-    <Shell>
-      <TopBar $isSticky={shouldUseStickyTopBar}>
-        <IconButton
-          type="button"
+    <SafeAreaProvider>
+      <Shell>
+        <TopBar $isSticky={shouldUseStickyTopBar}>
+          <IconButton
+            type="button"
           onClick={toggleDrawer}
           aria-label={isOpen ? 'Закрыть меню' : 'Открыть меню'}
         >
@@ -395,7 +397,8 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
       <Main>
         <Content>{children}</Content>
       </Main>
-    </Shell>
+      </Shell>
+    </SafeAreaProvider>
   );
 };
 

@@ -29,7 +29,9 @@
     "../../apps/hub/.next/types/**/*.ts",
     "../../dist/apps/hub/.next/types/**/*.ts",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "../../types/**/*.ts",
+    "../../types/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
