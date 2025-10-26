@@ -2,13 +2,22 @@
 
 import React from 'react';
 import { FeastCountdownCard } from '@spirit/dashboard-feature';
+import LiturgyAttendanceCard from '../../../Prayer/src/app/components/LiturgyAttendanceCard.web';
 
 export default function Page() {
   return (
-    <main style={{ padding: 20 }}>
-      <div style={{ maxWidth: 520, margin: '20px auto' }}>
-        <FeastCountdownCard />
-      </div>
-    </main>
+    <div
+      style={{
+        maxWidth: 960,
+        margin: '0 auto',
+        padding: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 24,
+      }}
+    >
+      <FeastCountdownCard />
+      <LiturgyAttendanceCard />
+    </div>
   );
 }
