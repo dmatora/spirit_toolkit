@@ -7,6 +7,7 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -30,18 +31,33 @@ const JournalScreen = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   const handleDelete = (id: number) => {
+    const runDeletion = async () => {
+      try {
+        await deleteJournalEntry(id);
+        setEntries((prev) => prev.filter((entry) => entry.id !== id));
+      } catch (err) {
+        console.warn('[JournalScreen] failed to delete entry', err);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        typeof window === 'undefined' || typeof window.confirm !== 'function'
+          ? true
+          : window.confirm('Вы уверены, что хотите удалить эту запись?');
+      if (confirmed) {
+        runDeletion();
+      }
+      return;
+    }
+
     Alert.alert('Удалить запись', 'Вы уверены, что хотите удалить эту запись?', [
       { text: 'Отмена', style: 'cancel' },
       {
         text: 'Удалить',
         style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteJournalEntry(id);
-            setEntries((prev) => prev.filter((entry) => entry.id !== id));
-          } catch (err) {
-            console.warn('[JournalScreen] failed to delete entry', err);
-          }
+        onPress: () => {
+          runDeletion();
         },
       },
     ]);
