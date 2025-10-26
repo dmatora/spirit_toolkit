@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 import styled, { css } from 'styled-components';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme/palette';
+import { ensureInitialized } from '../../../../Prayer/src/app/services/journalDb.web';
+import { ensureSettingsInitialized } from '../../../../Prayer/src/app/services/attendanceConfig.web';
 import { PRAYERS } from '../molitvoslov/prayers';
 
 type GlobalLayoutClientProps = {
@@ -208,6 +210,25 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   const shouldUseStickyTopBar = !disableStickyForPath;
 
   useEffect(() => {
+    let cancelled = false;
+    Promise.all([ensureInitialized(), ensureSettingsInitialized()])
+      .then(() => {
+        if (!cancelled) {
+          console.debug('[hub:init] stores ready');
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.warn('[hub:init] failed to initialize stores', error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia(DESKTOP_MEDIA);
 
     const handleChange = (event: MediaQueryListEvent | MediaQueryList) => {
@@ -259,6 +280,8 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
 
   const isHomeActive = pathname === '/';
   const isMolitvoslovActive = pathname === '/molitvoslov' || pathname.startsWith('/molitvoslov/');
+  const isJournalActive = pathname === '/journal' || pathname.startsWith('/journal/');
+  const isSettingsActive = pathname === '/settings' || pathname.startsWith('/settings/');
   const sectionTitle = useMemo(() => {
     const matchedPrayer = PRAYERS.find((prayer) => prayer.href === pathname);
     if (matchedPrayer) {
@@ -336,6 +359,26 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
                 );
               })}
             </NestedList>
+          </NavItem>
+          <NavItem>
+            <NavLink
+              href="/journal"
+              className={isJournalActive ? 'active' : ''}
+              aria-current={isJournalActive ? 'page' : undefined}
+              onClick={handleLinkClick}
+            >
+              Журнал
+            </NavLink>
+          </NavItem>
+          <NavItem>
+            <NavLink
+              href="/settings"
+              className={isSettingsActive ? 'active' : ''}
+              aria-current={isSettingsActive ? 'page' : undefined}
+              onClick={handleLinkClick}
+            >
+              Настройки
+            </NavLink>
           </NavItem>
         </NavList>
       </Sidebar>
