@@ -1,5 +1,2 @@
-export { default as PrayerScreen } from './prayer/screens/PrayerScreen';
-export * from './prayer';
-export * from './utils/feasts';
-export * from './utils/plural';
-export * from './theme';
+// Default to native entry; web will resolve index.web.ts instead
+export * from './index.native';
