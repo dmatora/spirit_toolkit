@@ -11,6 +11,8 @@ type IoniconsProps = TextProps & {
 const ICON_MAP: Record<string, string> = {
   'calendar-outline': '📅',
   'time-outline': '⏰',
+  add: '＋',
+  'trash-outline': '🗑️',
   menu: '☰',
   close: '✕',
 };
