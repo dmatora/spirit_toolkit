@@ -1,5 +1,16 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { palette } from '@spirit/prayer-feature/theme';
@@ -101,88 +112,109 @@ const SettingsScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Настройка ритма посещений</Text>
+      <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            contentContainerStyle={{ paddingBottom: 32 }}
+          >
+            <Text style={styles.header}>Настройка ритма посещений</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Выберите пресет</Text>
-        <View style={styles.presetRow}>
-          {PRESET_LIST.map((preset) => {
-            const isSelected = selectedPreset === preset.key;
-            return (
-              <Pressable
-                key={preset.key}
-                accessibilityRole="button"
-                onPress={() => handlePresetSelect(preset.key)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Выберите пресет</Text>
+              <View style={styles.presetRow}>
+                {PRESET_LIST.map((preset) => {
+                  const isSelected = selectedPreset === preset.key;
+                  return (
+                    <Pressable
+                      key={preset.key}
+                      accessibilityRole="button"
+                      onPress={() => handlePresetSelect(preset.key)}
+                      style={[styles.chip, isSelected && styles.chipSelected]}
+                    >
+                      <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                        {preset.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Тонкая настройка</Text>
+              <View
+                style={styles.legendRow}
+                accessibilityLabel="Легенда: Норма"
               >
-                <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                  {preset.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+                <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
+                <Text style={styles.legendText}>Норма</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Норма (дней)</Text>
+                <TextInput
+                  accessibilityLabel="Норма (дней)"
+                  keyboardType="number-pad"
+                  value={normalValue}
+                  onChangeText={(txt) => setNormalValue(txt.replace(/[^\d]/g, ''))}
+                  style={styles.input}
+                />
+              </View>
+              <Text style={styles.caption}>Пока не прошло столько дней, состояние считается нормальным</Text>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Тонкая настройка</Text>
-        <View
-          style={styles.legendRow}
-          accessibilityLabel="Легенда: Норма"
-        >
-          <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
-          <Text style={styles.legendText}>Норма</Text>
-        </View>
-        <View style={styles.inputRow}>
-          <Text style={styles.inputLabel}>Норма (дней)</Text>
-          <TextInput
-            accessibilityLabel="Норма (дней)"
-            keyboardType="number-pad"
-            value={normalValue}
-            onChangeText={(txt) => setNormalValue(txt.replace(/[^\d]/g, ''))}
-            style={styles.input}
-          />
-        </View>
-        <Text style={styles.caption}>Пока не прошло столько дней, состояние считается нормальным</Text>
+              <View
+                style={styles.legendRow}
+                accessibilityLabel="Легенда: Предупреждение"
+              >
+                <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
+                <Text style={styles.legendText}>Предупреждение</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Предупреждение (дней)</Text>
+                <TextInput
+                  accessibilityLabel="Предупреждение (дней)"
+                  keyboardType="number-pad"
+                  value={warningValue}
+                  onChangeText={(txt) => setWarningValue(txt.replace(/[^\d]/g, ''))}
+                  style={styles.input}
+                />
+              </View>
+              <Text style={styles.caption}>Состояние длится до этого количества дней</Text>
 
-        <View
-          style={styles.legendRow}
-          accessibilityLabel="Легенда: Предупреждение"
-        >
-          <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
-          <Text style={styles.legendText}>Предупреждение</Text>
-        </View>
-        <View style={styles.inputRow}>
-          <Text style={styles.inputLabel}>Предупреждение (дней)</Text>
-          <TextInput
-            accessibilityLabel="Предупреждение (дней)"
-            keyboardType="number-pad"
-            value={warningValue}
-            onChangeText={(txt) => setWarningValue(txt.replace(/[^\d]/g, ''))}
-            style={styles.input}
-          />
-        </View>
-        <Text style={styles.caption}>Состояние длится до этого количества дней</Text>
+              <View
+                style={styles.legendRow}
+                accessibilityLabel="Легенда: Тревога"
+              >
+                <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
+                <Text style={styles.legendText}>Тревога</Text>
+              </View>
+              <Text style={styles.caption}>
+                Наступает, если прошло больше дней, чем указано в «Предупреждении»
+              </Text>
+              <Text style={[styles.caption, { color: palette.danger, fontWeight: '600' }]}>
+                Тревога: &gt; {warningNumber} дней
+              </Text>
+            </View>
 
-        <View
-          style={styles.legendRow}
-          accessibilityLabel="Легенда: Тревога"
-        >
-          <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
-          <Text style={styles.legendText}>Тревога</Text>
-        </View>
-        <Text style={styles.caption}>
-          Наступает, если прошло больше дней, чем указано в «Предупреждении»
-        </Text>
-        <Text style={[styles.caption, { color: palette.danger, fontWeight: '600' }]}>
-          Тревога: &gt; {warningNumber} дней
-        </Text>
-      </View>
-
-      <Pressable accessibilityRole="button" style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Сохранить</Text>
-      </Pressable>
-      {saved && <Text style={styles.savedText}>Сохранено</Text>}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Сохранить настройки"
+              style={styles.saveButton}
+              onPress={() => {
+                Keyboard.dismiss();
+                handleSave();
+              }}
+            >
+              <Text style={styles.saveButtonText}>Сохранить</Text>
+            </Pressable>
+            {saved && <Text style={styles.savedText}>Сохранено</Text>}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };
