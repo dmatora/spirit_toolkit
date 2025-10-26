@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useEvaluationDate } from '@spirit/prayer-feature';
 import { palette } from '@spirit/prayer-feature/theme';
 import { startOfDayLocal } from '@spirit/prayer-feature/utils/date';
 import { pluralizeDaysRu } from '@spirit/prayer-feature/utils/plural';
@@ -58,6 +59,7 @@ const styles = StyleSheet.create({
 });
 
 const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
+  const evaluationDate = useEvaluationDate();
   const [lastVisit, setLastVisit] = React.useState<Date | null>(null);
   const [count30, setCount30] = React.useState<number>(0);
   const [thresholds, setThresholds] = React.useState<Thresholds>({ normal: 7, warning: 21 });
@@ -114,7 +116,7 @@ const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
   );
   React.useEffect(() => {
     refresh();
-  }, [refresh]);
+  }, [refresh, evaluationDate]);
 
   const getDaysColor = React.useCallback(
     (value?: number | null) => {
