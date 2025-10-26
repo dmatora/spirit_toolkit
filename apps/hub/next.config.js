@@ -27,5 +27,13 @@ module.exports = withNx({
     );
     return config;
   },
-  transpilePackages: ['react-native-vector-icons'],
+  // Ensure packages that might ship modern syntax are transpiled
+  transpilePackages: [
+    'react-native',
+    'react-native-safe-area-context',
+    'react-native-vector-icons',
+    'react-native-svg',
+    '@spirit/prayer-feature',
+    '@spirit/dashboard-feature',
+  ],
 });
