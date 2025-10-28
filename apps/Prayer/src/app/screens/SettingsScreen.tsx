@@ -111,7 +111,7 @@ const SettingsScreen = () => {
   const warningNumber = safeParseNumber(warningValue);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
       <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
