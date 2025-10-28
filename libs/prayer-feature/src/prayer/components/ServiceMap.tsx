@@ -68,11 +68,15 @@ const ServiceMap = ({
   isDisabled = false,
 }: Props) => {
   const scrollRef = React.useRef<ScrollView | null>(null);
+  const scrollDomIdRef = React.useRef<string>(
+    `service-map-scroll-${Math.random().toString(36).slice(2)}`,
+  );
   const chipPositionsRef = React.useRef<Record<string, { x: number; width: number }>>({});
   const containerWidthRef = React.useRef<number>(0);
 
   React.useEffect(() => {
     chipPositionsRef.current = {};
+    containerWidthRef.current = 0;
   }, [sections]);
 
   const scrollActiveIntoView = React.useCallback(() => {
@@ -80,9 +84,21 @@ const ServiceMap = ({
     const position = chipPositionsRef.current[activeSectionId];
     const containerWidth = containerWidthRef.current;
 
-    if (position && containerWidth && scrollRef.current) {
+    if (position && containerWidth) {
       const targetX = Math.max(0, position.x + position.width / 2 - containerWidth / 2);
-      scrollRef.current.scrollTo({ x: targetX, animated: true });
+      if (scrollRef.current && typeof scrollRef.current.scrollTo === 'function') {
+        try {
+          scrollRef.current.scrollTo({ x: targetX, animated: true });
+        } catch (err) {
+          scrollRef.current.scrollTo({ x: targetX, animated: false } as any);
+        }
+      }
+      if (typeof document !== 'undefined') {
+        const scrollNode = document.getElementById(scrollDomIdRef.current);
+        if (scrollNode) {
+          scrollNode.scrollLeft = targetX;
+        }
+      }
     }
   }, [activeSectionId]);
 
@@ -90,12 +106,80 @@ const ServiceMap = ({
     scrollActiveIntoView();
   }, [scrollActiveIntoView]);
 
+  React.useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let frame: number | null = null;
+    let attempts = 0;
+    const maxAttempts = 40;
+
+    const measureLegacyLayout = () => {
+      if (cancelled) {
+        return;
+      }
+      attempts += 1;
+      const scrollNode = document.getElementById(scrollDomIdRef.current);
+      if (!scrollNode) {
+        if (attempts < maxAttempts) {
+          frame = window.requestAnimationFrame(measureLegacyLayout);
+        }
+        return;
+      }
+
+      const scrollRect = scrollNode.getBoundingClientRect();
+      if (scrollRect.width && scrollRect.width !== containerWidthRef.current) {
+        containerWidthRef.current = scrollRect.width;
+      }
+
+      let changed = false;
+      sections.forEach((section) => {
+        if (chipPositionsRef.current[section.id]) {
+          return;
+        }
+        const chip: HTMLElement | null = scrollNode.querySelector(
+          `[data-testid="service-map-chip-${section.id}"]`,
+        );
+        if (!chip) {
+          return;
+        }
+        const chipRect = chip.getBoundingClientRect();
+        chipPositionsRef.current[section.id] = {
+          x: chipRect.left - scrollRect.left + scrollNode.scrollLeft,
+          width: chipRect.width,
+        };
+        changed = true;
+      });
+
+      if (changed) {
+        scrollActiveIntoView();
+      }
+
+      const hasMissing = sections.some((section) => !chipPositionsRef.current[section.id]);
+      if (hasMissing && attempts < maxAttempts) {
+        frame = window.requestAnimationFrame(measureLegacyLayout);
+      }
+    };
+
+    frame = window.requestAnimationFrame(measureLegacyLayout);
+
+    return () => {
+      cancelled = true;
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [sections, scrollActiveIntoView]);
+
   if (!sections.length) return null;
 
   return (
     <ScrollView
       ref={scrollRef}
       horizontal
+      nativeID={scrollDomIdRef.current}
       style={[styles.container, style]}
       contentContainerStyle={styles.content}
       showsHorizontalScrollIndicator={false}
@@ -118,6 +202,7 @@ const ServiceMap = ({
             key={section.id}
             onPress={isDisabled ? undefined : () => onSelect(section.id)}
             disabled={isDisabled}
+            testID={`service-map-chip-${section.id}`}
             onLayout={(event) => {
               chipPositionsRef.current[section.id] = {
                 x: event.nativeEvent.layout.x,
