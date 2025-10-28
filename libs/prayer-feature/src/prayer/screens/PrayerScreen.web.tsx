@@ -138,6 +138,17 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
 
   const sectionsCount = sections.length;
 
+  const recomputeMeasuredCount = useCallback(() => {
+    const positions = sectionPositionsRef.current;
+    let total = 0;
+    sectionIds.forEach((id) => {
+      if (typeof positions[id] === 'number') {
+        total += 1;
+      }
+    });
+    setMeasuredCount(total);
+  }, [sectionIds]);
+
   useEffect(() => {
     const prevSig = prevSectionsSigRef.current;
     if (prevSig === sectionsSig) {
@@ -187,11 +198,89 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
       const positions = sectionPositionsRef.current;
       if (typeof positions[sectionId] !== 'number') {
         positions[sectionId] = y;
-        setMeasuredCount((count) => count + 1);
+        recomputeMeasuredCount();
       }
     },
-    [sectionIndexLookup],
+    [sectionIndexLookup, recomputeMeasuredCount],
   );
+
+  useEffect(() => {
+    // Older Safari versions (e.g. iOS 12) do not support ResizeObserver, so react-native-web
+    // never triggers onLayout. We fallback to a manual DOM measurement loop to unblock the
+    // section map and measurement progress on those browsers.
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || typeof window === 'undefined') {
+      return;
+    }
+    if (!sectionsCount) {
+      return;
+    }
+    if (measuredCount >= sectionsCount) {
+      return;
+    }
+
+    let cancelled = false;
+    let frame: number | null = null;
+    let attempts = 0;
+    const maxAttempts = 60;
+
+    const measureMissing = () => {
+      if (cancelled) {
+        return;
+      }
+      attempts += 1;
+      const positions = sectionPositionsRef.current;
+      let changed = false;
+
+      sections.forEach((section) => {
+        if (typeof positions[section.id] === 'number') {
+          return;
+        }
+        const element = document.getElementById(section.id);
+        if (!element) {
+          return;
+        }
+
+        let offset = 0;
+        if (useExternalScroll) {
+          const rect = element.getBoundingClientRect();
+          offset = rect.top + window.scrollY;
+        } else {
+          const container = document.getElementById('prayer-scroll-container');
+          const containerRect = container?.getBoundingClientRect();
+          const elementRect = element.getBoundingClientRect();
+          const scrollTop = container?.scrollTop ?? 0;
+          offset = elementRect.top - (containerRect?.top ?? 0) + scrollTop;
+        }
+
+        positions[section.id] = offset;
+        changed = true;
+      });
+
+      if (changed) {
+        recomputeMeasuredCount();
+      }
+
+      if (cancelled || measuredCount >= sectionsCount || attempts >= maxAttempts) {
+        return;
+      }
+      frame = window.requestAnimationFrame(measureMissing);
+    };
+
+    frame = window.requestAnimationFrame(measureMissing);
+
+    return () => {
+      cancelled = true;
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+      }
+    };
+  }, [
+    measuredCount,
+    recomputeMeasuredCount,
+    sections,
+    sectionsCount,
+    useExternalScroll,
+  ]);
 
   const handleSelectSection = useCallback(
     (sectionId: string) => {
