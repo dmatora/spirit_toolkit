@@ -179,6 +179,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
 
   useEffect(() => {
     if (observerActiveId) {
+      setActiveSectionId((prev) => (prev === observerActiveId ? prev : observerActiveId));
       return;
     }
     if (!isPositionsReady || activeSectionId) {
