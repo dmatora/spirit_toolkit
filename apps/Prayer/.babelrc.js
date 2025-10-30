@@ -1,10 +1,9 @@
 module.exports = function (api) {
   api.cache(true);
 
-  if (
-    process.env.NX_TASK_TARGET_TARGET === 'build' ||
-    process.env.NX_TASK_TARGET_TARGET.includes('storybook')
-  ) {
+  const nxTarget = process.env.NX_TASK_TARGET_TARGET || '';
+
+  if (nxTarget === 'build' || nxTarget.includes('storybook')) {
     return {
       presets: [
         [
@@ -19,7 +18,7 @@ module.exports = function (api) {
 
   return {
     presets: [
-      ['module:@react-native/babel-preset', { useTransformReactJSX: true }],
+      ['module:metro-react-native-babel-preset', { useTransformReactJSX: true }],
     ],
   };
 };

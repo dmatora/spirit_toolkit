@@ -7,6 +7,11 @@ import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrayerNavigator from './PrayerNavigator';
 
+if (__DEV__) {
+  // Helps reveal when Metro returns an undefined navigator component.
+  console.log('[AppNavigator] PrayerNavigator type', typeof PrayerNavigator);
+}
+
 type TabParamList = {
   Главная: undefined;
   Журнал: undefined;
@@ -21,6 +26,7 @@ const Tab = createBottomTabNavigator<TabParamList, TabNavigatorId>();
 const AppNavigator = () => (
   <Tab.Navigator
     id="PrayerTabNavigator"
+    initialRouteName="Главная"
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarIcon: ({ focused, color, size }) => {
@@ -47,7 +53,15 @@ const AppNavigator = () => (
   >
     <Tab.Screen name="Главная" component={HomeScreen} />
     <Tab.Screen name="Журнал" component={JournalScreen} />
-    <Tab.Screen name="Молитвослов" component={PrayerNavigator} />
+    <Tab.Screen
+      name="Молитвослов"
+      children={() => {
+        if (typeof PrayerNavigator !== 'function') {
+          throw new Error('PrayerNavigator component is unavailable');
+        }
+        return <PrayerNavigator />;
+      }}
+    />
     <Tab.Screen name="Настройки" component={SettingsScreen} />
   </Tab.Navigator>
 );

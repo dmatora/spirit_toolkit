@@ -16,7 +16,14 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@react-native/babel-preset'],
+            presets: [
+              [
+                'module:metro-react-native-babel-preset',
+                {
+                  useTransformReactJSX: true,
+                },
+              ],
+            ],
           },
         },
       },

@@ -6,11 +6,18 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
 
 import { PRAYER_OPTIONS, type PrayerOption } from '../constants/prayers';
-import type { PrayerStackParamList } from '../navigation/PrayerNavigator';
+import type { PrayerStackParamList } from '../navigation/types';
 
 type PrayerNavigation = NavigationProp<PrayerStackParamList>;
 
+if (__DEV__) {
+  console.log('[PrayerIndexScreen] module loaded');
+}
+
 const PrayerIndexScreen = () => {
+  if (__DEV__) {
+    console.log('[PrayerIndexScreen] rendering');
+  }
   const navigation = useNavigation<PrayerNavigation>();
 
   return (

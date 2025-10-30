@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcrun simctl uninstall:*)",
+      "Bash(pod deintegrate:*)",
+      "Bash(pod install)",
+      "Bash(npx nx run Prayer:start --reset-cache)",
+      "Bash(npx nx run:*)",
+      "Bash(npm install:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

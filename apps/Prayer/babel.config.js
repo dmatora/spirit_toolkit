@@ -1,4 +1,3 @@
-module.exports = {
-  presets: ['module:@react-native/babel-preset'],
-  plugins: ['react-native-reanimated/plugin'],
-};
+console.log('Delegating to root babel.config.js from apps/Prayer');
+
+module.exports = require('../../babel.config');

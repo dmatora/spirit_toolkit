@@ -15,10 +15,10 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@spirit/prayer-feature": ["libs/prayer-feature/src/index"],
-      "@spirit/prayer-feature/*": ["libs/prayer-feature/src/*"],
       "@spirit/dashboard-feature": ["libs/dashboard-feature/src/index.ts"],
-      "@spirit/dashboard-feature/*": ["libs/dashboard-feature/src/*"]
+      "@spirit/dashboard-feature/*": ["libs/dashboard-feature/src/*"],
+      "@spirit/prayer-feature": ["libs/prayer-feature/src/index"],
+      "@spirit/prayer-feature/*": ["libs/prayer-feature/src/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]
