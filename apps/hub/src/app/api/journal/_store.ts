@@ -5,11 +5,14 @@ import { fileURLToPath } from 'node:url';
 
 export type ServerJournalEntry = {
   id: number;
+  cursor: number;
   prayer_id: string;
   timestamp: number;
+  createdAt: number;
 };
 
 export type ServerJournalDeletion = {
+  cursor: number;
   prayer_id: string;
   timestamp: number;
   deletedAt: number;
@@ -18,6 +21,16 @@ export type ServerJournalDeletion = {
 type DraftEntry = {
   prayer_id: string;
   timestamp: number;
+};
+
+type StoreMeta = {
+  nextCursor: number;
+};
+
+type StoreFile = {
+  entries: ServerJournalEntry[];
+  deletions: ServerJournalDeletion[];
+  meta: StoreMeta;
 };
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,51 +52,29 @@ async function ensureStoreReady(): Promise<void> {
     await fs.access(STORE_PATH, fsConstants.F_OK);
   } catch {
     try {
-      await fs.writeFile(
-        STORE_PATH,
-        JSON.stringify({ entries: [], deletions: [] }, null, 2),
-        { encoding: 'utf8' },
-      );
+      const initial: StoreFile = {
+        entries: [],
+        deletions: [],
+        meta: { nextCursor: 1 },
+      };
+      await fs.writeFile(STORE_PATH, JSON.stringify(initial, null, 2), {
+        encoding: 'utf8',
+      });
     } catch (err) {
-      // ignore initialization failure; read/write callers will surface errors
       console.error('Failed to initialize journal store', err);
     }
   }
 }
-
-type StoreFile = {
-  entries: ServerJournalEntry[];
-  deletions: ServerJournalDeletion[];
-};
 
 async function readStore(): Promise<StoreFile> {
   await ensureStoreReady();
   try {
     const raw = await fs.readFile(STORE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-
-    if (Array.isArray(parsed)) {
-      return {
-        entries: parsed.filter(isServerJournalEntry),
-        deletions: [],
-      };
-    }
-
-    if (parsed && typeof parsed === 'object') {
-      const candidate = parsed as Partial<StoreFile>;
-      const entries = Array.isArray(candidate.entries)
-        ? candidate.entries.filter(isServerJournalEntry)
-        : [];
-      const deletions = Array.isArray(candidate.deletions)
-        ? candidate.deletions.filter(isServerJournalDeletion)
-        : [];
-      return { entries, deletions };
-    }
-
-    return { entries: [], deletions: [] };
+    return normalizeStore(parsed);
   } catch (err) {
     console.error('Failed to read journal store', err);
-    return { entries: [], deletions: [] };
+    return { entries: [], deletions: [], meta: { nextCursor: 1 } };
   }
 }
 
@@ -111,14 +102,6 @@ export async function readAll(): Promise<ServerJournalEntry[]> {
   return entries;
 }
 
-export async function writeAll(entries: ServerJournalEntry[]): Promise<void> {
-  await mutateStore(async (state) => ({
-    state: { entries, deletions: state.deletions },
-    changed: true,
-    result: undefined,
-  }));
-}
-
 export async function appendMany(
   drafts: DraftEntry[],
 ): Promise<ServerJournalEntry[]> {
@@ -129,7 +112,9 @@ export async function appendMany(
   return mutateStore(async (current) => {
     const currentExisting = new Set(current.entries.map(entryKey));
     const additions: ServerJournalEntry[] = [];
-    let idCursor = current.entries.reduce((max, entry) => Math.max(max, entry.id), 0) + 1;
+    let nextId = current.entries.reduce((max, entry) => Math.max(max, entry.id), 0) + 1;
+    let cursor = current.meta.nextCursor;
+    const now = Date.now();
 
     for (const draft of drafts) {
       if (!isDraftEntry(draft)) {
@@ -140,9 +125,11 @@ export async function appendMany(
         continue;
       }
       additions.push({
-        id: idCursor++,
+        id: nextId++,
+        cursor: cursor++,
         prayer_id: draft.prayer_id,
         timestamp: draft.timestamp,
+        createdAt: now,
       });
       currentExisting.add(key);
     }
@@ -160,6 +147,7 @@ export async function appendMany(
       state: {
         entries: [...current.entries, ...additions],
         deletions: filteredDeletions,
+        meta: { nextCursor: cursor },
       },
       changed: true,
       result: additions,
@@ -182,6 +170,7 @@ export async function registerDeletions(
     let changed = false;
     const recorded: ServerJournalDeletion[] = [];
     const now = Math.floor(Date.now() / 1000);
+    let cursor = state.meta.nextCursor;
 
     const remainingEntries = state.entries.filter((entry) => {
       const key = entryKey(entry);
@@ -196,6 +185,7 @@ export async function registerDeletions(
       const deletion: ServerJournalDeletion = existing
         ? { ...existing, deletedAt: Math.max(existing.deletedAt, now) }
         : {
+            cursor: cursor++,
             prayer_id: entry.prayer_id,
             timestamp: entry.timestamp,
             deletedAt: now,
@@ -216,6 +206,7 @@ export async function registerDeletions(
         continue;
       }
       const deletion: ServerJournalDeletion = {
+        cursor: cursor++,
         prayer_id: draft.prayer_id,
         timestamp: draft.timestamp,
         deletedAt: now,
@@ -230,11 +221,15 @@ export async function registerDeletions(
     }
 
     const deletions = Array.from(deletionsMap.values()).sort(
-      (a, b) => a.deletedAt - b.deletedAt,
+      (a, b) => a.cursor - b.cursor,
     );
 
     return {
-      state: { entries: remainingEntries, deletions },
+      state: {
+        entries: remainingEntries,
+        deletions,
+        meta: { nextCursor: cursor },
+      },
       changed: true,
       result: recorded,
     };
@@ -242,48 +237,35 @@ export async function registerDeletions(
 }
 
 export async function getSince(
-  ts: number,
+  cursor: number,
 ): Promise<{
   entries: ServerJournalEntry[];
   deletions: ServerJournalDeletion[];
   syncedUntil: number;
 }> {
-  const threshold = Number.isFinite(ts) ? ts : 0;
+  const threshold = Number.isFinite(cursor) ? cursor : 0;
   const state = await readStore();
-  const entries = state.entries.filter((entry) => entry.timestamp > threshold);
+  const entries = state.entries.filter((entry) => entry.cursor > threshold);
   const deletions = state.deletions.filter(
-    (deletion) => deletion.deletedAt > threshold,
+    (deletion) => deletion.cursor > threshold,
   );
 
-  const maxEntryTimestamp = entries.reduce(
-    (max, entry) => Math.max(max, entry.timestamp),
+  const maxEntryCursor = entries.reduce(
+    (max, entry) => Math.max(max, entry.cursor),
     threshold,
   );
-  const maxDeletionTimestamp = deletions.reduce(
-    (max, deletion) => Math.max(max, deletion.deletedAt),
+  const maxDeletionCursor = deletions.reduce(
+    (max, deletion) => Math.max(max, deletion.cursor),
     threshold,
   );
 
-  const syncedUntil = Math.max(threshold, maxEntryTimestamp, maxDeletionTimestamp);
+  const syncedUntil = Math.max(threshold, maxEntryCursor, maxDeletionCursor);
 
   return { entries, deletions, syncedUntil };
 }
 
 function entryKey(entry: { prayer_id: string; timestamp: number }): string {
   return `${entry.prayer_id}:${entry.timestamp}`;
-}
-
-function isServerJournalEntry(value: unknown): value is ServerJournalEntry {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as Partial<ServerJournalEntry>;
-  return (
-    typeof candidate.id === 'number' &&
-    typeof candidate.prayer_id === 'string' &&
-    typeof candidate.timestamp === 'number'
-  );
 }
 
 function isDraftEntry(value: unknown): value is DraftEntry {
@@ -295,19 +277,6 @@ function isDraftEntry(value: unknown): value is DraftEntry {
   return (
     typeof candidate.prayer_id === 'string' &&
     typeof candidate.timestamp === 'number'
-  );
-}
-
-function isServerJournalDeletion(value: unknown): value is ServerJournalDeletion {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const candidate = value as Partial<ServerJournalDeletion>;
-  return (
-    typeof candidate.prayer_id === 'string' &&
-    typeof candidate.timestamp === 'number' &&
-    typeof candidate.deletedAt === 'number'
   );
 }
 
@@ -367,4 +336,109 @@ async function releaseLock(handle: fs.FileHandle): Promise<void> {
 
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeStore(raw: unknown): StoreFile {
+  if (Array.isArray(raw)) {
+    const entries = raw
+      .map((value, index) => ensureEntry(value, index + 1))
+      .filter((value): value is ServerJournalEntry => value !== null);
+    let nextCursor = entries.reduce(
+      (max, entry) => Math.max(max, entry.cursor + 1),
+      1,
+    );
+    return {
+      entries,
+      deletions: [],
+      meta: { nextCursor },
+    };
+  }
+
+  if (!raw || typeof raw !== 'object') {
+    return { entries: [], deletions: [], meta: { nextCursor: 1 } };
+  }
+
+  const parsed = raw as Record<string, unknown>;
+  const entries = Array.isArray(parsed.entries)
+    ? parsed.entries
+        .map((value, index) => ensureEntry(value, index + 1))
+        .filter((value): value is ServerJournalEntry => value !== null)
+    : [];
+  const deletions = Array.isArray(parsed.deletions)
+    ? parsed.deletions
+        .map((value) => ensureDeletion(value))
+        .filter((value): value is ServerJournalDeletion => value !== null)
+    : [];
+
+  let nextCursor = 1;
+  for (const entry of entries) {
+    nextCursor = Math.max(nextCursor, entry.cursor + 1);
+  }
+  for (const deletion of deletions) {
+    nextCursor = Math.max(nextCursor, deletion.cursor + 1);
+  }
+
+  const metaCandidate = parsed.meta;
+  if (metaCandidate && typeof metaCandidate === 'object') {
+    const candidateCursor = (metaCandidate as Record<string, unknown>).nextCursor;
+    if (typeof candidateCursor === 'number' && Number.isFinite(candidateCursor)) {
+      nextCursor = Math.max(nextCursor, candidateCursor);
+    }
+  }
+
+  return { entries, deletions, meta: { nextCursor } };
+}
+
+function ensureEntry(value: unknown, fallbackId: number): ServerJournalEntry | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate.prayer_id !== 'string' || typeof candidate.timestamp !== 'number') {
+    return null;
+  }
+  const idRaw = candidate.id;
+  const id = typeof idRaw === 'number' && Number.isFinite(idRaw) ? idRaw : fallbackId;
+  const cursorRaw = candidate.cursor;
+  const cursor = typeof cursorRaw === 'number' && Number.isFinite(cursorRaw)
+    ? cursorRaw
+    : id;
+  const createdRaw = candidate.createdAt;
+  const createdAt =
+    typeof createdRaw === 'number' && Number.isFinite(createdRaw)
+      ? createdRaw
+      : Date.now();
+  return {
+    id,
+    cursor,
+    prayer_id: candidate.prayer_id,
+    timestamp: candidate.timestamp,
+    createdAt,
+  };
+}
+
+function ensureDeletion(value: unknown): ServerJournalDeletion | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (typeof candidate.prayer_id !== 'string' || typeof candidate.timestamp !== 'number') {
+    return null;
+  }
+  const cursorRaw = candidate.cursor;
+  const deletedAtRaw = candidate.deletedAt;
+  const deletedAt =
+    typeof deletedAtRaw === 'number' && Number.isFinite(deletedAtRaw)
+      ? deletedAtRaw
+      : Math.floor(Date.now() / 1000);
+  const cursor =
+    typeof cursorRaw === 'number' && Number.isFinite(cursorRaw)
+      ? cursorRaw
+      : deletedAt;
+  return {
+    cursor,
+    prayer_id: candidate.prayer_id,
+    timestamp: candidate.timestamp,
+    deletedAt,
+  };
 }

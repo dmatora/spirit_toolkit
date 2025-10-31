@@ -12,7 +12,8 @@ import { resolveUrl, withSyncAuthHeaders } from './syncConfig';
 
 type Listener = () => void;
 
-const LAST_SYNC_KEY = 'journal/lastSyncedAt';
+const LAST_SYNC_CURSOR_KEY = 'journal/lastSyncedCursor';
+const LEGACY_SYNC_KEY = 'journal/lastSyncedAt';
 const UPLOAD_ENDPOINT = '/upload';
 const PULL_ENDPOINT = '/pull';
 const DELETE_ENDPOINT = '/delete';
@@ -33,25 +34,30 @@ const notifySynced = () => {
   });
 };
 
-const readLastSyncedAt = async (): Promise<number> => {
+const readLastSyncedCursor = async (): Promise<number> => {
   try {
-    const raw = await AsyncStorage.getItem(LAST_SYNC_KEY);
-    if (!raw) {
-      return 0;
+    const raw = await AsyncStorage.getItem(LAST_SYNC_CURSOR_KEY);
+    if (raw) {
+      const parsed = Number.parseInt(raw, 10);
+      return Number.isFinite(parsed) ? parsed : 0;
     }
-    const parsed = Number.parseInt(raw, 10);
-    return Number.isFinite(parsed) ? parsed : 0;
+
+    const legacy = await AsyncStorage.getItem(LEGACY_SYNC_KEY);
+    if (legacy) {
+      await AsyncStorage.removeItem(LEGACY_SYNC_KEY);
+    }
+    return 0;
   } catch (error) {
-    console.warn('[journalSync] Failed to read lastSyncedAt', error);
+    console.warn('[journalSync] Failed to read lastSyncedCursor', error);
     return 0;
   }
 };
 
-const writeLastSyncedAt = async (value: number): Promise<void> => {
+const writeLastSyncedCursor = async (value: number): Promise<void> => {
   try {
-    await AsyncStorage.setItem(LAST_SYNC_KEY, String(value));
+    await AsyncStorage.setItem(LAST_SYNC_CURSOR_KEY, String(value));
   } catch (error) {
-    console.warn('[journalSync] Failed to persist lastSyncedAt', error);
+    console.warn('[journalSync] Failed to persist lastSyncedCursor', error);
   }
 };
 
@@ -94,7 +100,7 @@ export const syncNow = async (): Promise<void> => {
 };
 
 const performSync = async (): Promise<void> => {
-  const since = await readLastSyncedAt();
+  const since = await readLastSyncedCursor();
 
   try {
     const [unsynced, pendingDeletions] = await Promise.all([
@@ -162,14 +168,19 @@ const performSync = async (): Promise<void> => {
     }
 
     const payload = (await pullResponse.json()) as {
-      entries?: Array<{ prayer_id: string; timestamp: number }>;
-      deletions?: Array<{ prayer_id: string; timestamp: number; deletedAt?: number }>;
+      entries?: Array<{ prayer_id: string; timestamp: number; cursor?: number }>;
+      deletions?: Array<{
+        prayer_id: string;
+        timestamp: number;
+        deletedAt?: number;
+        cursor?: number;
+      }>;
       syncedUntil?: number;
     };
 
     const pulledEntries = Array.isArray(payload.entries)
       ? payload.entries.filter(
-          (entry): entry is { prayer_id: string; timestamp: number } =>
+          (entry): entry is { prayer_id: string; timestamp: number; cursor?: number } =>
             !!entry &&
             typeof entry === 'object' &&
             typeof entry.prayer_id === 'string' &&
@@ -188,7 +199,12 @@ const performSync = async (): Promise<void> => {
 
     const pulledDeletions = Array.isArray(payload.deletions)
       ? payload.deletions.filter(
-          (item): item is { prayer_id: string; timestamp: number; deletedAt?: number } =>
+          (item): item is {
+            prayer_id: string;
+            timestamp: number;
+            deletedAt?: number;
+            cursor?: number;
+          } =>
             !!item &&
             typeof item === 'object' &&
             typeof item.prayer_id === 'string' &&
@@ -205,21 +221,21 @@ const performSync = async (): Promise<void> => {
       );
     }
 
-    const maxPulledTimestamp = pulledEntries.reduce(
-      (max, entry) => Math.max(max, entry.timestamp),
+    const maxPulledCursor = pulledEntries.reduce(
+      (max, entry) => Math.max(max, typeof entry.cursor === 'number' ? entry.cursor : since),
       since,
     );
-    const maxDeletionTimestamp = pulledDeletions.reduce(
+    const maxDeletionCursor = pulledDeletions.reduce(
       (max, item) =>
-        Math.max(max, typeof item.deletedAt === 'number' ? item.deletedAt : since),
+        Math.max(max, typeof item.cursor === 'number' ? item.cursor : since),
       since,
     );
     const serverSyncedUntil =
       typeof payload.syncedUntil === 'number' && Number.isFinite(payload.syncedUntil)
         ? Math.max(since, payload.syncedUntil)
-        : Math.max(maxPulledTimestamp, maxDeletionTimestamp);
+        : Math.max(maxPulledCursor, maxDeletionCursor);
 
-    await writeLastSyncedAt(serverSyncedUntil);
+    await writeLastSyncedCursor(serverSyncedUntil);
     notifySynced();
   } catch (error) {
     console.warn('[journalSync] Sync failed', error);
