@@ -145,16 +145,14 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
 };
 
 export const deleteJournalEntry = async (id: number): Promise<void> => {
-  let target: JournalEntry | null = null;
-
   if (isWeb) {
     const index = webStore.findIndex((entry) => entry.id === id);
     if (index !== -1) {
-      target = webStore[index];
+      const entry = webStore[index];
+      if (entry.synced === 1) {
+        queueDeletionInMemory(entry.prayer_id, entry.timestamp);
+      }
       webStore.splice(index, 1);
-    }
-    if (target && target.synced === 1) {
-      queueDeletionInMemory(target.prayer_id, target.timestamp);
     }
     return;
   }
@@ -166,6 +164,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     return;
   }
 
+  let target: JournalEntry | null = null;
   try {
     const [result] = await db.executeSql(
       `SELECT id, prayer_id, timestamp, synced FROM ${tableName} WHERE id = ? LIMIT 1;`,
@@ -184,14 +183,19 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     console.error('[journalDb] Failed to load entry before delete', error);
   }
 
+  if (target && target.synced === 1) {
+    try {
+      await queueDeletion(target.prayer_id, target.timestamp);
+    } catch (error) {
+      console.error('[journalDb] Failed to queue deletion before delete', error);
+      return;
+    }
+  }
+
   try {
     await db.executeSql(`DELETE FROM ${tableName} WHERE id = ?;`, [id]);
   } catch (error) {
     console.error('[journalDb] Failed to delete journal entry', error);
-  }
-
-  if (target && target.synced === 1) {
-    await queueDeletion(target.prayer_id, target.timestamp);
   }
 };
 

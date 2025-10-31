@@ -170,16 +170,14 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
 };
 
 export const deleteJournalEntry = async (id: number): Promise<void> => {
-  let target: JournalEntry | null = null;
-
   if (!hasIndexedDb) {
     const index = memoryStore.findIndex((entry) => entry.id === id);
     if (index !== -1) {
-      target = memoryStore[index];
+      const entry = memoryStore[index];
+      if (entry.synced === 1) {
+        queueDeletionInMemory(entry.prayer_id, entry.timestamp);
+      }
       memoryStore.splice(index, 1);
-    }
-    if (target && target.synced === 1) {
-      queueDeletionInMemory(target.prayer_id, target.timestamp);
     }
     return;
   }
@@ -190,6 +188,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     return;
   }
 
+  let target: JournalEntry | null = null;
   try {
     const lookupTx = db.transaction(STORE_NAME, 'readonly');
     const lookupStore = lookupTx.objectStore(STORE_NAME);
@@ -205,15 +204,20 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
       };
     }
 
+    if (target && target.synced === 1) {
+      try {
+        await queueDeletion(target.prayer_id, target.timestamp);
+      } catch (error) {
+        console.warn('[journalDb:web] Failed to queue deletion before removing entry', error);
+        return;
+      }
+    }
+
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     await requestToPromise(store.delete(id));
   } catch (error) {
     console.warn('[journalDb:web] Failed to delete journal entry', error);
-  }
-
-  if (target && target.synced === 1) {
-    await queueDeletion(target.prayer_id, target.timestamp);
   }
 };
 

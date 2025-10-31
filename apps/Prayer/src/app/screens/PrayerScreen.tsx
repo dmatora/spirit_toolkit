@@ -3,6 +3,7 @@ import { useRoute } from '@react-navigation/native';
 import { PrayerScreen as BasePrayerScreen, type PrayerId } from '@spirit/prayer-feature';
 
 import { addJournalEntry } from '../services/journalDb';
+import { triggerSync } from '../services/journalSync';
 
 type Props = React.ComponentProps<typeof BasePrayerScreen>;
 
@@ -13,7 +14,10 @@ const PrayerScreen = (props: Props) => {
 
   useEffect(() => {
     addJournalEntry(resolvedId)
-      .then(() => console.log(`[PrayerScreen] journal entry added for '${resolvedId}'`))
+      .then(() => {
+        console.log(`[PrayerScreen] journal entry added for '${resolvedId}'`);
+        triggerSync();
+      })
       .catch((e) => console.error('[PrayerScreen] failed to add journal entry', e));
   }, [resolvedId]);
 
