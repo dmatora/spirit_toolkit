@@ -329,10 +329,14 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
     throw new Error('[journalDb] SQLite database connection not available for upsert');
   }
 
+  let transactionStarted = false;
   let inserted = 0;
 
-  for (const entry of validEntries) {
-    try {
+  try {
+    await db.executeSql('BEGIN IMMEDIATE TRANSACTION;');
+    transactionStarted = true;
+
+    for (const entry of validEntries) {
       const [selectResult] = await db.executeSql(
         `SELECT id FROM ${tableName} WHERE prayer_id = ? AND timestamp = ? LIMIT 1;`,
         [entry.prayer_id, entry.timestamp],
@@ -347,13 +351,22 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
         [entry.prayer_id, entry.timestamp],
       );
       inserted += 1;
-    } catch (error) {
-      console.error('[journalDb] Failed to upsert journal entry', error);
-      throw error;
     }
-  }
 
-  return inserted;
+    await db.executeSql('COMMIT;');
+    transactionStarted = false;
+    return inserted;
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await db.executeSql('ROLLBACK;');
+      } catch (rollbackError) {
+        console.error('[journalDb] Failed to rollback upsert transaction', rollbackError);
+      }
+    }
+    console.error('[journalDb] Failed to upsert journal entries', error);
+    throw error;
+  }
 };
 
 const key = (prayerId: string, timestamp: number) => `${prayerId}:${timestamp}`;
@@ -480,7 +493,11 @@ export const applyRemoteDeletions = async (
     );
   }
 
+  let transactionStarted = false;
   try {
+    await db.executeSql('BEGIN IMMEDIATE TRANSACTION;');
+    transactionStarted = true;
+
     for (const deletion of deletions) {
       await db.executeSql(
         `DELETE FROM ${tableName} WHERE prayer_id = ? AND timestamp = ?;`,
@@ -491,7 +508,16 @@ export const applyRemoteDeletions = async (
         [deletion.prayer_id, deletion.timestamp],
       );
     }
+
+    await db.executeSql('COMMIT;');
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        await db.executeSql('ROLLBACK;');
+      } catch (rollbackError) {
+        console.error('[journalDb] Failed to rollback remote deletion transaction', rollbackError);
+      }
+    }
     console.error('[journalDb] Failed to apply remote deletions', error);
     throw error;
   }
