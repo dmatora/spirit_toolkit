@@ -3,7 +3,7 @@ const JOURNAL_PREFIX = '/api/journal';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SPIRIT_SYNC_API__?: string;
+  var __SPIRIT_SYNC_API__: string | undefined;
   interface Window {
     __SPIRIT_SYNC_API__?: string;
   }
