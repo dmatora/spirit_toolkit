@@ -132,18 +132,38 @@ const performSync = async (): Promise<void> => {
 
     const payload = (await pullResponse.json()) as {
       entries?: Array<{ prayer_id: string; timestamp: number }>;
+      syncedUntil?: number;
     };
 
-    if (Array.isArray(payload.entries) && payload.entries.length > 0) {
+    const pulledEntries = Array.isArray(payload.entries)
+      ? payload.entries.filter(
+          (entry): entry is { prayer_id: string; timestamp: number } =>
+            !!entry &&
+            typeof entry === 'object' &&
+            typeof entry.prayer_id === 'string' &&
+            typeof entry.timestamp === 'number',
+        )
+      : [];
+
+    if (pulledEntries.length > 0) {
       await upsertEntries(
-        payload.entries.map((entry) => ({
+        pulledEntries.map((entry) => ({
           prayer_id: entry.prayer_id,
           timestamp: entry.timestamp,
         })),
       );
     }
 
-    await writeLastSyncedAt(Math.floor(Date.now() / 1000));
+    const maxPulledTimestamp = pulledEntries.reduce(
+      (max, entry) => Math.max(max, entry.timestamp),
+      since,
+    );
+    const serverSyncedUntil =
+      typeof payload.syncedUntil === 'number' && Number.isFinite(payload.syncedUntil)
+        ? Math.max(since, payload.syncedUntil)
+        : maxPulledTimestamp;
+
+    await writeLastSyncedAt(serverSyncedUntil);
     notifySynced();
   } catch (error) {
     console.warn('[journalSync] Sync failed', error);
