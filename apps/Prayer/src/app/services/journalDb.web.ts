@@ -136,8 +136,10 @@ export const addJournalEntry = async (
         synced,
       }),
     );
+    await transactionDone(tx);
   } catch (error) {
     console.warn('[journalDb:web] Failed to add journal entry', error);
+    throw error;
   }
 };
 
@@ -167,7 +169,7 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
       .sort((a, b) => b.id - a.id);
   } catch (error) {
     console.warn('[journalDb:web] Failed to fetch journal entries', error);
-    return [];
+    throw error;
   }
 };
 
@@ -187,7 +189,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
   await ensureInitialized();
   if (!db) {
     console.warn('[journalDb:web] IndexedDB database not initialized, cannot delete entry');
-    return;
+    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot delete entry');
   }
 
   try {
@@ -224,6 +226,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     await transactionDone(tx);
   } catch (error) {
     console.warn('[journalDb:web] Failed to delete journal entry', error);
+    throw error;
   }
 };
 
@@ -252,7 +255,7 @@ export const getUnsyncedEntries = async (): Promise<JournalEntry[]> => {
       }));
   } catch (error) {
     console.warn('[journalDb:web] Failed to fetch unsynced journal entries', error);
-    return [];
+    throw error;
   }
 };
 
@@ -274,7 +277,7 @@ export const markEntriesSynced = async (ids: number[]): Promise<void> => {
   await ensureInitialized();
   if (!db) {
     console.warn('[journalDb:web] IndexedDB database not initialized, cannot mark synced');
-    return;
+    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot mark synced');
   }
 
   try {
@@ -293,8 +296,10 @@ export const markEntriesSynced = async (ids: number[]): Promise<void> => {
         console.warn('[journalDb:web] Failed to mark entry as synced', error);
       }
     }
+    await transactionDone(tx);
   } catch (error) {
     console.warn('[journalDb:web] Failed to open transaction for markEntriesSynced', error);
+    throw error;
   }
 };
 
@@ -370,10 +375,11 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
       inserted += 1;
     }
 
+    await transactionDone(tx);
     return inserted;
   } catch (error) {
     console.warn('[journalDb:web] Failed to upsert journal entries', error);
-    return 0;
+    throw error;
   }
 };
 
@@ -481,6 +487,7 @@ export const queueDeletion = async (
     queueDeletionInMemory(prayerId, timestamp, key as PendingDeletionId);
   } catch (error) {
     console.warn('[journalDb:web] Failed to queue deletion', error);
+    throw error;
   }
 };
 
@@ -518,7 +525,7 @@ export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
     return [...memoryDeletionQueue];
   } catch (error) {
     console.warn('[journalDb:web] Failed to fetch pending deletions', error);
-    return [...memoryDeletionQueue];
+    throw error;
   }
 };
 
@@ -541,7 +548,7 @@ export const removePendingDeletions = async (ids: PendingDeletionId[]): Promise<
   await ensureInitialized();
   if (!db) {
     console.warn('[journalDb:web] IndexedDB database not initialized, cannot remove deletions');
-    return;
+    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot remove deletions');
   }
 
   try {
@@ -552,6 +559,7 @@ export const removePendingDeletions = async (ids: PendingDeletionId[]): Promise<
     }
   } catch (error) {
     console.warn('[journalDb:web] Failed to remove pending deletions', error);
+    throw error;
   }
 };
 
@@ -583,7 +591,7 @@ export const applyRemoteDeletions = async (
   await ensureInitialized();
   if (!db) {
     console.warn('[journalDb:web] IndexedDB database not initialized, cannot apply deletions');
-    return;
+    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot apply deletions');
   }
 
   try {
@@ -591,48 +599,28 @@ export const applyRemoteDeletions = async (
     const entryStore = tx.objectStore(STORE_NAME);
     const deletionStore = tx.objectStore(DELETION_STORE_NAME);
 
-    for (const deletion of deletions) {
-      const cursorRequest = entryStore.openCursor();
-      await new Promise<void>((resolveCursor) => {
-        cursorRequest.onsuccess = () => {
-          const cursor = cursorRequest.result;
-          if (!cursor) {
-            resolveCursor();
-            return;
-          }
-          const value = cursor.value as JournalEntry;
-          if (
-            value.prayer_id === deletion.prayer_id &&
-            value.timestamp === deletion.timestamp
-          ) {
-            cursor.delete();
-          }
-          cursor.continue();
-        };
-        cursorRequest.onerror = () => resolveCursor();
-      });
+    const allEntries = (await requestToPromise(entryStore.getAll())) as JournalEntry[];
+    const allQueuedDeletions = (await requestToPromise(
+      deletionStore.getAll(),
+    )) as PendingDeletion[];
 
-      const deletionCursorRequest = deletionStore.openCursor();
-      await new Promise<void>((resolveCursor) => {
-        deletionCursorRequest.onsuccess = () => {
-          const cursor = deletionCursorRequest.result;
-          if (!cursor) {
-            resolveCursor();
-            return;
-          }
-          const value = cursor.value as PendingDeletion;
-          if (
-            value.prayer_id === deletion.prayer_id &&
-            value.timestamp === deletion.timestamp
-          ) {
-            cursor.delete();
-          }
-          cursor.continue();
-        };
-        deletionCursorRequest.onerror = () => resolveCursor();
-      });
+    const keysToDelete = new Set(keys);
+
+    for (const entry of allEntries) {
+      if (keysToDelete.has(key(entry.prayer_id, entry.timestamp))) {
+        await requestToPromise(entryStore.delete(entry.id));
+      }
     }
+
+    for (const pending of allQueuedDeletions) {
+      if (keysToDelete.has(key(pending.prayer_id, pending.timestamp))) {
+        await requestToPromise(deletionStore.delete(pending.id));
+      }
+    }
+
+    await transactionDone(tx);
   } catch (error) {
     console.warn('[journalDb:web] Failed to apply remote deletions', error);
+    throw error;
   }
 };

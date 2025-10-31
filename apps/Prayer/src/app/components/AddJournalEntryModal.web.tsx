@@ -120,7 +120,9 @@ const AddJournalEntryModalWeb: React.FC<Props> = ({ visible, onClose, onSaved })
       onClose();
     } catch (error) {
       console.warn('[AddJournalEntryModal:web] failed to save entry', error);
-      onClose();
+      if (typeof window !== 'undefined') {
+        window.alert('Не удалось сохранить запись. Попробуйте ещё раз.');
+      }
     }
   };
 

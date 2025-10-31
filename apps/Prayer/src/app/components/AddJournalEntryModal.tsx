@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { Modal, View, Text, Pressable, StyleSheet, Platform, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme';
@@ -57,7 +57,11 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
       onClose();
     } catch (error) {
       console.warn('[AddJournalEntryModal] failed to save', error);
-      onClose();
+      Alert.alert(
+        'Ошибка',
+        'Не удалось сохранить запись. Попробуйте ещё раз.',
+        [{ text: 'ОК' }],
+      );
     }
   };
 

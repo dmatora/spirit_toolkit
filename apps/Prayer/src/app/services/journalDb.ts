@@ -96,8 +96,7 @@ export const addJournalEntry = async (
   await ensureNativeInitialized();
 
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for insert');
-    return;
+    throw new Error('[journalDb] SQLite database connection not available for insert');
   }
 
   try {
@@ -107,6 +106,7 @@ export const addJournalEntry = async (
     );
   } catch (error) {
     console.error('[journalDb] Failed to add journal entry', error);
+    throw error;
   }
 };
 
@@ -118,8 +118,7 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
   await ensureNativeInitialized();
 
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for select');
-    return [];
+    throw new Error('[journalDb] SQLite database connection not available for select');
   }
 
   try {
@@ -140,7 +139,7 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
     return entries;
   } catch (error) {
     console.error('[journalDb] Failed to fetch journal entries', error);
-    return [];
+    throw error;
   }
 };
 
@@ -160,8 +159,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
   await ensureNativeInitialized();
 
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for delete');
-    return;
+    throw new Error('[journalDb] SQLite database connection not available for delete');
   }
 
   let transactionStarted = false;
@@ -198,6 +196,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
       }
     }
     console.error('[journalDb] Failed to delete journal entry', error);
+    throw error;
   }
 };
 
@@ -223,8 +222,7 @@ export const getUnsyncedEntries = async (): Promise<JournalEntry[]> => {
   await ensureNativeInitialized();
 
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for unsynced select');
-    return [];
+    throw new Error('[journalDb] SQLite database connection not available for unsynced select');
   }
 
   try {
@@ -245,7 +243,7 @@ export const getUnsyncedEntries = async (): Promise<JournalEntry[]> => {
     return entries;
   } catch (error) {
     console.error('[journalDb] Failed to fetch unsynced journal entries', error);
-    return [];
+    throw error;
   }
 };
 
@@ -267,8 +265,7 @@ export const markEntriesSynced = async (ids: number[]): Promise<void> => {
   await ensureNativeInitialized();
 
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for mark synced');
-    return;
+    throw new Error('[journalDb] SQLite database connection not available for mark synced');
   }
 
   const placeholders = ids.map(() => '?').join(', ');
@@ -279,6 +276,7 @@ export const markEntriesSynced = async (ids: number[]): Promise<void> => {
     );
   } catch (error) {
     console.error('[journalDb] Failed to mark entries as synced', error);
+    throw error;
   }
 };
 
@@ -328,8 +326,7 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
   await ensureNativeInitialized();
 
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for upsert');
-    return 0;
+    throw new Error('[journalDb] SQLite database connection not available for upsert');
   }
 
   let inserted = 0;
@@ -352,6 +349,7 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
       inserted += 1;
     } catch (error) {
       console.error('[journalDb] Failed to upsert journal entry', error);
+      throw error;
     }
   }
 
@@ -371,8 +369,7 @@ export const queueDeletion = async (
 
   await ensureNativeInitialized();
   if (!db) {
-    console.error('[journalDb] SQLite database connection not available for queueDeletion');
-    return;
+    throw new Error('[journalDb] SQLite database connection not available for queueDeletion');
   }
 
   try {
@@ -382,6 +379,7 @@ export const queueDeletion = async (
     );
   } catch (error) {
     console.error('[journalDb] Failed to queue deletion', error);
+    throw error;
   }
 };
 
@@ -392,10 +390,9 @@ export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
 
   await ensureNativeInitialized();
   if (!db) {
-    console.error(
+    throw new Error(
       '[journalDb] SQLite database connection not available for getPendingDeletions',
     );
-    return [];
   }
 
   try {
@@ -414,7 +411,7 @@ export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
     return deletions;
   } catch (error) {
     console.error('[journalDb] Failed to read pending deletions', error);
-    return [];
+    throw error;
   }
 };
 
@@ -435,10 +432,9 @@ export const removePendingDeletions = async (ids: number[]): Promise<void> => {
 
   await ensureNativeInitialized();
   if (!db) {
-    console.error(
+    throw new Error(
       '[journalDb] SQLite database connection not available for removePendingDeletions',
     );
-    return;
   }
 
   const placeholders = ids.map(() => '?').join(', ');
@@ -449,6 +445,7 @@ export const removePendingDeletions = async (ids: number[]): Promise<void> => {
     );
   } catch (error) {
     console.error('[journalDb] Failed to remove pending deletions', error);
+    throw error;
   }
 };
 
@@ -478,10 +475,9 @@ export const applyRemoteDeletions = async (
 
   await ensureNativeInitialized();
   if (!db) {
-    console.error(
+    throw new Error(
       '[journalDb] SQLite database connection not available for applyRemoteDeletions',
     );
-    return;
   }
 
   try {
@@ -497,5 +493,6 @@ export const applyRemoteDeletions = async (
     }
   } catch (error) {
     console.error('[journalDb] Failed to apply remote deletions', error);
+    throw error;
   }
 };
