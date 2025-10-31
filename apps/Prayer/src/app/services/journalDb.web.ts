@@ -16,7 +16,7 @@ export type JournalEntry = {
 };
 
 const DB_NAME = 'prayer-web';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'journal_entries';
 const DELETION_STORE_NAME = 'journal_entry_deletions';
 
