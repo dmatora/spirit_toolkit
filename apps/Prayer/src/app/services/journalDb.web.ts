@@ -177,3 +177,177 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     console.warn('[journalDb:web] Failed to delete journal entry', error);
   }
 };
+
+export const getUnsyncedEntries = async (): Promise<JournalEntry[]> => {
+  if (!hasIndexedDb) {
+    return memoryStore.filter((entry) => entry.synced === 0);
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, returning memory entries');
+    return memoryStore.filter((entry) => entry.synced === 0);
+  }
+
+  try {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const entries = (await requestToPromise(store.getAll())) as JournalEntry[];
+    return entries
+      .filter((entry) => (entry.synced ?? 0) === 0)
+      .map((entry) => ({
+        id: entry.id,
+        prayer_id: entry.prayer_id,
+        timestamp: entry.timestamp,
+        synced: 0,
+      }));
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to fetch unsynced journal entries', error);
+    return [];
+  }
+};
+
+export const markEntriesSynced = async (ids: number[]): Promise<void> => {
+  if (!ids.length) {
+    return;
+  }
+
+  if (!hasIndexedDb) {
+    const idSet = new Set(ids);
+    memoryStore.forEach((entry) => {
+      if (idSet.has(entry.id)) {
+        entry.synced = 1;
+      }
+    });
+    return;
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, cannot mark synced');
+    return;
+  }
+
+  try {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+
+    for (const id of ids) {
+      try {
+        const record = (await requestToPromise(store.get(id))) as JournalEntry | undefined;
+        if (!record) {
+          continue;
+        }
+        record.synced = 1;
+        await requestToPromise(store.put(record));
+      } catch (error) {
+        console.warn('[journalDb:web] Failed to mark entry as synced', error);
+      }
+    }
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to open transaction for markEntriesSynced', error);
+  }
+};
+
+type UpsertDraft = {
+  prayer_id: string;
+  timestamp: number;
+};
+
+export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return 0;
+  }
+
+  const validEntries = entries.filter(
+    (entry) =>
+      entry &&
+      typeof entry.prayer_id === 'string' &&
+      typeof entry.timestamp === 'number',
+  );
+
+  if (!validEntries.length) {
+    return 0;
+  }
+
+  if (!hasIndexedDb) {
+    let inserted = 0;
+    const existingKeys = new Set(memoryStore.map((entry) => key(entry.prayer_id, entry.timestamp)));
+
+    for (const entry of validEntries) {
+      const entryKey = key(entry.prayer_id, entry.timestamp);
+      if (existingKeys.has(entryKey)) {
+        continue;
+      }
+      memoryStore.unshift({
+        id: memoryIdCounter++,
+        prayer_id: entry.prayer_id,
+        timestamp: entry.timestamp,
+        synced: 1,
+      });
+      existingKeys.add(entryKey);
+      inserted += 1;
+    }
+    return inserted;
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, storing in memory');
+    return upsertEntriesInMemory(validEntries);
+  }
+
+  try {
+    const existing = await getAllJournalEntries();
+    const existingKeys = new Set(existing.map((entry) => key(entry.prayer_id, entry.timestamp)));
+
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    let inserted = 0;
+
+    for (const entry of validEntries) {
+      const entryKey = key(entry.prayer_id, entry.timestamp);
+      if (existingKeys.has(entryKey)) {
+        continue;
+      }
+      await requestToPromise(
+        store.add({
+          prayer_id: entry.prayer_id,
+          timestamp: entry.timestamp,
+          synced: 1,
+        }),
+      );
+      existingKeys.add(entryKey);
+      inserted += 1;
+    }
+
+    return inserted;
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to upsert journal entries', error);
+    return 0;
+  }
+};
+
+const upsertEntriesInMemory = (entries: UpsertDraft[]): number => {
+  let inserted = 0;
+  const existingKeys = new Set(memoryStore.map((entry) => key(entry.prayer_id, entry.timestamp)));
+
+  for (const entry of entries) {
+    const entryKey = key(entry.prayer_id, entry.timestamp);
+    if (existingKeys.has(entryKey)) {
+      continue;
+    }
+    memoryStore.unshift({
+      id: memoryIdCounter++,
+      prayer_id: entry.prayer_id,
+      timestamp: entry.timestamp,
+      synced: 1,
+    });
+    existingKeys.add(entryKey);
+    inserted += 1;
+  }
+
+  return inserted;
+};
+
+const key = (prayerId: string, timestamp: number) => `${prayerId}:${timestamp}`;
