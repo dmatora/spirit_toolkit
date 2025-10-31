@@ -164,37 +164,39 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     return;
   }
 
-  let target: JournalEntry | null = null;
+  let transactionStarted = false;
   try {
-    const [result] = await db.executeSql(
-      `SELECT id, prayer_id, timestamp, synced FROM ${tableName} WHERE id = ? LIMIT 1;`,
+    await db.executeSql('BEGIN IMMEDIATE TRANSACTION;');
+    transactionStarted = true;
+
+    const [selectResult] = await db.executeSql(
+      `SELECT prayer_id, timestamp, synced FROM ${tableName} WHERE id = ? LIMIT 1;`,
       [id],
     );
-    if (result.rows.length > 0) {
-      const row = result.rows.item(0) as JournalEntry;
-      target = {
-        id: row.id,
-        prayer_id: row.prayer_id,
-        timestamp: row.timestamp,
-        synced: (row.synced ?? 0) as SyncedFlag,
-      };
-    }
-  } catch (error) {
-    console.error('[journalDb] Failed to load entry before delete', error);
-  }
 
-  if (target && target.synced === 1) {
-    try {
-      await queueDeletion(target.prayer_id, target.timestamp);
-    } catch (error) {
-      console.error('[journalDb] Failed to queue deletion before delete', error);
-      return;
-    }
-  }
+    if (selectResult.rows.length > 0) {
+      const row = selectResult.rows.item(0) as Partial<JournalEntry>;
+      const syncedFlag = (row.synced ?? 0) as SyncedFlag;
 
-  try {
-    await db.executeSql(`DELETE FROM ${tableName} WHERE id = ?;`, [id]);
+      if (syncedFlag === 1 && typeof row.prayer_id === 'string' && typeof row.timestamp === 'number') {
+        await db.executeSql(
+          `INSERT OR IGNORE INTO ${deletionsTableName} (prayer_id, timestamp) VALUES (?, ?);`,
+          [row.prayer_id, row.timestamp],
+        );
+      }
+
+      await db.executeSql(`DELETE FROM ${tableName} WHERE id = ?;`, [id]);
+    }
+
+    await db.executeSql('COMMIT;');
   } catch (error) {
+    if (transactionStarted) {
+      try {
+        await db.executeSql('ROLLBACK;');
+      } catch (rollbackError) {
+        console.error('[journalDb] Failed to rollback deletion transaction', rollbackError);
+      }
+    }
     console.error('[journalDb] Failed to delete journal entry', error);
   }
 };

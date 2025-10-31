@@ -190,34 +190,38 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     return;
   }
 
-  let target: JournalEntry | null = null;
   try {
-    const lookupTx = db.transaction(STORE_NAME, 'readonly');
-    const lookupStore = lookupTx.objectStore(STORE_NAME);
-    const record = (await requestToPromise(lookupStore.get(id))) as
+    const tx = db.transaction([STORE_NAME, DELETION_STORE_NAME], 'readwrite');
+    const entryStore = tx.objectStore(STORE_NAME);
+    const deletionStore = tx.objectStore(DELETION_STORE_NAME);
+
+    const record = (await requestToPromise(entryStore.get(id))) as
       | JournalEntry
       | undefined;
-    if (record) {
-      target = {
-        id: record.id,
-        prayer_id: record.prayer_id,
-        timestamp: record.timestamp,
-        synced: (record.synced ?? 0) as SyncedFlag,
-      };
+
+    if (!record) {
+      await transactionDone(tx);
+      return;
     }
 
-    if (target && target.synced === 1) {
+    if ((record.synced ?? 0) === 1) {
       try {
-        await queueDeletion(target.prayer_id, target.timestamp);
+        const key = await requestToPromise(
+          deletionStore.add({
+            prayer_id: record.prayer_id,
+            timestamp: record.timestamp,
+          }),
+        );
+        queueDeletionInMemory(record.prayer_id, record.timestamp, key as PendingDeletionId);
       } catch (error) {
         console.warn('[journalDb:web] Failed to queue deletion before removing entry', error);
-        return;
+        tx.abort();
+        throw error;
       }
     }
 
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    await requestToPromise(store.delete(id));
+    await requestToPromise(entryStore.delete(id));
+    await transactionDone(tx);
   } catch (error) {
     console.warn('[journalDb:web] Failed to delete journal entry', error);
   }
@@ -412,6 +416,13 @@ const normalizeDeletionKey = (value: PendingDeletionId): string => {
   }
   return `other:${String(value)}`;
 };
+
+const transactionDone = (tx: IDBTransaction): Promise<void> =>
+  new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error ?? new Error('[journalDb:web] Transaction aborted'));
+    tx.onerror = () => reject(tx.error ?? new Error('[journalDb:web] Transaction failed'));
+  });
 
 const queueDeletionInMemory = (
   prayerId: string,
