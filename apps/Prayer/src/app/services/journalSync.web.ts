@@ -145,10 +145,7 @@ const performSync = async (): Promise<void> => {
         throw new Error(`Delete sync failed: ${response.status}`);
       }
 
-      const deletionIds = pendingDeletions
-        .map((item) => item.id)
-        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-      await removePendingDeletions(deletionIds);
+      await removePendingDeletions(pendingDeletions.map((item) => item.id));
     }
 
     const pullResponse = await fetch(

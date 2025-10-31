@@ -1,7 +1,9 @@
 type SyncedFlag = 0 | 1;
 
+type PendingDeletionId = IDBValidKey | number;
+
 type PendingDeletion = {
-  id: number;
+  id: PendingDeletionId;
   prayer_id: string;
   timestamp: number;
 };
@@ -395,15 +397,39 @@ const upsertEntriesInMemory = (entries: UpsertDraft[]): number => {
 
 const key = (prayerId: string, timestamp: number) => `${prayerId}:${timestamp}`;
 
-const queueDeletionInMemory = (prayerId: string, timestamp: number): void => {
+const normalizeDeletionKey = (value: PendingDeletionId): string => {
+  if (typeof value === 'string') {
+    return `str:${value}`;
+  }
+  if (typeof value === 'number') {
+    return `num:${value}`;
+  }
+  if (value instanceof Date) {
+    return `date:${value.toISOString()}`;
+  }
+  if (Array.isArray(value)) {
+    return `arr:${JSON.stringify(value)}`;
+  }
+  return `other:${String(value)}`;
+};
+
+const queueDeletionInMemory = (
+  prayerId: string,
+  timestamp: number,
+  id?: PendingDeletionId,
+): void => {
   const exists = memoryDeletionQueue.some(
     (item) => item.prayer_id === prayerId && item.timestamp === timestamp,
   );
   if (exists) {
     return;
   }
+  const resolvedId = id ?? memoryDeletionIdCounter++;
+  if (typeof resolvedId === 'number' && Number.isFinite(resolvedId)) {
+    memoryDeletionIdCounter = Math.max(memoryDeletionIdCounter, resolvedId + 1);
+  }
   memoryDeletionQueue.push({
-    id: memoryDeletionIdCounter++,
+    id: resolvedId,
     prayer_id: prayerId,
     timestamp,
   });
@@ -441,15 +467,7 @@ export const queueDeletion = async (
         timestamp,
       }),
     );
-    const id =
-      typeof key === 'number' && Number.isFinite(key)
-        ? key
-        : memoryDeletionIdCounter++;
-    memoryDeletionQueue.push({
-      id,
-      prayer_id: prayerId,
-      timestamp,
-    });
+    queueDeletionInMemory(prayerId, timestamp, key as PendingDeletionId);
   } catch (error) {
     console.warn('[journalDb:web] Failed to queue deletion', error);
   }
@@ -472,26 +490,19 @@ export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
     const entries = (await requestToPromise(store.getAll())) as PendingDeletion[];
 
     memoryDeletionQueue.length = 0;
-    let nextGeneratedId = memoryDeletionIdCounter;
-    let highestNumericId = 0;
+    let maxNumericId = memoryDeletionIdCounter;
     for (const entry of entries) {
-      const numericId =
-        typeof entry.id === 'number' && Number.isFinite(entry.id) ? entry.id : null;
-      const id = numericId ?? nextGeneratedId++;
-      if (numericId && numericId > highestNumericId) {
-        highestNumericId = numericId;
-      }
+      const id = (entry as PendingDeletion).id as PendingDeletionId;
       memoryDeletionQueue.push({
         id,
         prayer_id: entry.prayer_id,
         timestamp: entry.timestamp,
       });
+      if (typeof id === 'number' && Number.isFinite(id)) {
+        maxNumericId = Math.max(maxNumericId, id + 1);
+      }
     }
-    memoryDeletionIdCounter = Math.max(
-      memoryDeletionIdCounter,
-      nextGeneratedId,
-      highestNumericId + 1,
-    );
+    memoryDeletionIdCounter = Math.max(memoryDeletionIdCounter, maxNumericId);
 
     return [...memoryDeletionQueue];
   } catch (error) {
@@ -500,14 +511,14 @@ export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
   }
 };
 
-export const removePendingDeletions = async (ids: number[]): Promise<void> => {
+export const removePendingDeletions = async (ids: PendingDeletionId[]): Promise<void> => {
   if (!ids.length) {
     return;
   }
 
-  const idSet = new Set(ids);
+  const idSet = new Set(ids.map(normalizeDeletionKey));
   for (let i = memoryDeletionQueue.length - 1; i >= 0; i -= 1) {
-    if (idSet.has(memoryDeletionQueue[i].id)) {
+    if (idSet.has(normalizeDeletionKey(memoryDeletionQueue[i].id))) {
       memoryDeletionQueue.splice(i, 1);
     }
   }

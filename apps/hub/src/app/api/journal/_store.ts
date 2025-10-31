@@ -23,6 +23,9 @@ type DraftEntry = {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const STORE_PATH = path.resolve(__dirname, '../../../../var/journal-store.json');
+const LOCK_PATH = `${STORE_PATH}.lock`;
+const LOCK_TIMEOUT_MS = 2_000;
+const LOCK_RETRY_DELAY_MS = 25;
 
 async function ensureStoreReady(): Promise<void> {
   const dir = path.dirname(STORE_PATH);
@@ -109,8 +112,11 @@ export async function readAll(): Promise<ServerJournalEntry[]> {
 }
 
 export async function writeAll(entries: ServerJournalEntry[]): Promise<void> {
-  const state = await readStore();
-  await writeStore({ entries, deletions: state.deletions });
+  await mutateStore(async (state) => ({
+    state: { entries, deletions: state.deletions },
+    changed: true,
+    result: undefined,
+  }));
 }
 
 export async function appendMany(
@@ -120,40 +126,45 @@ export async function appendMany(
     return [];
   }
 
-  const state = await readStore();
-  const existingKey = new Set(state.entries.map(entryKey));
-  let nextId = state.entries.reduce((max, entry) => Math.max(max, entry.id), 0) + 1;
+  return mutateStore(async (current) => {
+    const currentExisting = new Set(current.entries.map(entryKey));
+    const additions: ServerJournalEntry[] = [];
+    let idCursor = current.entries.reduce((max, entry) => Math.max(max, entry.id), 0) + 1;
 
-  const unique: ServerJournalEntry[] = [];
-  for (const draft of drafts) {
-    if (!isDraftEntry(draft)) {
-      continue;
+    for (const draft of drafts) {
+      if (!isDraftEntry(draft)) {
+        continue;
+      }
+      const key = entryKey(draft);
+      if (currentExisting.has(key)) {
+        continue;
+      }
+      additions.push({
+        id: idCursor++,
+        prayer_id: draft.prayer_id,
+        timestamp: draft.timestamp,
+      });
+      currentExisting.add(key);
     }
-    const key = entryKey(draft);
-    if (existingKey.has(key)) {
-      continue;
+
+    if (additions.length === 0) {
+      return { state: current, changed: false, result: [] };
     }
-    const entry: ServerJournalEntry = {
-      id: nextId++,
-      prayer_id: draft.prayer_id,
-      timestamp: draft.timestamp,
+
+    const addedKeys = new Set(additions.map(entryKey));
+    const filteredDeletions = current.deletions.filter(
+      (deletion) => !addedKeys.has(entryKey(deletion)),
+    );
+
+    return {
+      state: {
+        entries: [...current.entries, ...additions],
+        deletions: filteredDeletions,
+      },
+      changed: true,
+      result: additions,
     };
-    unique.push(entry);
-    existingKey.add(key);
-  }
-
-  if (unique.length === 0) {
-    return [];
-  }
-
-  const newKeys = new Set(unique.map(entryKey));
-  const filteredDeletions = newKeys.size
-    ? state.deletions.filter((deletion) => !newKeys.has(entryKey(deletion)))
-    : state.deletions;
-
-  const updated = [...state.entries, ...unique];
-  await writeStore({ entries: updated, deletions: filteredDeletions });
-  return unique;
+  });
 }
 
 export async function registerDeletions(
@@ -163,66 +174,71 @@ export async function registerDeletions(
     return [];
   }
 
-  const state = await readStore();
-  const deletionsMap = new Map(
-    state.deletions.map((item) => [entryKey(item), item]),
-  );
-
-  let changed = false;
-  const recorded: ServerJournalDeletion[] = [];
-  const now = Math.floor(Date.now() / 1000);
-
-  const remainingEntries = state.entries.filter((entry) => {
-    const key = entryKey(entry);
-    const shouldDelete = drafts.some(
-      (draft) => entryKey(draft) === key && isDraftEntry(draft),
+  return mutateStore(async (state) => {
+    const deletionsMap = new Map(
+      state.deletions.map((item) => [entryKey(item), item]),
     );
-    if (!shouldDelete) {
-      return true;
+
+    let changed = false;
+    const recorded: ServerJournalDeletion[] = [];
+    const now = Math.floor(Date.now() / 1000);
+
+    const remainingEntries = state.entries.filter((entry) => {
+      const key = entryKey(entry);
+      const shouldDelete = drafts.some(
+        (draft) => entryKey(draft) === key && isDraftEntry(draft),
+      );
+      if (!shouldDelete) {
+        return true;
+      }
+
+      const existing = deletionsMap.get(key);
+      const deletion: ServerJournalDeletion = existing
+        ? { ...existing, deletedAt: Math.max(existing.deletedAt, now) }
+        : {
+            prayer_id: entry.prayer_id,
+            timestamp: entry.timestamp,
+            deletedAt: now,
+          };
+
+      deletionsMap.set(key, deletion);
+      recorded.push(deletion);
+      changed = true;
+      return false;
+    });
+
+    for (const draft of drafts) {
+      if (!isDraftEntry(draft)) {
+        continue;
+      }
+      const key = entryKey(draft);
+      if (deletionsMap.has(key)) {
+        continue;
+      }
+      const deletion: ServerJournalDeletion = {
+        prayer_id: draft.prayer_id,
+        timestamp: draft.timestamp,
+        deletedAt: now,
+      };
+      deletionsMap.set(key, deletion);
+      recorded.push(deletion);
+      changed = true;
     }
 
-    const existing = deletionsMap.get(key);
-    const deletion: ServerJournalDeletion = existing
-      ? { ...existing, deletedAt: Math.max(existing.deletedAt, now) }
-      : {
-          prayer_id: entry.prayer_id,
-          timestamp: entry.timestamp,
-          deletedAt: now,
-        };
-
-    deletionsMap.set(key, deletion);
-    recorded.push(deletion);
-    changed = true;
-    return false;
-  });
-
-  // Also handle deletions for entries that might already be absent locally
-  for (const draft of drafts) {
-    if (!isDraftEntry(draft)) {
-      continue;
+    if (!changed) {
+      return { state, changed: false, result: recorded };
     }
-    const key = entryKey(draft);
-    if (deletionsMap.has(key)) {
-      continue;
-    }
-    const deletion: ServerJournalDeletion = {
-      prayer_id: draft.prayer_id,
-      timestamp: draft.timestamp,
-      deletedAt: now,
-    };
-    deletionsMap.set(key, deletion);
-    recorded.push(deletion);
-    changed = true;
-  }
 
-  if (changed) {
     const deletions = Array.from(deletionsMap.values()).sort(
       (a, b) => a.deletedAt - b.deletedAt,
     );
-    await writeStore({ entries: remainingEntries, deletions });
-  }
 
-  return recorded;
+    return {
+      state: { entries: remainingEntries, deletions },
+      changed: true,
+      result: recorded,
+    };
+  });
 }
 
 export async function getSince(
@@ -293,4 +309,62 @@ function isServerJournalDeletion(value: unknown): value is ServerJournalDeletion
     typeof candidate.timestamp === 'number' &&
     typeof candidate.deletedAt === 'number'
   );
+}
+
+async function mutateStore<T>(
+  mutator: (
+    current: StoreFile,
+  ) => Promise<{ state: StoreFile; changed: boolean; result: T }> | {
+    state: StoreFile;
+    changed: boolean;
+    result: T;
+  },
+): Promise<T> {
+  const handle = await acquireLock();
+  try {
+    const current = await readStore();
+    const { state, changed, result } = await mutator(current);
+    if (changed) {
+      await writeStore(state);
+    }
+    return result;
+  } finally {
+    await releaseLock(handle);
+  }
+}
+
+async function acquireLock(): Promise<fs.FileHandle> {
+  const start = Date.now();
+
+  while (true) {
+    try {
+      return await fs.open(LOCK_PATH, 'wx');
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== 'EEXIST') {
+        throw err;
+      }
+      if (Date.now() - start > LOCK_TIMEOUT_MS) {
+        throw new Error('Timed out acquiring journal store lock');
+      }
+      await delay(LOCK_RETRY_DELAY_MS);
+    }
+  }
+}
+
+async function releaseLock(handle: fs.FileHandle): Promise<void> {
+  try {
+    await handle.close();
+  } catch {
+    // ignore
+  }
+  try {
+    await fs.unlink(LOCK_PATH);
+  } catch {
+    // ignore
+  }
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
