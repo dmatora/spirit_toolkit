@@ -18,7 +18,7 @@ import {
   getAllJournalEntries,
   type JournalEntry,
 } from '../services/journalDb';
-import { onSynced } from '../services/journalSync.web';
+import { onSynced, triggerSync } from '../services/journalSync.web';
 import AddJournalEntryModal from '../components/AddJournalEntryModal.web';
 
 const formatTimestamp = (timestamp: number) =>
@@ -35,6 +35,7 @@ const JournalScreen = () => {
       try {
         await deleteJournalEntry(id);
         setEntries((prev) => prev.filter((entry) => entry.id !== id));
+        triggerSync();
       } catch (err) {
         console.warn('[JournalScreen] failed to delete entry', err);
       }

@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { palette } from '@spirit/prayer-feature/theme';
 import type { PrayerId } from '@spirit/prayer-feature';
 import { addJournalEntry } from '../services/journalDb';
+import { triggerSync } from '../services/journalSync.web';
 import { PRAYER_OPTIONS } from '../constants/prayers';
 
 type Props = { visible: boolean; onClose: () => void; onSaved?: () => void };
@@ -115,6 +116,7 @@ const AddJournalEntryModalWeb: React.FC<Props> = ({ visible, onClose, onSaved })
     try {
       await addJournalEntry(prayerId, Math.floor(timestampMs / 1000));
       onSaved?.();
+      triggerSync();
       onClose();
     } catch (error) {
       console.warn('[AddJournalEntryModal:web] failed to save entry', error);

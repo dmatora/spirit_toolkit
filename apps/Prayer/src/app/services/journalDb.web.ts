@@ -1,5 +1,11 @@
 type SyncedFlag = 0 | 1;
 
+type PendingDeletion = {
+  id: number;
+  prayer_id: string;
+  timestamp: number;
+};
+
 export type JournalEntry = {
   id: number;
   prayer_id: string;
@@ -10,10 +16,13 @@ export type JournalEntry = {
 const DB_NAME = 'prayer-web';
 const DB_VERSION = 1;
 const STORE_NAME = 'journal_entries';
+const DELETION_STORE_NAME = 'journal_entry_deletions';
 
 const hasIndexedDb = typeof indexedDB !== 'undefined';
 const memoryStore: JournalEntry[] = [];
 let memoryIdCounter = 1;
+const memoryDeletionQueue: PendingDeletion[] = [];
+let memoryDeletionIdCounter = 1;
 
 let db: IDBDatabase | null = null;
 let initPromise: Promise<void> | null = null;
@@ -38,6 +47,12 @@ const openDatabase = async (): Promise<void> => {
         const database = request.result;
         if (!database.objectStoreNames.contains(STORE_NAME)) {
           database.createObjectStore(STORE_NAME, {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
+        }
+        if (!database.objectStoreNames.contains(DELETION_STORE_NAME)) {
+          database.createObjectStore(DELETION_STORE_NAME, {
             keyPath: 'id',
             autoIncrement: true,
           });
@@ -155,10 +170,16 @@ export const getAllJournalEntries = async (): Promise<JournalEntry[]> => {
 };
 
 export const deleteJournalEntry = async (id: number): Promise<void> => {
+  let target: JournalEntry | null = null;
+
   if (!hasIndexedDb) {
     const index = memoryStore.findIndex((entry) => entry.id === id);
     if (index !== -1) {
+      target = memoryStore[index];
       memoryStore.splice(index, 1);
+    }
+    if (target && target.synced === 1) {
+      queueDeletionInMemory(target.prayer_id, target.timestamp);
     }
     return;
   }
@@ -170,11 +191,29 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
   }
 
   try {
+    const lookupTx = db.transaction(STORE_NAME, 'readonly');
+    const lookupStore = lookupTx.objectStore(STORE_NAME);
+    const record = (await requestToPromise(lookupStore.get(id))) as
+      | JournalEntry
+      | undefined;
+    if (record) {
+      target = {
+        id: record.id,
+        prayer_id: record.prayer_id,
+        timestamp: record.timestamp,
+        synced: (record.synced ?? 0) as SyncedFlag,
+      };
+    }
+
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     await requestToPromise(store.delete(id));
   } catch (error) {
     console.warn('[journalDb:web] Failed to delete journal entry', error);
+  }
+
+  if (target && target.synced === 1) {
+    await queueDeletion(target.prayer_id, target.timestamp);
   }
 };
 
@@ -351,3 +390,223 @@ const upsertEntriesInMemory = (entries: UpsertDraft[]): number => {
 };
 
 const key = (prayerId: string, timestamp: number) => `${prayerId}:${timestamp}`;
+
+const queueDeletionInMemory = (prayerId: string, timestamp: number): void => {
+  const exists = memoryDeletionQueue.some(
+    (item) => item.prayer_id === prayerId && item.timestamp === timestamp,
+  );
+  if (exists) {
+    return;
+  }
+  memoryDeletionQueue.push({
+    id: memoryDeletionIdCounter++,
+    prayer_id: prayerId,
+    timestamp,
+  });
+};
+
+export const queueDeletion = async (
+  prayerId: string,
+  timestamp: number,
+): Promise<void> => {
+  const exists = memoryDeletionQueue.some(
+    (item) => item.prayer_id === prayerId && item.timestamp === timestamp,
+  );
+  if (exists) {
+    return;
+  }
+
+  if (!hasIndexedDb) {
+    queueDeletionInMemory(prayerId, timestamp);
+    return;
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, cannot queue deletion');
+    queueDeletionInMemory(prayerId, timestamp);
+    return;
+  }
+
+  try {
+    const tx = db.transaction(DELETION_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(DELETION_STORE_NAME);
+    const key = await requestToPromise(
+      store.add({
+        prayer_id: prayerId,
+        timestamp,
+      }),
+    );
+    const id =
+      typeof key === 'number' && Number.isFinite(key)
+        ? key
+        : memoryDeletionIdCounter++;
+    memoryDeletionQueue.push({
+      id,
+      prayer_id: prayerId,
+      timestamp,
+    });
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to queue deletion', error);
+  }
+};
+
+export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
+  if (!hasIndexedDb) {
+    return [...memoryDeletionQueue];
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, returning memory deletions');
+    return [...memoryDeletionQueue];
+  }
+
+  try {
+    const tx = db.transaction(DELETION_STORE_NAME, 'readonly');
+    const store = tx.objectStore(DELETION_STORE_NAME);
+    const entries = (await requestToPromise(store.getAll())) as PendingDeletion[];
+
+    memoryDeletionQueue.length = 0;
+    let nextGeneratedId = memoryDeletionIdCounter;
+    let highestNumericId = 0;
+    for (const entry of entries) {
+      const numericId =
+        typeof entry.id === 'number' && Number.isFinite(entry.id) ? entry.id : null;
+      const id = numericId ?? nextGeneratedId++;
+      if (numericId && numericId > highestNumericId) {
+        highestNumericId = numericId;
+      }
+      memoryDeletionQueue.push({
+        id,
+        prayer_id: entry.prayer_id,
+        timestamp: entry.timestamp,
+      });
+    }
+    memoryDeletionIdCounter = Math.max(
+      memoryDeletionIdCounter,
+      nextGeneratedId,
+      highestNumericId + 1,
+    );
+
+    return [...memoryDeletionQueue];
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to fetch pending deletions', error);
+    return [...memoryDeletionQueue];
+  }
+};
+
+export const removePendingDeletions = async (ids: number[]): Promise<void> => {
+  if (!ids.length) {
+    return;
+  }
+
+  const idSet = new Set(ids);
+  for (let i = memoryDeletionQueue.length - 1; i >= 0; i -= 1) {
+    if (idSet.has(memoryDeletionQueue[i].id)) {
+      memoryDeletionQueue.splice(i, 1);
+    }
+  }
+
+  if (!hasIndexedDb) {
+    return;
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, cannot remove deletions');
+    return;
+  }
+
+  try {
+    const tx = db.transaction(DELETION_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(DELETION_STORE_NAME);
+    for (const id of ids) {
+      await requestToPromise(store.delete(id));
+    }
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to remove pending deletions', error);
+  }
+};
+
+export const applyRemoteDeletions = async (
+  deletions: Array<{ prayer_id: string; timestamp: number }>,
+): Promise<void> => {
+  if (!Array.isArray(deletions) || deletions.length === 0) {
+    return;
+  }
+
+  const keys = new Set(deletions.map((item) => key(item.prayer_id, item.timestamp)));
+
+  if (!hasIndexedDb) {
+    for (let i = memoryStore.length - 1; i >= 0; i -= 1) {
+      if (keys.has(key(memoryStore[i].prayer_id, memoryStore[i].timestamp))) {
+        memoryStore.splice(i, 1);
+      }
+    }
+    for (let i = memoryDeletionQueue.length - 1; i >= 0; i -= 1) {
+      if (
+        keys.has(key(memoryDeletionQueue[i].prayer_id, memoryDeletionQueue[i].timestamp))
+      ) {
+        memoryDeletionQueue.splice(i, 1);
+      }
+    }
+    return;
+  }
+
+  await ensureInitialized();
+  if (!db) {
+    console.warn('[journalDb:web] IndexedDB database not initialized, cannot apply deletions');
+    return;
+  }
+
+  try {
+    const tx = db.transaction([STORE_NAME, DELETION_STORE_NAME], 'readwrite');
+    const entryStore = tx.objectStore(STORE_NAME);
+    const deletionStore = tx.objectStore(DELETION_STORE_NAME);
+
+    for (const deletion of deletions) {
+      const cursorRequest = entryStore.openCursor();
+      await new Promise<void>((resolveCursor) => {
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) {
+            resolveCursor();
+            return;
+          }
+          const value = cursor.value as JournalEntry;
+          if (
+            value.prayer_id === deletion.prayer_id &&
+            value.timestamp === deletion.timestamp
+          ) {
+            cursor.delete();
+          }
+          cursor.continue();
+        };
+        cursorRequest.onerror = () => resolveCursor();
+      });
+
+      const deletionCursorRequest = deletionStore.openCursor();
+      await new Promise<void>((resolveCursor) => {
+        deletionCursorRequest.onsuccess = () => {
+          const cursor = deletionCursorRequest.result;
+          if (!cursor) {
+            resolveCursor();
+            return;
+          }
+          const value = cursor.value as PendingDeletion;
+          if (
+            value.prayer_id === deletion.prayer_id &&
+            value.timestamp === deletion.timestamp
+          ) {
+            cursor.delete();
+          }
+          cursor.continue();
+        };
+        deletionCursorRequest.onerror = () => resolveCursor();
+      });
+    }
+  } catch (error) {
+    console.warn('[journalDb:web] Failed to apply remote deletions', error);
+  }
+};

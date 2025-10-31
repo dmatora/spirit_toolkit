@@ -2,6 +2,9 @@ import {
   getUnsyncedEntries,
   markEntriesSynced,
   upsertEntries,
+  getPendingDeletions,
+  removePendingDeletions,
+  applyRemoteDeletions,
 } from './journalDb.web';
 import { resolveUrl } from './syncConfig';
 
@@ -10,6 +13,7 @@ type Listener = () => void;
 const LAST_SYNC_KEY = 'journal/lastSyncedAt';
 const UPLOAD_ENDPOINT = '/upload';
 const PULL_ENDPOINT = '/pull';
+const DELETE_ENDPOINT = '/delete';
 const BACKGROUND_INTERVAL_MS = 60_000;
 
 let inFlightSync: Promise<void> | null = null;
@@ -97,7 +101,10 @@ const performSync = async (): Promise<void> => {
   const since = readLastSyncedAt();
 
   try {
-    const unsynced = await getUnsyncedEntries();
+    const [unsynced, pendingDeletions] = await Promise.all([
+      getUnsyncedEntries(),
+      getPendingDeletions(),
+    ]);
 
     if (unsynced.length > 0) {
       const response = await fetch(resolveUrl(UPLOAD_ENDPOINT), {
@@ -120,6 +127,30 @@ const performSync = async (): Promise<void> => {
       await markEntriesSynced(unsynced.map((entry) => entry.id));
     }
 
+    if (pendingDeletions.length > 0) {
+      const response = await fetch(resolveUrl(DELETE_ENDPOINT), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          entries: pendingDeletions.map((item) => ({
+            prayer_id: item.prayer_id,
+            timestamp: item.timestamp,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Delete sync failed: ${response.status}`);
+      }
+
+      const deletionIds = pendingDeletions
+        .map((item) => item.id)
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+      await removePendingDeletions(deletionIds);
+    }
+
     const pullResponse = await fetch(
       resolveUrl(`${PULL_ENDPOINT}?since=${since || 0}`),
       {
@@ -136,6 +167,7 @@ const performSync = async (): Promise<void> => {
 
     const payload = (await pullResponse.json()) as {
       entries?: Array<{ prayer_id: string; timestamp: number }>;
+      deletions?: Array<{ prayer_id: string; timestamp: number; deletedAt?: number }>;
       syncedUntil?: number;
     };
 
@@ -158,14 +190,38 @@ const performSync = async (): Promise<void> => {
       );
     }
 
+    const pulledDeletions = Array.isArray(payload.deletions)
+      ? payload.deletions.filter(
+          (item): item is { prayer_id: string; timestamp: number; deletedAt?: number } =>
+            !!item &&
+            typeof item === 'object' &&
+            typeof item.prayer_id === 'string' &&
+            typeof item.timestamp === 'number',
+        )
+      : [];
+
+    if (pulledDeletions.length > 0) {
+      await applyRemoteDeletions(
+        pulledDeletions.map((item) => ({
+          prayer_id: item.prayer_id,
+          timestamp: item.timestamp,
+        })),
+      );
+    }
+
     const maxPulledTimestamp = pulledEntries.reduce(
       (max, entry) => Math.max(max, entry.timestamp),
+      since,
+    );
+    const maxDeletionTimestamp = pulledDeletions.reduce(
+      (max, item) =>
+        Math.max(max, typeof item.deletedAt === 'number' ? item.deletedAt : since),
       since,
     );
     const serverSyncedUntil =
       typeof payload.syncedUntil === 'number' && Number.isFinite(payload.syncedUntil)
         ? Math.max(since, payload.syncedUntil)
-        : maxPulledTimestamp;
+        : Math.max(maxPulledTimestamp, maxDeletionTimestamp);
 
     writeLastSyncedAt(serverSyncedUntil);
     notifySynced();

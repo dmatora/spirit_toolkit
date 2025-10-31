@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme';
 import { addJournalEntry } from '../services/journalDb';
+import { triggerSync } from '../services/journalSync';
 import { PRAYER_OPTIONS } from '../constants/prayers';
 import type { PrayerId } from '@spirit/prayer-feature';
 
@@ -52,6 +53,7 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
     try {
       await addJournalEntry(prayerId, Math.floor(dt.getTime() / 1000));
       onSaved?.();
+      triggerSync();
       onClose();
     } catch (error) {
       console.warn('[AddJournalEntryModal] failed to save', error);

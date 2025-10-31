@@ -11,13 +11,9 @@ export async function GET(request: Request) {
     const since = sinceParam ? Number(sinceParam) : 0;
     const threshold = Number.isFinite(since) ? since : 0;
 
-    const entries = await getSince(threshold);
-    const syncedUntil = entries.reduce(
-      (max, entry) => Math.max(max, entry.timestamp),
-      threshold,
-    );
+    const { entries, deletions, syncedUntil } = await getSince(threshold);
 
-    return json({ entries, syncedUntil });
+    return json({ entries, deletions, syncedUntil });
   } catch (error) {
     console.error('Failed to handle journal pull', error);
     return json({ error: 'Internal Server Error' }, { status: 500 });
