@@ -5,6 +5,7 @@ import { palette } from '@spirit/prayer-feature/theme';
 import { startOfDayLocal } from '@spirit/prayer-feature/utils/date';
 import { pluralizeDaysRu } from '@spirit/prayer-feature/utils/plural';
 import { getAllJournalEntries, type JournalEntry } from '../services/journalDb';
+import { onSynced } from '../services/journalSync.web';
 import {
   ensureSettingsInitialized,
   getLiturgyThresholds,
@@ -111,6 +112,16 @@ const LiturgyAttendanceCard: React.FC<Props> = ({ style }) => {
       cancelled = true;
     };
   }, [refresh, evaluationDate]);
+
+  React.useEffect(() => {
+    const unsubscribe = onSynced.subscribe(() => {
+      refresh();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [refresh]);
 
   const getDaysColor = React.useCallback(
     (value?: number | null) => {

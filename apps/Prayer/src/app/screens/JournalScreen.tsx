@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -19,6 +19,7 @@ import {
   getAllJournalEntries,
   type JournalEntry,
 } from '../services/journalDb';
+import { onSynced } from '../services/journalSync';
 import AddJournalEntryModal from '../components/AddJournalEntryModal';
 
 const formatTimestamp = (timestamp: number) =>
@@ -64,8 +65,13 @@ const JournalScreen = () => {
   };
 
   const loadEntries = useCallback(
-    async (shouldUpdate: () => boolean = () => true) => {
-      if (shouldUpdate()) {
+    async (
+      shouldUpdate: () => boolean = () => true,
+      options?: { silent?: boolean },
+    ) => {
+      const showSpinner = !options?.silent;
+
+      if (shouldUpdate() && showSpinner) {
         setIsLoading(true);
       }
 
@@ -81,7 +87,7 @@ const JournalScreen = () => {
           setError('Не удалось загрузить записи');
         }
       } finally {
-        if (shouldUpdate()) {
+        if (shouldUpdate() && showSpinner) {
           setIsLoading(false);
         }
       }
@@ -100,6 +106,22 @@ const JournalScreen = () => {
       };
     }, [loadEntries]),
   );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const unsubscribe = onSynced.subscribe(() => {
+      if (!isMounted) {
+        return;
+      }
+      loadEntries(() => isMounted, { silent: true });
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [loadEntries]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

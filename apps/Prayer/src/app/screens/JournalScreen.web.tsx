@@ -18,6 +18,7 @@ import {
   getAllJournalEntries,
   type JournalEntry,
 } from '../services/journalDb';
+import { onSynced } from '../services/journalSync.web';
 import AddJournalEntryModal from '../components/AddJournalEntryModal.web';
 
 const formatTimestamp = (timestamp: number) =>
@@ -63,8 +64,13 @@ const JournalScreen = () => {
   };
 
   const loadEntries = useCallback(
-    async (shouldUpdate: () => boolean = () => true) => {
-      if (shouldUpdate()) {
+    async (
+      shouldUpdate: () => boolean = () => true,
+      options?: { silent?: boolean },
+    ) => {
+      const showSpinner = !options?.silent;
+
+      if (shouldUpdate() && showSpinner) {
         setIsLoading(true);
       }
 
@@ -80,7 +86,7 @@ const JournalScreen = () => {
           setError('Не удалось загрузить записи');
         }
       } finally {
-        if (shouldUpdate()) {
+        if (shouldUpdate() && showSpinner) {
           setIsLoading(false);
         }
       }
@@ -93,6 +99,22 @@ const JournalScreen = () => {
     loadEntries(() => isActive);
     return () => {
       isActive = false;
+    };
+  }, [loadEntries]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const unsubscribe = onSynced.subscribe(() => {
+      if (!isMounted) {
+        return;
+      }
+      loadEntries(() => isMounted, { silent: true });
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
     };
   }, [loadEntries]);
 
