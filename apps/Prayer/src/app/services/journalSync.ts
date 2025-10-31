@@ -8,7 +8,7 @@ import {
   removePendingDeletions,
   applyRemoteDeletions,
 } from './journalDb';
-import { resolveUrl } from './syncConfig';
+import { resolveUrl, withSyncAuthHeaders } from './syncConfig';
 
 type Listener = () => void;
 
@@ -105,9 +105,9 @@ const performSync = async (): Promise<void> => {
     if (unsynced.length > 0) {
       const response = await fetch(resolveUrl(UPLOAD_ENDPOINT), {
         method: 'POST',
-        headers: {
+        headers: withSyncAuthHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify({
           entries: unsynced.map((entry) => ({
             prayer_id: entry.prayer_id,
@@ -126,9 +126,9 @@ const performSync = async (): Promise<void> => {
     if (pendingDeletions.length > 0) {
       const response = await fetch(resolveUrl(DELETE_ENDPOINT), {
         method: 'POST',
-        headers: {
+        headers: withSyncAuthHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify({
           entries: pendingDeletions.map((item) => ({
             prayer_id: item.prayer_id,
@@ -151,9 +151,9 @@ const performSync = async (): Promise<void> => {
       resolveUrl(`${PULL_ENDPOINT}?since=${since || 0}`),
       {
         method: 'GET',
-        headers: {
+        headers: withSyncAuthHeaders({
           'Cache-Control': 'no-store',
-        },
+        }),
       },
     );
 

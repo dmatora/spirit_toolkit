@@ -3,8 +3,14 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 import { getSince } from '../_store';
+import { ensureAuthorized } from '../_auth';
 
 export async function GET(request: Request) {
+  const unauthorized = ensureAuthorized(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   try {
     const url = new URL(request.url);
     const sinceParam = url.searchParams.get('since');

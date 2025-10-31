@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 import { appendMany } from '../_store';
+import { ensureAuthorized } from '../_auth';
 
 type DraftEntry = {
   prayer_id: string;
@@ -14,6 +15,11 @@ type UploadPayload = {
 };
 
 export async function POST(request: Request) {
+  const unauthorized = ensureAuthorized(request);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   try {
     const payload = (await request.json()) as UploadPayload;
     const entries = Array.isArray(payload?.entries) ? payload.entries : [];
