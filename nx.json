@@ -36,7 +36,7 @@
       }
     },
     {
-      "plugin": "@nx/webpack/plugin",
+      "plugin": "@nx/webpack",
       "options": {
         "buildTargetName": "build",
         "serveTargetName": "serve",
@@ -44,7 +44,7 @@
       }
     },
     {
-      "plugin": "@nx/next/plugin",
+      "plugin": "@nx/next",
       "options": {
         "startTargetName": "start",
         "buildTargetName": "build",
@@ -53,7 +53,7 @@
       }
     },
     {
-      "plugin": "@nx/jest/plugin",
+      "plugin": "@nx/jest",
       "options": {
         "targetName": "test"
       }

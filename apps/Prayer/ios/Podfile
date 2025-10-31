@@ -1,4 +1,6 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
+require_relative '../../../node_modules/@react-native-community/cli-platform-ios/native_modules.rb'
+
 require Pod::Executable.execute_command('node', ['-p',
   'require.resolve(
     "react-native/scripts/react_native_pods.rb",
@@ -36,5 +38,43 @@ target 'Prayer' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'RCT-Folly'
+
+      target.build_configurations.each do |build_configuration|
+        %w[OTHER_CFLAGS OTHER_CPLUSPLUSFLAGS].each do |setting|
+          flags = build_configuration.build_settings[setting]
+          flags = ['$(inherited)'] if flags.nil?
+          flags = [flags] if flags.is_a?(String)
+
+          unless flags.any? { |flag| flag.include?('FOLLY_HAVE_CLOCK_GETTIME') }
+            flags << '-DFOLLY_HAVE_CLOCK_GETTIME=1'
+          end
+
+          build_configuration.build_settings[setting] = flags
+        end
+      end
+    end
+
+    folly_time_header = installer.sandbox.root + 'RCT-Folly/folly/portability/Time.h'
+    if folly_time_header.exist?
+      contents = folly_time_header.read
+      guard_snippet = '__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0'
+
+      unless contents.include?(guard_snippet)
+        search = '#if !FOLLY_HAVE_CLOCK_GETTIME && (defined(__MACH__) || defined(_WIN32))'
+        replacement = <<~'EOS'
+#if !FOLLY_HAVE_CLOCK_GETTIME && (defined(__MACH__) || defined(_WIN32)) && \
+    !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE &&                     \
+      defined(__IPHONE_OS_VERSION_MIN_REQUIRED) &&                         \
+      __IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_10_0)
+EOS
+
+        if contents.include?(search)
+          folly_time_header.open('w') { |f| f.write(contents.sub(search, replacement)) }
+        end
+      end
+    end
   end
 end
