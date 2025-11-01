@@ -9,6 +9,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { palette } from '@spirit/prayer-feature/theme/palette';
 import { ensureInitialized } from '../../../../Prayer/src/app/services/journalDb.web';
 import { ensureSettingsInitialized } from '../../../../Prayer/src/app/services/attendanceConfig.web';
+import {
+  startBackgroundSync,
+  syncNow,
+} from '../../../../Prayer/src/app/services/journalSync.web';
 import { PRAYERS } from '../molitvoslov/prayers';
 
 type GlobalLayoutClientProps = {
@@ -215,20 +219,34 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([ensureInitialized(), ensureSettingsInitialized()])
-      .then(() => {
-        if (!cancelled) {
-          console.debug('[hub:init] stores ready');
+    let stopSync: (() => void) | null = null;
+
+    const bootstrap = async () => {
+      try {
+        await Promise.all([ensureInitialized(), ensureSettingsInitialized()]);
+        if (cancelled) {
+          return;
         }
-      })
-      .catch((error) => {
-        if (!cancelled) {
-          console.warn('[hub:init] failed to initialize stores', error);
+        await syncNow();
+        if (cancelled) {
+          return;
         }
-      });
+        stopSync = startBackgroundSync();
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('[hub:init] sync bootstrap failed', error);
+        }
+      }
+    };
+
+    bootstrap();
 
     return () => {
       cancelled = true;
+      if (stopSync) {
+        stopSync();
+        stopSync = null;
+      }
     };
   }, []);
 
