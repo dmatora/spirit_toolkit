@@ -232,8 +232,8 @@ const performSync = async (): Promise<void> => {
     );
     const serverSyncedUntil =
       typeof payload.syncedUntil === 'number' && Number.isFinite(payload.syncedUntil)
-        ? Math.max(since, payload.syncedUntil)
-        : Math.max(maxPulledCursor, maxDeletionCursor);
+        ? payload.syncedUntil
+        : Math.max(maxPulledCursor, maxDeletionCursor, since);
 
     await writeLastSyncedCursor(serverSyncedUntil);
     notifySynced();
