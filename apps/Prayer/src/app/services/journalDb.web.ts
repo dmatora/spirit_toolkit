@@ -571,6 +571,7 @@ export const removePendingDeletions = async (ids: PendingDeletionId[]): Promise<
     for (const id of ids) {
       await requestToPromise(store.delete(id));
     }
+    await transactionDone(tx);
   } catch (error) {
     console.warn('[journalDb:web] Failed to remove pending deletions', error);
     throw error;
