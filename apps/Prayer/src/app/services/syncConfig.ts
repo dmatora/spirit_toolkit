@@ -3,24 +3,26 @@ const JOURNAL_PREFIX = '/api/journal';
 
 declare global {
   // eslint-disable-next-line no-var
-  var __SPIRIT_SYNC_API__: string | undefined;
+  var spiritSyncApi: string | undefined;
   // eslint-disable-next-line no-var
-  var __SPIRIT_SYNC_TOKEN__: string | undefined;
+  var spiritSyncToken: string | undefined;
   interface Window {
-    __SPIRIT_SYNC_API__?: string;
-    __SPIRIT_SYNC_TOKEN__?: string;
+    spiritSyncApi?: string;
+    spiritSyncToken?: string;
   }
 }
 
 export const getSyncApiBase = (): string => {
   const override =
-    typeof globalThis !== 'undefined' && typeof globalThis.__SPIRIT_SYNC_API__ === 'string'
-      ? globalThis.__SPIRIT_SYNC_API__
+    typeof globalThis !== 'undefined' && typeof (globalThis as Record<string, unknown>).spiritSyncApi === 'string'
+      ? String((globalThis as Record<string, unknown>).spiritSyncApi)
       : undefined;
 
-  const trimmed = override?.trim();
-  if (trimmed) {
-    return trimmed.replace(/\/+$/, '');
+  if (override) {
+    const trimmed = override.trim();
+    if (trimmed) {
+      return trimmed.replace(/\/+$/, '');
+    }
   }
 
   return DEFAULT_BASE_URL;
@@ -34,13 +36,13 @@ export const resolveUrl = (path: string): string => {
 
 export const getSyncAuthToken = (): string | undefined => {
   const fromGlobal =
-    typeof globalThis !== 'undefined' && typeof globalThis.__SPIRIT_SYNC_TOKEN__ === 'string'
-      ? globalThis.__SPIRIT_SYNC_TOKEN__
+    typeof globalThis !== 'undefined' && typeof (globalThis as Record<string, unknown>).spiritSyncToken === 'string'
+      ? String((globalThis as Record<string, unknown>).spiritSyncToken)
       : undefined;
 
   const fromWindow =
-    typeof window !== 'undefined' && typeof window.__SPIRIT_SYNC_TOKEN__ === 'string'
-      ? window.__SPIRIT_SYNC_TOKEN__
+    typeof window !== 'undefined' && typeof window.spiritSyncToken === 'string'
+      ? window.spiritSyncToken
       : undefined;
 
   const fromEnv =
@@ -49,8 +51,11 @@ export const getSyncAuthToken = (): string | undefined => {
       : undefined;
 
   const token = fromGlobal ?? fromWindow ?? fromEnv;
-  const trimmed = token?.trim();
-  return trimmed || undefined;
+  if (typeof token === 'string') {
+    const trimmed = token.trim();
+    return trimmed || undefined;
+  }
+  return undefined;
 };
 
 export const withSyncAuthHeaders = (
