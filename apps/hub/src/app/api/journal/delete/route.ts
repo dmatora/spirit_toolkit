@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 import { registerDeletions } from '../_store';
 import { ensureAuthorized } from '../_auth';
