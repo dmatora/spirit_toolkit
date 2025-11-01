@@ -329,6 +329,10 @@ async function acquireLock(): Promise<fs.FileHandle> {
       if (err.code !== 'EEXIST') {
         throw err;
       }
+      const ageOk = await ensureLockFreshness();
+      if (ageOk) {
+        continue;
+      }
       if (Date.now() - start > LOCK_TIMEOUT_MS) {
         throw new Error('Timed out acquiring journal store lock');
       }
@@ -352,6 +356,25 @@ async function releaseLock(handle: fs.FileHandle): Promise<void> {
 
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function ensureLockFreshness(): Promise<boolean> {
+  try {
+    const stats = await fs.stat(LOCK_PATH);
+    const age = Date.now() - stats.mtimeMs;
+    if (age > LOCK_TIMEOUT_MS * 5) {
+      await fs.unlink(LOCK_PATH);
+      return false;
+    }
+    await delay(LOCK_RETRY_DELAY_MS);
+    return true;
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code === 'ENOENT') {
+      return true;
+    }
+    throw error;
+  }
 }
 
 function normalizeStore(raw: unknown): StoreFile {
