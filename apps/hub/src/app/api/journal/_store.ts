@@ -1,7 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { constants as fsConstants } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 export type ServerJournalEntry = {
   id: number;
@@ -33,10 +32,27 @@ type StoreFile = {
   meta: StoreMeta;
 };
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const STORE_PATH = path.resolve(__dirname, '../../../../var/journal-store.json');
-const LOCK_PATH = `${STORE_PATH}.lock`;
+const resolveStorePath = (): { storePath: string; lockPath: string } => {
+  const rawFile = process.env.SPIRIT_SYNC_STORE_PATH;
+  if (rawFile) {
+    const storePath = path.isAbsolute(rawFile)
+      ? rawFile
+      : path.resolve(process.cwd(), rawFile);
+    return { storePath, lockPath: `${storePath}.lock` };
+  }
+
+  const rawDir = process.env.SPIRIT_SYNC_STORE_DIR;
+  const baseDir = rawDir
+    ? path.isAbsolute(rawDir)
+      ? rawDir
+      : path.resolve(process.cwd(), rawDir)
+    : path.resolve(process.cwd(), 'var');
+
+  const storePath = path.join(baseDir, 'journal-store.json');
+  return { storePath, lockPath: `${storePath}.lock` };
+};
+
+const { storePath: STORE_PATH, lockPath: LOCK_PATH } = resolveStorePath();
 const LOCK_TIMEOUT_MS = 2_000;
 const LOCK_RETRY_DELAY_MS = 25;
 
