@@ -148,9 +148,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     const index = webStore.findIndex((entry) => entry.id === id);
     if (index !== -1) {
       const entry = webStore[index];
-      if (entry.synced === 1) {
-        queueDeletionInMemory(entry.prayer_id, entry.timestamp);
-      }
+      queueDeletionInMemory(entry.prayer_id, entry.timestamp);
       webStore.splice(index, 1);
     }
     return;
@@ -168,23 +166,23 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     transactionStarted = true;
 
     const [selectResult] = await db.executeSql(
-      `SELECT prayer_id, timestamp, synced FROM ${tableName} WHERE id = ? LIMIT 1;`,
+      `SELECT prayer_id, timestamp FROM ${tableName} WHERE id = ? LIMIT 1;`,
       [id],
     );
 
-    if (selectResult.rows.length > 0) {
-      const row = selectResult.rows.item(0) as Partial<JournalEntry>;
-      const syncedFlag = (row.synced ?? 0) as SyncedFlag;
-
-      if (syncedFlag === 1 && typeof row.prayer_id === 'string' && typeof row.timestamp === 'number') {
-        await db.executeSql(
-          `INSERT OR IGNORE INTO ${deletionsTableName} (prayer_id, timestamp) VALUES (?, ?);`,
-          [row.prayer_id, row.timestamp],
-        );
-      }
-
-      await db.executeSql(`DELETE FROM ${tableName} WHERE id = ?;`, [id]);
+    if (selectResult.rows.length === 0) {
+      await db.executeSql('ROLLBACK;');
+      transactionStarted = false;
+      return;
     }
+
+    const row = selectResult.rows.item(0) as Pick<JournalEntry, 'prayer_id' | 'timestamp'>;
+    await db.executeSql(
+      `INSERT OR IGNORE INTO ${deletionsTableName} (prayer_id, timestamp) VALUES (?, ?);`,
+      [row.prayer_id, row.timestamp],
+    );
+
+    await db.executeSql(`DELETE FROM ${tableName} WHERE id = ?;`, [id]);
 
     await db.executeSql('COMMIT;');
   } catch (error) {

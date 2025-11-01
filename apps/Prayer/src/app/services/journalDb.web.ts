@@ -178,9 +178,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     const index = memoryStore.findIndex((entry) => entry.id === id);
     if (index !== -1) {
       const entry = memoryStore[index];
-      if (entry.synced === 1) {
-        queueDeletionInMemory(entry.prayer_id, entry.timestamp);
-      }
+      queueDeletionInMemory(entry.prayer_id, entry.timestamp);
       memoryStore.splice(index, 1);
     }
     return;
@@ -192,9 +190,7 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
     const index = memoryStore.findIndex((entry) => entry.id === id);
     if (index !== -1) {
       const entry = memoryStore[index];
-      if (entry.synced === 1) {
-        queueDeletionInMemory(entry.prayer_id, entry.timestamp);
-      }
+      queueDeletionInMemory(entry.prayer_id, entry.timestamp);
       memoryStore.splice(index, 1);
     }
     return;
@@ -214,20 +210,18 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
       return;
     }
 
-    if ((record.synced ?? 0) === 1) {
-      try {
-        const key = await requestToPromise(
-          deletionStore.add({
-            prayer_id: record.prayer_id,
-            timestamp: record.timestamp,
-          }),
-        );
-        queueDeletionInMemory(record.prayer_id, record.timestamp, key as PendingDeletionId);
-      } catch (error) {
-        console.warn('[journalDb:web] Failed to queue deletion before removing entry', error);
-        tx.abort();
-        throw error;
-      }
+    try {
+      const key = await requestToPromise(
+        deletionStore.add({
+          prayer_id: record.prayer_id,
+          timestamp: record.timestamp,
+        }),
+      );
+      queueDeletionInMemory(record.prayer_id, record.timestamp, key as PendingDeletionId);
+    } catch (error) {
+      console.warn('[journalDb:web] Failed to queue deletion before removing entry', error);
+      tx.abort();
+      throw error;
     }
 
     await requestToPromise(entryStore.delete(id));
