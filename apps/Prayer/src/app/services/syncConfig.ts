@@ -15,12 +15,11 @@ declare global {
 type MaybeString = string | undefined;
 
 const isReactNativeRuntime = (): boolean => {
-  return (
-    typeof navigator !== 'undefined' &&
-    typeof navigator === 'object' &&
-    // @ts-expect-error navigator might not have product in some environments
-    navigator?.product === 'ReactNative'
-  );
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const nav = navigator as unknown as { product?: string };
+  return nav?.product === 'ReactNative';
 };
 
 const loadNativeEnv = (): { api?: MaybeString; token?: MaybeString } => {
@@ -71,7 +70,7 @@ const resolveGlobalSyncApi = (): MaybeString =>
     typeof process !== 'undefined' ? process.env?.SPIRIT_SYNC_API : undefined,
     nativeEnv.api,
     typeof window !== 'undefined' ? window.spiritSyncApi : undefined,
-    typeof globalThis !== 'undefined' ? (globalThis as Record<string, unknown>).spiritSyncApi : undefined,
+    typeof globalThis !== 'undefined' ? globalThis.spiritSyncApi : undefined,
   );
 
 const resolveGlobalSyncToken = (): MaybeString =>
@@ -82,7 +81,7 @@ const resolveGlobalSyncToken = (): MaybeString =>
       : undefined,
     nativeEnv.token,
     typeof window !== 'undefined' ? window.spiritSyncToken : undefined,
-    typeof globalThis !== 'undefined' ? (globalThis as Record<string, unknown>).spiritSyncToken : undefined,
+    typeof globalThis !== 'undefined' ? globalThis.spiritSyncToken : undefined,
   );
 
 export const getSyncApiBase = (): string => {

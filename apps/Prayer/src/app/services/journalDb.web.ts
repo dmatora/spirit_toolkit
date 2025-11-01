@@ -188,8 +188,16 @@ export const deleteJournalEntry = async (id: number): Promise<void> => {
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, cannot delete entry');
-    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot delete entry');
+    console.warn('[journalDb:web] IndexedDB unavailable, deleting from memory store');
+    const index = memoryStore.findIndex((entry) => entry.id === id);
+    if (index !== -1) {
+      const entry = memoryStore[index];
+      if (entry.synced === 1) {
+        queueDeletionInMemory(entry.prayer_id, entry.timestamp);
+      }
+      memoryStore.splice(index, 1);
+    }
+    return;
   }
 
   try {
@@ -237,7 +245,7 @@ export const getUnsyncedEntries = async (): Promise<JournalEntry[]> => {
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, returning memory entries');
+    console.warn('[journalDb:web] IndexedDB unavailable, returning memory unsynced entries');
     return memoryStore.filter((entry) => entry.synced === 0);
   }
 
@@ -276,8 +284,14 @@ export const markEntriesSynced = async (ids: number[]): Promise<void> => {
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, cannot mark synced');
-    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot mark synced');
+    console.warn('[journalDb:web] IndexedDB unavailable, marking memory entries as synced');
+    const idSet = new Set(ids);
+    memoryStore.forEach((entry) => {
+      if (idSet.has(entry.id)) {
+        entry.synced = 1;
+      }
+    });
+    return;
   }
 
   try {
@@ -470,7 +484,7 @@ export const queueDeletion = async (
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, cannot queue deletion');
+    console.warn('[journalDb:web] IndexedDB database not initialized, queueing deletion in memory');
     queueDeletionInMemory(prayerId, timestamp);
     return;
   }
@@ -498,7 +512,7 @@ export const getPendingDeletions = async (): Promise<PendingDeletion[]> => {
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, returning memory deletions');
+    console.warn('[journalDb:web] IndexedDB unavailable, using memory deletions queue');
     return [...memoryDeletionQueue];
   }
 
@@ -547,8 +561,8 @@ export const removePendingDeletions = async (ids: PendingDeletionId[]): Promise<
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, cannot remove deletions');
-    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot remove deletions');
+    console.warn('[journalDb:web] IndexedDB unavailable, pruning memory deletion queue');
+    return;
   }
 
   try {
@@ -590,8 +604,21 @@ export const applyRemoteDeletions = async (
 
   await ensureInitialized();
   if (!db) {
-    console.warn('[journalDb:web] IndexedDB database not initialized, cannot apply deletions');
-    throw new Error('[journalDb:web] IndexedDB database not initialized, cannot apply deletions');
+    console.warn('[journalDb:web] IndexedDB unavailable, applying deletions in memory store');
+    const keys = new Set(deletions.map((item) => key(item.prayer_id, item.timestamp)));
+    for (let i = memoryStore.length - 1; i >= 0; i -= 1) {
+      if (keys.has(key(memoryStore[i].prayer_id, memoryStore[i].timestamp))) {
+        memoryStore.splice(i, 1);
+      }
+    }
+    for (let i = memoryDeletionQueue.length - 1; i >= 0; i -= 1) {
+      if (
+        keys.has(key(memoryDeletionQueue[i].prayer_id, memoryDeletionQueue[i].timestamp))
+      ) {
+        memoryDeletionQueue.splice(i, 1);
+      }
+    }
+    return;
   }
 
   try {
