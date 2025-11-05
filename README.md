@@ -1,8 +1,39 @@
-# WalkingPad
+# Spirit Toolkit Workspace
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+This repository contains the Spirit Toolkit mobile app (`apps/Prayer`) and hub web app (`apps/hub`). Both clients can synchronise journal data with the private API that now requires an authentication secret. Use the instructions below to configure local environments before running either application.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Sync API configuration
+
+| Variable | Description |
+| --- | --- |
+| `SPIRIT_SYNC_API` / `NEXT_PUBLIC_SPIRIT_SYNC_API` | Base URL that hosts the private sync API (e.g. `http://localhost:4200`). |
+| `SPIRIT_SYNC_TOKEN` / `NEXT_PUBLIC_SPIRIT_SYNC_TOKEN` | Shared secret that must match the server's `SPIRIT_SYNC_SECRET`. |
+
+### Mobile (Prayer)
+
+1. Create `apps/Prayer/.env` and provide:
+
+   ```ini
+   SPIRIT_SYNC_API=http://localhost:4200
+   SPIRIT_SYNC_TOKEN=super-secret-token
+   ```
+
+2. Rebuild Metro after changing the file so the `react-native-dotenv` plugin picks up the new values.
+
+The React Native bundle also honours `global.spiritSyncApi` / `global.spiritSyncToken` which can be useful for tests.
+
+### Web (hub)
+
+Create `apps/hub/.env.local` and supply the public variables expected by Next.js:
+
+```ini
+NEXT_PUBLIC_SPIRIT_SYNC_API=http://localhost:4200
+NEXT_PUBLIC_SPIRIT_SYNC_TOKEN=super-secret-token
+```
+
+Restart the dev server after edits so the new environment variables are loaded.
+
+---
 
 [Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/react-native?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
 

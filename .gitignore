@@ -43,6 +43,16 @@ Thumbs.db
 
 # React Native
 
+# Environment files
+.env
+.env.local
+apps/Prayer/.env
+apps/Prayer/.env.local
+apps/hub/.env
+apps/hub/.env.local
+packages/*/.env
+packages/*/.env.local
+
 # OSX
 #
 .DS_Store
