@@ -1,5 +1,6 @@
 const DEFAULT_BASE_URL = 'http://localhost:4200';
 const JOURNAL_PREFIX = '/api/journal';
+export const SYNC_SECRET_STORAGE_KEY = 'spirit/sync-secret';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -64,6 +65,20 @@ const pickFirst = (...values: Array<MaybeString | undefined>): MaybeString => {
 
 const nativeEnv = loadNativeEnv();
 
+const resolveBuildTimeSyncToken = (): MaybeString =>
+  pickFirst(
+    typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SPIRIT_SYNC_TOKEN : undefined,
+    typeof process !== 'undefined'
+      ? process.env?.SPIRIT_SYNC_TOKEN ??
+        process.env?.SPIRIT_SYNC_SECRET ??
+        process.env?.PRAYER_SYNC_SECRET
+      : undefined,
+    nativeEnv.token,
+  );
+
+export const hasBuildTimeSyncToken = (): boolean =>
+  Boolean(resolveBuildTimeSyncToken());
+
 const resolveGlobalSyncApi = (): MaybeString =>
   pickFirst(
     typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SPIRIT_SYNC_API : undefined,
@@ -73,16 +88,16 @@ const resolveGlobalSyncApi = (): MaybeString =>
     typeof globalThis !== 'undefined' ? globalThis.spiritSyncApi : undefined,
   );
 
-const resolveGlobalSyncToken = (): MaybeString =>
-  pickFirst(
-    typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SPIRIT_SYNC_TOKEN : undefined,
-    typeof process !== 'undefined'
-      ? process.env?.SPIRIT_SYNC_TOKEN ?? process.env?.SPIRIT_SYNC_SECRET ?? process.env?.PRAYER_SYNC_SECRET
-      : undefined,
-    nativeEnv.token,
+const resolveGlobalSyncToken = (): MaybeString => {
+  const buildTimeToken = resolveBuildTimeSyncToken();
+  if (buildTimeToken) {
+    return buildTimeToken;
+  }
+  return pickFirst(
     typeof window !== 'undefined' ? window.spiritSyncToken : undefined,
     typeof globalThis !== 'undefined' ? globalThis.spiritSyncToken : undefined,
   );
+};
 
 export const getSyncApiBase = (): string => {
   const override = resolveGlobalSyncApi();
@@ -100,6 +115,24 @@ export const resolveUrl = (path: string): string => {
 
 export const getSyncAuthToken = (): string | undefined => resolveGlobalSyncToken();
 
+export const setRuntimeSyncToken = (token?: string): void => {
+  const normalized = normalize(token);
+  if (typeof window !== 'undefined') {
+    if (normalized) {
+      window.spiritSyncToken = normalized;
+    } else {
+      delete window.spiritSyncToken;
+    }
+  }
+  if (typeof globalThis !== 'undefined') {
+    if (normalized) {
+      globalThis.spiritSyncToken = normalized;
+    } else {
+      delete globalThis.spiritSyncToken;
+    }
+  }
+};
+
 export const withSyncAuthHeaders = (
   headers: Record<string, string>,
 ): Record<string, string> => {
@@ -112,5 +145,7 @@ export const withSyncAuthHeaders = (
     'X-Spirit-Sync-Token': token,
   };
 };
+
+export const isSyncEnabled = (): boolean => !!getSyncAuthToken();
 
 export {};
