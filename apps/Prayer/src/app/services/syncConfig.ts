@@ -1,3 +1,5 @@
+import { envConfig } from './env';
+
 const DEFAULT_BASE_URL = 'http://localhost:4200';
 const JOURNAL_PREFIX = '/api/journal';
 export const SYNC_SECRET_STORAGE_KEY = 'spirit/sync-secret';
@@ -14,36 +16,6 @@ declare global {
 }
 
 type MaybeString = string | undefined;
-
-const isReactNativeRuntime = (): boolean => {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-  const nav = navigator as unknown as { product?: string };
-  return nav?.product === 'ReactNative';
-};
-
-const loadNativeEnv = (): { api?: MaybeString; token?: MaybeString } => {
-  if (!isReactNativeRuntime()) {
-    return {};
-  }
-
-  try {
-    // Use eval to avoid static analysis in non-native builds.
-    // eslint-disable-next-line no-eval, @typescript-eslint/no-unsafe-assignment
-    const nativeModule = eval('require')('@env') as Partial<{
-      SPIRIT_SYNC_API?: string;
-      SPIRIT_SYNC_TOKEN?: string;
-    }>;
-    return {
-      api: nativeModule?.SPIRIT_SYNC_API,
-      token: nativeModule?.SPIRIT_SYNC_TOKEN,
-    };
-  } catch (error) {
-    console.warn('[syncConfig] Unable to load @env module', error);
-    return {};
-  }
-};
 
 const normalize = (value: unknown): MaybeString => {
   if (typeof value !== 'string') {
@@ -63,27 +35,17 @@ const pickFirst = (...values: Array<MaybeString | undefined>): MaybeString => {
   return undefined;
 };
 
-const nativeEnv = loadNativeEnv();
+const { syncApi: buildTimeSyncApi, syncToken: buildTimeSyncToken } = envConfig;
 
 const resolveBuildTimeSyncToken = (): MaybeString =>
-  pickFirst(
-    typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SPIRIT_SYNC_TOKEN : undefined,
-    typeof process !== 'undefined'
-      ? process.env?.SPIRIT_SYNC_TOKEN ??
-        process.env?.SPIRIT_SYNC_SECRET ??
-        process.env?.PRAYER_SYNC_SECRET
-      : undefined,
-    nativeEnv.token,
-  );
+  normalize(buildTimeSyncToken);
 
 export const hasBuildTimeSyncToken = (): boolean =>
   Boolean(resolveBuildTimeSyncToken());
 
 const resolveGlobalSyncApi = (): MaybeString =>
   pickFirst(
-    typeof process !== 'undefined' ? process.env?.NEXT_PUBLIC_SPIRIT_SYNC_API : undefined,
-    typeof process !== 'undefined' ? process.env?.SPIRIT_SYNC_API : undefined,
-    nativeEnv.api,
+    normalize(buildTimeSyncApi),
     typeof window !== 'undefined' ? window.spiritSyncApi : undefined,
     typeof globalThis !== 'undefined' ? globalThis.spiritSyncApi : undefined,
   );
