@@ -7,6 +7,7 @@
     "build": "NX_INTERACTIVE=false NX_DAEMON=false nx run-many --target=build --all",
     "build:player": "NX_INTERACTIVE=false NX_DAEMON=false nx build Prayer",
     "build:hub": "NX_INTERACTIVE=false NX_DAEMON=false nx build hub",
+    "postinstall": "prisma generate --schema libs/prisma/prisma/schema.prisma",
     "validate:prayers": "node apps/Prayer/scripts/validatePrayerAssetsRunner.cjs"
   },
   "private": true,
@@ -92,5 +93,8 @@
     "typescript": "~5.5.2",
     "typescript-eslint": "^8.0.0",
     "webpack-cli": "^5.1.4"
+  },
+  "prisma": {
+    "schema": "libs/prisma/prisma/schema.prisma"
   }
 }
