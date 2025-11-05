@@ -6,7 +6,7 @@ import {
   removePendingDeletions,
   applyRemoteDeletions,
 } from './journalDb.web';
-import { resolveUrl, withSyncAuthHeaders } from './syncConfig';
+import { isSyncEnabled, resolveUrl, withSyncAuthHeaders } from './syncConfig';
 
 type Listener = () => void;
 
@@ -91,6 +91,9 @@ export const onSynced = {
 };
 
 export const syncNow = async (): Promise<void> => {
+  if (!isSyncEnabled()) {
+    return;
+  }
   if (inFlightSync) {
     return inFlightSync;
   }
@@ -103,6 +106,10 @@ export const syncNow = async (): Promise<void> => {
 };
 
 const performSync = async (): Promise<void> => {
+  if (!isSyncEnabled()) {
+    return;
+  }
+
   const since = readLastSyncedCursor();
 
   try {

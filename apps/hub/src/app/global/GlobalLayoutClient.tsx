@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import styled, { css } from 'styled-components';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { palette } from '@spirit/prayer-feature/theme/palette';
 import { ensureInitialized } from '../../../../Prayer/src/app/services/journalDb.web';
 import { ensureSettingsInitialized } from '../../../../Prayer/src/app/services/attendanceConfig.web';
@@ -13,6 +14,10 @@ import {
   startBackgroundSync,
   syncNow,
 } from '../../../../Prayer/src/app/services/journalSync.web';
+import {
+  SYNC_SECRET_STORAGE_KEY,
+  setRuntimeSyncToken,
+} from '../../../../Prayer/src/app/services/syncConfig';
 import { PRAYERS } from '../molitvoslov/prayers';
 
 type GlobalLayoutClientProps = {
@@ -224,6 +229,18 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
     const bootstrap = async () => {
       try {
         await Promise.all([ensureInitialized(), ensureSettingsInitialized()]);
+        if (cancelled) {
+          return;
+        }
+        try {
+          const storedSecret = await AsyncStorage.getItem(SYNC_SECRET_STORAGE_KEY);
+          if (!cancelled) {
+            const trimmed = storedSecret?.trim() ?? '';
+            setRuntimeSyncToken(trimmed.length > 0 ? trimmed : undefined);
+          }
+        } catch (secretError) {
+          console.warn('[hub:init] failed to hydrate sync secret', secretError);
+        }
         if (cancelled) {
           return;
         }
