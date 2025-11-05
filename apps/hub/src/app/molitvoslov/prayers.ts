@@ -19,4 +19,9 @@ export const PRAYERS: PrayerLink[] = [
     title: 'Акафист святителю Спиридону Тримифунтскому',
     href: '/molitvoslov/akathist_spiridon',
   },
+  {
+    id: 'akathist_sergy',
+    title: 'Акафист преподобному Сергию Радонежскому',
+    href: '/molitvoslov/akathist_sergy',
+  },
 ];
