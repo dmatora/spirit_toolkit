@@ -21,5 +21,13 @@ module.exports = function (api) {
     presets: [
       ['module:@react-native/babel-preset', { useTransformReactJSX: true }],
     ],
+    plugins: [
+      [
+        'module:react-native-dotenv',
+        {
+          path: '../../.env',
+        },
+      ],
+    ],
   };
 };
