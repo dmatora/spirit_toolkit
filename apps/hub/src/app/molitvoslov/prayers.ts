@@ -24,4 +24,9 @@ export const PRAYERS: PrayerLink[] = [
     title: 'Акафист преподобному Сергию Радонежскому',
     href: '/molitvoslov/akathist_sergy',
   },
+  {
+    id: 'akathist_luka',
+    title: 'Акафист святителю Луке, архиепископу Крымскому, исповеднику',
+    href: '/molitvoslov/akathist_luka',
+  },
 ];
