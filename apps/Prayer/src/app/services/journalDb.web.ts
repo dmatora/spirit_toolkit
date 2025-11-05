@@ -16,9 +16,10 @@ export type JournalEntry = {
 };
 
 const DB_NAME = 'prayer-web';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_NAME = 'journal_entries';
 const DELETION_STORE_NAME = 'journal_entry_deletions';
+const ENTRY_KEY_INDEX = 'entry_by_prayer_timestamp';
 
 const hasIndexedDb = typeof indexedDB !== 'undefined';
 const memoryStore: JournalEntry[] = [];
@@ -47,12 +48,24 @@ const openDatabase = async (): Promise<void> => {
 
       request.onupgradeneeded = () => {
         const database = request.result;
+        const upgradeTx = request.transaction;
+
+        let entryStore: IDBObjectStore | null = null;
         if (!database.objectStoreNames.contains(STORE_NAME)) {
-          database.createObjectStore(STORE_NAME, {
+          entryStore = database.createObjectStore(STORE_NAME, {
             keyPath: 'id',
             autoIncrement: true,
           });
+        } else if (upgradeTx) {
+          entryStore = upgradeTx.objectStore(STORE_NAME);
         }
+
+        if (entryStore && !entryStore.indexNames.contains(ENTRY_KEY_INDEX)) {
+          entryStore.createIndex(ENTRY_KEY_INDEX, ['prayer_id', 'timestamp'], {
+            unique: true,
+          });
+        }
+
         if (!database.objectStoreNames.contains(DELETION_STORE_NAME)) {
           database.createObjectStore(DELETION_STORE_NAME, {
             keyPath: 'id',
@@ -360,17 +373,33 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
   }
 
   try {
-    const existing = await getAllJournalEntries();
-    const existingKeys = new Set(existing.map((entry) => key(entry.prayer_id, entry.timestamp)));
-
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
+    const canUseIndex = store.indexNames.contains(ENTRY_KEY_INDEX);
+    const index = canUseIndex ? store.index(ENTRY_KEY_INDEX) : null;
+    const existingKeys =
+      index === null
+        ? new Set(
+            ((await requestToPromise(store.getAll())) as JournalEntry[]).map((entry) =>
+              key(entry.prayer_id, entry.timestamp),
+            ),
+          )
+        : null;
     let inserted = 0;
 
     for (const entry of validEntries) {
-      const entryKey = key(entry.prayer_id, entry.timestamp);
-      if (existingKeys.has(entryKey)) {
-        continue;
+      if (index) {
+        const existing = await requestToPromise(
+          index.get([entry.prayer_id, entry.timestamp]),
+        );
+        if (existing) {
+          continue;
+        }
+      } else if (existingKeys) {
+        const entryKey = key(entry.prayer_id, entry.timestamp);
+        if (existingKeys.has(entryKey)) {
+          continue;
+        }
       }
       await requestToPromise(
         store.add({
@@ -379,8 +408,10 @@ export const upsertEntries = async (entries: UpsertDraft[]): Promise<number> => 
           synced: 1,
         }),
       );
-      existingKeys.add(entryKey);
       inserted += 1;
+      if (existingKeys) {
+        existingKeys.add(key(entry.prayer_id, entry.timestamp));
+      }
     }
 
     await transactionDone(tx);
