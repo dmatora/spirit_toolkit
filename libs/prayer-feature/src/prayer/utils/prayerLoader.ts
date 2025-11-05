@@ -5,7 +5,8 @@ export type PrayerId =
   | 'vespers'
   | 'akathist_baptist'
   | 'akathist_spiridon'
-  | 'akathist_sergy';
+  | 'akathist_sergy'
+  | 'akathist_luka';
 
 const cache: Partial<Record<PrayerId, PrayerBlock[]>> = {};
 
@@ -15,7 +16,8 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
     prayerId === 'vespers' ||
     prayerId === 'akathist_baptist' ||
     prayerId === 'akathist_spiridon' ||
-    prayerId === 'akathist_sergy'
+    prayerId === 'akathist_sergy' ||
+    prayerId === 'akathist_luka'
       ? prayerId
       : 'liturgy';
 
@@ -44,6 +46,9 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
             break;
           case 'akathist_sergy':
             data = require('../assets/prayers/akathist_sergy.json');
+            break;
+          case 'akathist_luka':
+            data = require('../assets/prayers/akathist_luka.json');
             break;
           default:
             data = require('../assets/prayers/liturgy.json');
