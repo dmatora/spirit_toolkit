@@ -3,3 +3,23 @@ datasource db {
   url       = env("DATABASE_URL")
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
+
+model JournalEntry {
+  id        Int    @id @default(autoincrement())
+  cursor    Int    @unique
+  prayer_id String
+  timestamp Int
+  createdAt BigInt @db.BigInt
+
+  @@index([prayer_id, timestamp])
+}
+
+model JournalDeletion {
+  id        Int    @id @default(autoincrement())
+  cursor    Int    @unique
+  prayer_id String
+  timestamp Int
+  deletedAt BigInt @db.BigInt
+
+  @@unique([prayer_id, timestamp])
+}
