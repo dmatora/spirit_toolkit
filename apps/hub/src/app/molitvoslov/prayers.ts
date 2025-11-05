@@ -14,4 +14,9 @@ export const PRAYERS: PrayerLink[] = [
     title: 'Акафист святому Иоанну Крестителю',
     href: '/molitvoslov/akathist_baptist',
   },
+  {
+    id: 'akathist_spiridon',
+    title: 'Акафист святителю Спиридону Тримифунтскому',
+    href: '/molitvoslov/akathist_spiridon',
+  },
 ];

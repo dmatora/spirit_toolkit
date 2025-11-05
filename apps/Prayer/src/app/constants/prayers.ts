@@ -6,6 +6,7 @@ export const PRAYER_OPTIONS: PrayerOption[] = [
   { id: 'liturgy', title: 'Божественная литургия' },
   { id: 'vespers', title: 'Вечерня' },
   { id: 'akathist_baptist', title: 'Акафист святому Иоанну Крестителю' },
+  { id: 'akathist_spiridon', title: 'Акафист святителю Спиридону Тримифунтскому' },
 ];
 
 export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>>(
@@ -17,5 +18,6 @@ export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>
     liturgy: 'Божественная литургия',
     vespers: 'Вечерня',
     akathist_baptist: 'Акафист святому Иоанну Крестителю',
+    akathist_spiridon: 'Акафист святителю Спиридону Тримифунтскому',
   },
 );
