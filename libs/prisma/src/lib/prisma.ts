@@ -1,19 +1,21 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { neon, neonConfig } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import { load } from 'ts-dotenv';
 
-const { NODE_ENV, LOG_PRETTY } = load({
-  NODE_ENV: ['dev' as const, 'prod' as const],
-  LOG_PRETTY: Boolean,
+const { NODE_ENV: rawNodeEnv, LOG_PRETTY } = load({
+  NODE_ENV: ['dev' as const, 'prod' as const, 'production' as const],
+  LOG_PRETTY: { type: Boolean, optional: true },
 });
 
-const isDevEnv = NODE_ENV !== 'prod';
+const normalizedNodeEnv = rawNodeEnv === 'production' ? 'prod' : rawNodeEnv;
+const isDevEnv = normalizedNodeEnv !== 'prod';
+const prettyLogsEnabled = LOG_PRETTY ?? false;
 
 const createClientOptions = (): Prisma.PrismaClientOptions => {
   const options: Prisma.PrismaClientOptions = {
     log: isDevEnv ? ['query', 'error', 'warn'] : ['error', 'warn'],
-    errorFormat: LOG_PRETTY ? 'pretty' : 'colorless',
+    errorFormat: prettyLogsEnabled ? 'pretty' : 'colorless',
   };
 
   const pooledUrl =
@@ -26,20 +28,19 @@ const createClientOptions = (): Prisma.PrismaClientOptions => {
 
   const datasourceUrl = pooledUrl ?? unpooledUrl;
 
-  if (!datasourceUrl) {
-    return options;
-  }
+  if (datasourceUrl) {
+    const shouldUseNeonAdapter =
+      !process.env.PRISMA_DISABLE_NEON_ADAPTER &&
+      (pooledUrl?.includes('neon.tech') ||
+        datasourceUrl.includes('neon.tech'));
 
-  options.datasourceUrl = datasourceUrl;
-
-  const shouldUseNeonAdapter =
-    !process.env.PRISMA_DISABLE_NEON_ADAPTER &&
-    (pooledUrl?.includes('neon.tech') ||
-      datasourceUrl.includes('neon.tech'));
-
-  if (shouldUseNeonAdapter) {
-    neonConfig.fetchConnectionCache = true;
-    options.adapter = new PrismaNeon(neon(datasourceUrl));
+    if (shouldUseNeonAdapter) {
+      neonConfig.fetchConnectionCache = true;
+      const pool = new Pool({ connectionString: datasourceUrl });
+      options.adapter = new PrismaNeon(pool);
+    } else {
+      options.datasourceUrl = datasourceUrl;
+    }
   }
 
   return options;
@@ -63,11 +64,4 @@ if (process.env.NODE_ENV !== 'production') {
 
 export const prismaResetCachedPlan = async () => {
   return prisma.$executeRawUnsafe(`DISCARD PLANS`);
-};
-
-export type ActivityWithMemoAndImages = Prisma.activityGetPayload<{
-  include: { memo: true };
-}> & {
-  thumbnail: string;
-  screenshot: string;
 };
