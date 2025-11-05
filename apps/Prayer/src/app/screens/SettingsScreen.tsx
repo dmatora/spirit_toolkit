@@ -1,4 +1,5 @@
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -22,6 +23,11 @@ import {
   setLiturgyThresholds,
   type Thresholds,
 } from '../services/attendanceConfig';
+import {
+  SYNC_SECRET_STORAGE_KEY,
+  hasBuildTimeSyncToken,
+  setRuntimeSyncToken,
+} from '../services/syncConfig';
 
 const PRESET_LIST: Array<{ key: keyof typeof PRESETS; label: string }> = [
   { key: 'restoring', label: 'Восстанавливающий' },
@@ -39,6 +45,8 @@ const SettingsScreen = () => {
   const [warningValue, setWarningValue] = React.useState('0');
   const [selectedPreset, setSelectedPreset] = React.useState<keyof typeof PRESETS | null>(null);
   const [saved, setSaved] = React.useState(false);
+  const [syncSecret, setSyncSecret] = React.useState('');
+  const [hasEmbeddedToken] = React.useState(() => hasBuildTimeSyncToken());
 
   const matchPreset = React.useCallback((thresholds: Thresholds) => {
     for (const entry of PRESET_LIST) {
@@ -78,6 +86,27 @@ const SettingsScreen = () => {
   }, [updateThresholdState]);
 
   React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(SYNC_SECRET_STORAGE_KEY);
+        if (!active) {
+          return;
+        }
+        const value = stored ?? '';
+        setSyncSecret(value);
+        const trimmed = value.trim();
+        setRuntimeSyncToken(trimmed.length > 0 ? trimmed : undefined);
+      } catch (error) {
+        console.warn('[SettingsScreen] Failed to load sync secret', error);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  React.useEffect(() => {
     if (!saved) return;
     const timer = setTimeout(() => setSaved(false), 2000);
     return () => clearTimeout(timer);
@@ -102,11 +131,30 @@ const SettingsScreen = () => {
         warning: safeParseNumber(warningValue),
       });
       updateThresholdState(config.metrics.liturgy.thresholds);
-      setSaved(true);
     } catch (error) {
       console.warn('[SettingsScreen]', error);
+      return;
     }
-  }, [normalValue, warningValue, updateThresholdState]);
+
+    const trimmedSecret = syncSecret.trim();
+    if (trimmedSecret.length > 0) {
+      try {
+        await AsyncStorage.setItem(SYNC_SECRET_STORAGE_KEY, trimmedSecret);
+      } catch (error) {
+        console.warn('[SettingsScreen] Failed to persist sync secret', error);
+      }
+      setRuntimeSyncToken(trimmedSecret);
+    } else {
+      try {
+        await AsyncStorage.removeItem(SYNC_SECRET_STORAGE_KEY);
+      } catch (error) {
+        console.warn('[SettingsScreen] Failed to remove sync secret', error);
+      }
+      setRuntimeSyncToken(undefined);
+    }
+
+    setSaved(true);
+  }, [normalValue, warningValue, syncSecret, updateThresholdState]);
 
   const warningNumber = safeParseNumber(warningValue);
 
@@ -199,6 +247,24 @@ const SettingsScreen = () => {
                 Тревога: &gt; {warningNumber} дней
               </Text>
             </View>
+
+            {!hasEmbeddedToken && (
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Синхронизация</Text>
+                <TextInput
+                  accessibilityLabel="Секрет синхронизации"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={syncSecret}
+                  onChangeText={setSyncSecret}
+                  placeholder="Введите секрет"
+                  style={styles.secretInput}
+                />
+                <Text style={styles.caption}>
+                  Используйте секрет, чтобы синхронизировать журнал между устройствами.
+                </Text>
+              </View>
+            )}
 
             <Pressable
               accessibilityRole="button"
@@ -303,6 +369,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: palette.ink,
     backgroundColor: palette.card,
+  },
+  secretInput: {
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.divider,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    color: palette.ink,
+    backgroundColor: palette.card,
+    fontSize: 14,
+    marginBottom: 8,
   },
   saveButton: {
     alignItems: 'center',
