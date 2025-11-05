@@ -121,8 +121,8 @@ export async function registerDeletions(
       deletionMax._max.cursor ?? 0,
     );
     let cursor = currentMaxCursor > 0 ? currentMaxCursor + 1 : 1;
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const nowBigInt = BigInt(nowSeconds);
+    const now = Date.now();
+    const nowBigInt = BigInt(now);
 
     const existingMap = new Map(
       existingDeletions.map((item) => [entryKey(item), item]),
