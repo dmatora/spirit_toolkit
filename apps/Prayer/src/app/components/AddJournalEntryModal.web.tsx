@@ -73,6 +73,9 @@ const styles = StyleSheet.create({
   prayerOptionText: { color: palette.ink, fontWeight: '600', flexShrink: 1 },
   prayerOptionTextActive: { color: palette.accent },
   prayerOptionTick: { marginLeft: 12, color: palette.accent, fontWeight: '700', fontSize: 16 },
+  datetimeSection: { marginTop: 4 },
+  timeRow: { flexDirection: 'row', marginTop: 12 },
+  timeCol: { flex: 1 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 12 },
   btn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: palette.chipBg },
   btnPrimary: { backgroundColor: palette.accent },
@@ -92,32 +95,60 @@ const datetimeInputStyle: CSSProperties = {
   outline: 'none',
 };
 
-const formatInputValue = (date: Date): string => {
+const selectStyle: CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: 12,
+  border: `1px solid ${palette.divider}`,
+  backgroundColor: palette.paper,
+  color: palette.ink,
+  fontSize: 16,
+  appearance: 'none',
+};
+
+const formatDateValue = (date: Date): string => {
   const pad = (value: number) => value.toString().padStart(2, '0');
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+const formatTimeValue = (date: Date): string => {
+  const pad = (value: number) => value.toString().padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const AddJournalEntryModalWeb: React.FC<Props> = ({ visible, onClose, onSaved }) => {
   const [prayerId, setPrayerId] = useState<PrayerId>('liturgy');
-  const [datetimeValue, setDatetimeValue] = useState<string>(() => formatInputValue(new Date()));
+  const [dateValue, setDateValue] = useState<string>(() => formatDateValue(new Date()));
+  const [timeValue, setTimeValue] = useState<string>(() => formatTimeValue(new Date()));
 
   useEffect(() => {
     if (visible) {
-      setDatetimeValue(formatInputValue(new Date()));
+      const now = new Date();
+      setDateValue(formatDateValue(now));
+      setTimeValue(formatTimeValue(now));
     }
   }, [visible]);
 
   const prayerOptions = useMemo(() => PRAYER_OPTIONS, []);
+  const hourOptions = useMemo(
+    () => Array.from({ length: 24 }, (_, index) => index.toString().padStart(2, '0')),
+    [],
+  );
+  const minuteOptions = useMemo(
+    () => Array.from({ length: 60 }, (_, index) => index.toString().padStart(2, '0')),
+    [],
+  );
+  const [hourPart = '00', minutePart = '00'] = timeValue.split(':');
 
   const save = async () => {
-    const timestampMs = Number.isNaN(Date.parse(datetimeValue))
-      ? Date.now()
-      : new Date(datetimeValue).getTime();
+    let timestampMs = Date.now();
+    if (dateValue && timeValue) {
+      const [year, month, day] = dateValue.split('-').map(Number);
+      const [hours, minutes] = timeValue.split(':').map(Number);
+      if ([year, month, day, hours, minutes].every((value) => Number.isFinite(value))) {
+        timestampMs = new Date(year, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0).getTime();
+      }
+    }
     try {
       await addJournalEntry(prayerId, Math.floor(timestampMs / 1000));
       onSaved?.();
@@ -176,13 +207,43 @@ const AddJournalEntryModalWeb: React.FC<Props> = ({ visible, onClose, onSaved })
         </View>
 
         <Text style={styles.sectionTitle}>Дата и время</Text>
-        {React.createElement('input', {
-          type: 'datetime-local',
-          value: datetimeValue,
-          onChange: (event: React.ChangeEvent<HTMLInputElement>) => setDatetimeValue(event.target.value),
-          style: datetimeInputStyle,
-          'aria-label': 'Выбор даты и времени записи',
-        })}
+        <View style={styles.datetimeSection}>
+          {React.createElement('input', {
+            type: 'date',
+            value: dateValue,
+            onChange: (event: React.ChangeEvent<HTMLInputElement>) => setDateValue(event.target.value),
+            style: datetimeInputStyle,
+            'aria-label': 'Выбор даты записи',
+          })}
+          <View style={styles.timeRow}>
+            <View style={styles.timeCol}>
+              {React.createElement(
+                'select',
+                {
+                  value: hourPart,
+                  onChange: (event: React.ChangeEvent<HTMLSelectElement>) =>
+                    setTimeValue(`${event.target.value}:${minutePart}`),
+                  style: selectStyle,
+                  'aria-label': 'Часы записи',
+                },
+                hourOptions.map((option) => React.createElement('option', { key: option, value: option }, option)),
+              )}
+            </View>
+            <View style={[styles.timeCol, { marginLeft: 12 }]}>
+              {React.createElement(
+                'select',
+                {
+                  value: minutePart,
+                  onChange: (event: React.ChangeEvent<HTMLSelectElement>) =>
+                    setTimeValue(`${hourPart}:${event.target.value}`),
+                  style: selectStyle,
+                  'aria-label': 'Минуты записи',
+                },
+                minuteOptions.map((option) => React.createElement('option', { key: option, value: option }, option)),
+              )}
+            </View>
+          </View>
+        </View>
 
         <View style={styles.actions}>
           <Pressable onPress={onClose} style={styles.btn} accessibilityRole="button" accessibilityLabel="Отмена добавления записи">
