@@ -27,6 +27,11 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: palette.accent },
   btnText: { color: palette.ink, fontWeight: '600' },
   btnTextPrimary: { color: palette.paper, fontWeight: '700' },
+  pickerSheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'flex-end' },
+  pickerSheet: { backgroundColor: palette.paper, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 32, paddingHorizontal: 16, paddingTop: 12 },
+  pickerSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, marginBottom: 8 },
+  pickerSheetAction: { color: palette.accent, fontWeight: '600' },
+  pickerSheetTitle: { color: palette.ink, fontWeight: '700', fontSize: 16 },
 });
 
 const formatDate = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -37,9 +42,11 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
   const [dt, setDt] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [activePicker, setActivePicker] = useState<'date' | 'time' | null>(null);
+  const isIOS = Platform.OS === 'ios';
 
   const onChange = (_: unknown, value?: Date) => {
-    if (Platform.OS !== 'ios') {
+    if (!isIOS) {
       setShowDatePicker(false);
       setShowTimePicker(false);
     }
@@ -93,8 +100,12 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
           <Pressable
             style={styles.row}
             onPress={() => {
-              setShowDatePicker(true);
-              setShowTimePicker(false);
+              if (isIOS) {
+                setActivePicker('date');
+              } else {
+                setShowDatePicker(true);
+                setShowTimePicker(false);
+              }
             }}
             accessibilityRole="button"
             accessibilityLabel={`Выбрать дату: ${formatDate(dt)}`}
@@ -105,8 +116,12 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
           <Pressable
             style={styles.row}
             onPress={() => {
-              setShowTimePicker(true);
-              setShowDatePicker(false);
+              if (isIOS) {
+                setActivePicker('time');
+              } else {
+                setShowTimePicker(true);
+                setShowDatePicker(false);
+              }
             }}
             accessibilityRole="button"
             accessibilityLabel={`Выбрать время: ${formatTime(dt)}`}
@@ -115,7 +130,7 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
             <Ionicons name="time-outline" size={18} color={palette.mutedInk} />
           </Pressable>
 
-          {showDatePicker && (
+          {!isIOS && showDatePicker && (
             <DateTimePicker
               value={dt}
               mode="date"
@@ -123,7 +138,7 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             />
           )}
-          {showTimePicker && (
+          {!isIOS && showTimePicker && (
             <DateTimePicker
               value={dt}
               mode="time"
@@ -147,6 +162,23 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
           </View>
         </Pressable>
       </Pressable>
+
+      {isIOS && activePicker && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setActivePicker(null)}>
+          <Pressable style={styles.pickerSheetBackdrop} onPress={() => setActivePicker(null)}>
+            <Pressable style={styles.pickerSheet} accessibilityLabel={`Выбор ${activePicker === 'date' ? 'даты' : 'времени'}`}>
+              <View style={styles.pickerSheetHeader}>
+                <Pressable onPress={() => setActivePicker(null)} accessibilityRole="button" accessibilityLabel="Закрыть выбор">
+                  <Text style={styles.pickerSheetAction}>Закрыть</Text>
+                </Pressable>
+                <Text style={styles.pickerSheetTitle}>{activePicker === 'date' ? 'Выберите дату' : 'Выберите время'}</Text>
+                <View style={{ width: 70 }} />
+              </View>
+              <DateTimePicker value={dt} mode={activePicker} onChange={onChange} display="spinner" />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </Modal>
   );
 };
