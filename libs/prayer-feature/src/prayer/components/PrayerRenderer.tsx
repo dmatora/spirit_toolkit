@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,11 @@ import {
 import { palette } from '@spirit/prayer-feature/theme';
 import type { PrayerBlock, PrayerRole } from '../types/prayer';
 import { evaluateCondition } from '../utils/conditions';
+import { useFontScale } from '../context/FontScaleContext';
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 20, paddingVertical: 16, backgroundColor: palette.paper },
   blockWrapper: { marginBottom: 12 },
-  heading: { fontSize: 20, fontWeight: '700', color: palette.ink },
-  paragraph: { fontSize: 16, color: palette.ink, lineHeight: 24 },
-  instruction: { fontSize: 14, fontStyle: 'italic', color: palette.accent },
   conditionalBox: {
     borderLeftWidth: 3,
     borderLeftColor: palette.accent,
@@ -32,6 +30,12 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingVertical: 8,
   },
+});
+
+const BASE_TEXT_STYLES = {
+  heading: { fontSize: 20, fontWeight: '700', color: palette.ink } satisfies TextStyle,
+  paragraph: { fontSize: 16, color: palette.ink, lineHeight: 24 } satisfies TextStyle,
+  instruction: { fontSize: 14, fontStyle: 'italic', color: palette.accent } satisfies TextStyle,
   roleLabel: {
     fontSize: 10,
     fontWeight: '600',
@@ -39,8 +43,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4,
     color: palette.mutedInk,
-  },
-});
+  } satisfies TextStyle,
+};
 
 type RoleStyleConfig = {
   label: string;
@@ -75,6 +79,7 @@ const renderTextualBlock = (
   block: TextualPrayerBlock,
   index: number,
   textStyle: TextStyle,
+  roleLabelStyle: TextStyle,
   options: RenderOptions = {},
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
@@ -97,7 +102,7 @@ const renderTextualBlock = (
     >
       {roleStyle && (
         <Text
-          style={[styles.roleLabel, { color: roleStyle.labelColor }]}
+          style={[roleLabelStyle, { color: roleStyle.labelColor }]}
           accessibilityLabel={`Роль: ${roleStyle.label}`}
         >
           {roleStyle.label}
@@ -114,6 +119,24 @@ const PrayerRenderer = ({
   sectionIdLookup,
   evaluationDate,
 }: Props) => {
+  const { fontScale } = useFontScale();
+  const scaledTextStyles = useMemo(() => {
+    const scaleValue = (value?: number) =>
+      typeof value === 'number' ? value * fontScale : value;
+    const scaleTextStyle = (style: TextStyle): TextStyle => ({
+      ...style,
+      fontSize: scaleValue(style.fontSize),
+      lineHeight: scaleValue(style.lineHeight),
+    });
+
+    return {
+      heading: scaleTextStyle(BASE_TEXT_STYLES.heading),
+      paragraph: scaleTextStyle(BASE_TEXT_STYLES.paragraph),
+      instruction: scaleTextStyle(BASE_TEXT_STYLES.instruction),
+      roleLabel: scaleTextStyle(BASE_TEXT_STYLES.roleLabel),
+    };
+  }, [fontScale]);
+
   let globalIndex = -1;
   let conditionalCounter = 0;
   const effectiveEvaluationDate = evaluationDate ?? new Date();
@@ -156,11 +179,29 @@ const PrayerRenderer = ({
 
     switch (block.type) {
       case 'heading':
-        return renderTextualBlock(block, index, styles.heading, renderOptions);
+        return renderTextualBlock(
+          block,
+          index,
+          scaledTextStyles.heading,
+          scaledTextStyles.roleLabel,
+          renderOptions,
+        );
       case 'paragraph':
-        return renderTextualBlock(block, index, styles.paragraph, renderOptions);
+        return renderTextualBlock(
+          block,
+          index,
+          scaledTextStyles.paragraph,
+          scaledTextStyles.roleLabel,
+          renderOptions,
+        );
       case 'instruction':
-        return renderTextualBlock(block, index, styles.instruction, renderOptions);
+        return renderTextualBlock(
+          block,
+          index,
+          scaledTextStyles.instruction,
+          scaledTextStyles.roleLabel,
+          renderOptions,
+        );
       default:
         return null;
     }
