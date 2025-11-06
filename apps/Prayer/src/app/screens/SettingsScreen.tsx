@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Keyboard,
   KeyboardAvoidingView,
+  LayoutChangeEvent,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -28,6 +30,7 @@ import {
   setRuntimeSyncToken,
 } from '../services/syncConfig';
 import { syncNow } from '../services/journalSync';
+import { useFontScale } from '@spirit/prayer-feature/prayer/context/FontScaleContext';
 
 const PRESET_LIST: Array<{ key: keyof typeof PRESETS; label: string }> = [
   { key: 'restoring', label: 'Восстанавливающий' },
@@ -35,18 +38,47 @@ const PRESET_LIST: Array<{ key: keyof typeof PRESETS; label: string }> = [
   { key: 'diligent', label: 'Усердный' },
 ];
 
+const FONT_SCALE_MIN = 0.8;
+const FONT_SCALE_MAX = 1.8;
+const FONT_SCALE_STEP = 0.1;
+const SLIDER_TOUCH_HEIGHT = 44;
+const SLIDER_HANDLE_SIZE = 28;
+const SLIDER_TRACK_THICKNESS = 6;
+
+const clampFontScale = (value: number) =>
+  Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, value));
+
+const quantizeFontScale = (value: number) => {
+  const clamped = clampFontScale(value);
+  const steps = Math.round((clamped - FONT_SCALE_MIN) / FONT_SCALE_STEP);
+  return Number((FONT_SCALE_MIN + steps * FONT_SCALE_STEP).toFixed(1));
+};
+
+const describeFontScale = (value: number) => {
+  if (value <= 0.95) {
+    return 'Малый';
+  }
+  if (value >= 1.35) {
+    return 'Крупный';
+  }
+  return 'Обычный';
+};
+
 const safeParseNumber = (value: string) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
 const SettingsScreen = () => {
+  const { fontScale, setFontScale } = useFontScale();
   const [normalValue, setNormalValue] = React.useState('0');
   const [warningValue, setWarningValue] = React.useState('0');
   const [selectedPreset, setSelectedPreset] = React.useState<keyof typeof PRESETS | null>(null);
   const [saved, setSaved] = React.useState(false);
   const [syncSecret, setSyncSecret] = React.useState('');
   const [hasEmbeddedToken] = React.useState(() => hasBuildTimeSyncToken());
+  const [sliderValue, setSliderValue] = React.useState(() => quantizeFontScale(fontScale));
+  const [trackWidth, setTrackWidth] = React.useState(0);
 
   const matchPreset = React.useCallback((thresholds: Thresholds) => {
     for (const entry of PRESET_LIST) {
@@ -112,6 +144,10 @@ const SettingsScreen = () => {
     return () => clearTimeout(timer);
   }, [saved]);
 
+  React.useEffect(() => {
+    setSliderValue(quantizeFontScale(fontScale));
+  }, [fontScale]);
+
   const handlePresetSelect = React.useCallback(
     async (preset: keyof typeof PRESETS) => {
       try {
@@ -122,6 +158,54 @@ const SettingsScreen = () => {
       }
     },
     [updateThresholdState],
+  );
+
+  const handleTrackLayout = React.useCallback((event: LayoutChangeEvent) => {
+    setTrackWidth(event.nativeEvent.layout.width);
+  }, []);
+
+  const sliderRatio =
+    (sliderValue - FONT_SCALE_MIN) / (FONT_SCALE_MAX - FONT_SCALE_MIN);
+  const clampedSliderRatio = Number.isFinite(sliderRatio)
+    ? Math.min(Math.max(sliderRatio, 0), 1)
+    : 0;
+
+  const adjustSliderValue = React.useCallback((delta: number) => {
+    setSliderValue((current) => quantizeFontScale(current + delta));
+  }, []);
+
+  const updateSliderFromOffset = React.useCallback(
+    (locationX: number) => {
+      if (trackWidth <= 0) {
+        return;
+      }
+      const boundedX = Math.min(Math.max(locationX, 0), trackWidth);
+      const ratio = boundedX / trackWidth;
+      const nextValue = FONT_SCALE_MIN + ratio * (FONT_SCALE_MAX - FONT_SCALE_MIN);
+      setSliderValue(quantizeFontScale(nextValue));
+    },
+    [trackWidth],
+  );
+
+  const sliderPanResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => updateSliderFromOffset(event.nativeEvent.locationX),
+        onPanResponderMove: (event) => updateSliderFromOffset(event.nativeEvent.locationX),
+        onPanResponderRelease: (event) => updateSliderFromOffset(event.nativeEvent.locationX),
+        onPanResponderTerminationRequest: () => false,
+      }),
+    [updateSliderFromOffset],
+  );
+
+  const sliderPreviewStyle = React.useMemo(
+    () => ({
+      fontSize: 16 * sliderValue,
+      lineHeight: 22 * sliderValue,
+    }),
+    [sliderValue],
   );
 
   const handleSave = React.useCallback(async () => {
@@ -158,10 +242,13 @@ const SettingsScreen = () => {
       setRuntimeSyncToken(undefined);
     }
 
+    setFontScale(sliderValue);
     setSaved(true);
-  }, [normalValue, warningValue, syncSecret, updateThresholdState]);
+  }, [normalValue, warningValue, sliderValue, syncSecret, setFontScale, updateThresholdState]);
 
   const warningNumber = safeParseNumber(warningValue);
+  const sliderDescriptor = describeFontScale(sliderValue);
+  const sliderValueLabel = sliderValue.toFixed(1);
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -251,6 +338,65 @@ const SettingsScreen = () => {
                 Тревога: &gt; {warningNumber} дней
               </Text>
             </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Размер шрифта</Text>
+            <Text style={styles.caption}>
+              Настройте масштаб текста молитв для удобного чтения и слабовидящих пользователей.
+            </Text>
+            <View
+              style={styles.sliderTrack}
+              onLayout={handleTrackLayout}
+              accessibilityRole="adjustable"
+              accessibilityLabel="Размер шрифта"
+              accessibilityValue={{ text: `${sliderValueLabel}x` }}
+              accessibilityActions={[
+                { name: 'increment', label: 'Увеличить масштаб' },
+                { name: 'decrement', label: 'Уменьшить масштаб' },
+              ]}
+              onAccessibilityAction={(event) => {
+                if (event.nativeEvent.actionName === 'increment') {
+                  adjustSliderValue(FONT_SCALE_STEP);
+                  return;
+                }
+                if (event.nativeEvent.actionName === 'decrement') {
+                  adjustSliderValue(-FONT_SCALE_STEP);
+                }
+              }}
+              {...sliderPanResponder.panHandlers}
+            >
+              <View style={styles.sliderRail} />
+              <View
+                style={[
+                  styles.sliderFill,
+                  { width: trackWidth > 0 ? clampedSliderRatio * trackWidth : 0 },
+                ]}
+              />
+              <View
+                style={[
+                  styles.sliderHandle,
+                  {
+                    left: -SLIDER_HANDLE_SIZE / 2,
+                    transform: [
+                      {
+                        translateX: trackWidth > 0 ? clampedSliderRatio * trackWidth : 0,
+                      },
+                    ],
+                  },
+                ]}
+              />
+            </View>
+            <View style={styles.sliderLabelsRow}>
+              <Text style={styles.sliderValueText}>{sliderValueLabel}x</Text>
+              <Text style={styles.sliderDescriptor}>{sliderDescriptor}</Text>
+            </View>
+            <View style={styles.previewBox}>
+              <Text style={styles.previewLabel}>Пример</Text>
+              <Text style={[styles.previewText, sliderPreviewStyle]}>
+                Пример текста молитвы
+              </Text>
+            </View>
+          </View>
 
           {!hasEmbeddedToken && (
             <View style={styles.section}>
@@ -406,6 +552,76 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: palette.mutedInk,
     marginBottom: 12,
+  },
+  sliderTrack: {
+    position: 'relative',
+    height: SLIDER_TOUCH_HEIGHT,
+    justifyContent: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  sliderRail: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: SLIDER_TRACK_THICKNESS,
+    borderRadius: SLIDER_TRACK_THICKNESS / 2,
+    backgroundColor: palette.divider,
+  },
+  sliderFill: {
+    position: 'absolute',
+    left: 0,
+    height: SLIDER_TRACK_THICKNESS,
+    borderRadius: SLIDER_TRACK_THICKNESS / 2,
+    backgroundColor: palette.accent,
+  },
+  sliderHandle: {
+    position: 'absolute',
+    top: (SLIDER_TOUCH_HEIGHT - SLIDER_HANDLE_SIZE) / 2,
+    width: SLIDER_HANDLE_SIZE,
+    height: SLIDER_HANDLE_SIZE,
+    borderRadius: SLIDER_HANDLE_SIZE / 2,
+    backgroundColor: palette.ink,
+    borderWidth: 2,
+    borderColor: palette.paper,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  sliderLabelsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sliderValueText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: palette.ink,
+  },
+  sliderDescriptor: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: palette.mutedInk,
+    textTransform: 'uppercase',
+  },
+  previewBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: palette.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.divider,
+  },
+  previewLabel: {
+    fontSize: 12,
+    color: palette.mutedInk,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  previewText: {
+    color: palette.ink,
   },
 });
 
