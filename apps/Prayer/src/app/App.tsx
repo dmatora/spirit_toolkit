@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { FontScaleProvider } from '@spirit/prayer-feature/prayer/context/FontScaleContext';
 
 import AppNavigator from './navigation/AppNavigator';
 import { ensureInitialized } from './services/journalDb';
@@ -68,11 +69,13 @@ const App = () => {
   }, []);
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <FontScaleProvider>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </FontScaleProvider>
   );
 };
 

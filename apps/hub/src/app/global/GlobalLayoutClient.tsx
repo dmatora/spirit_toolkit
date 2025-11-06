@@ -8,6 +8,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { palette } from '@spirit/prayer-feature/theme/palette';
+import { FontScaleProvider } from '@spirit/prayer-feature/prayer/context/FontScaleContext';
 import { ensureInitialized } from '../../../../Prayer/src/app/services/journalDb.web';
 import { ensureSettingsInitialized } from '../../../../Prayer/src/app/services/attendanceConfig.web';
 import {
@@ -347,96 +348,98 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   }, [pathname]);
 
   return (
-    <SafeAreaProvider>
-      <Shell>
-        <TopBar $isSticky={shouldUseStickyTopBar}>
-          <IconButton
-            type="button"
-          onClick={toggleDrawer}
-          aria-label={isOpen ? 'Закрыть меню' : 'Открыть меню'}
-        >
-          <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
-        </IconButton>
-        <Title>{sectionTitle}</Title>
-      </TopBar>
+    <FontScaleProvider>
+      <SafeAreaProvider>
+        <Shell>
+          <TopBar $isSticky={shouldUseStickyTopBar}>
+            <IconButton
+              type="button"
+              onClick={toggleDrawer}
+              aria-label={isOpen ? 'Закрыть меню' : 'Открыть меню'}
+            >
+              <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
+            </IconButton>
+            <Title>{sectionTitle}</Title>
+          </TopBar>
 
-      <Sidebar data-open={isDesktop || isOpen ? 'true' : 'false'}>
-        <NavSectionTitle>Навигация</NavSectionTitle>
-        <NavList>
-          <NavItem>
-            <NavLink
-              href="/"
-              className={isHomeActive ? 'active' : ''}
-              aria-current={isHomeActive ? 'page' : undefined}
-              onClick={handleLinkClick}
-            >
-              Главная
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink
-              href="/molitvoslov"
-              className={isMolitvoslovActive ? 'active' : ''}
-              aria-current={isMolitvoslovActive ? 'page' : undefined}
-              onClick={handleLinkClick}
-            >
-              Молитвослов
-            </NavLink>
-            <NestedList>
-              {PRAYERS.map((prayer) => {
-                const isActive = pathname === prayer.href;
-                return (
-                  <li key={prayer.id}>
-                    <NestedLink
-                      href={prayer.href}
-                      className={isActive ? 'active' : ''}
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={handleLinkClick}
-                    >
-                      {prayer.title}
-                    </NestedLink>
-                  </li>
-                );
-              })}
-            </NestedList>
-          </NavItem>
-          <NavItem>
-            <NavLink
-              href="/journal"
-              className={isJournalActive ? 'active' : ''}
-              aria-current={isJournalActive ? 'page' : undefined}
-              onClick={handleLinkClick}
-            >
-              Журнал
-            </NavLink>
-          </NavItem>
-          <NavItem>
-            <NavLink
-              href="/settings"
-              className={isSettingsActive ? 'active' : ''}
-              aria-current={isSettingsActive ? 'page' : undefined}
-              onClick={handleLinkClick}
-            >
-              Настройки
-            </NavLink>
-          </NavItem>
-        </NavList>
-      </Sidebar>
+          <Sidebar data-open={isDesktop || isOpen ? 'true' : 'false'}>
+            <NavSectionTitle>Навигация</NavSectionTitle>
+            <NavList>
+              <NavItem>
+                <NavLink
+                  href="/"
+                  className={isHomeActive ? 'active' : ''}
+                  aria-current={isHomeActive ? 'page' : undefined}
+                  onClick={handleLinkClick}
+                >
+                  Главная
+                </NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink
+                  href="/molitvoslov"
+                  className={isMolitvoslovActive ? 'active' : ''}
+                  aria-current={isMolitvoslovActive ? 'page' : undefined}
+                  onClick={handleLinkClick}
+                >
+                  Молитвослов
+                </NavLink>
+                <NestedList>
+                  {PRAYERS.map((prayer) => {
+                    const isActive = pathname === prayer.href;
+                    return (
+                      <li key={prayer.id}>
+                        <NestedLink
+                          href={prayer.href}
+                          className={isActive ? 'active' : ''}
+                          aria-current={isActive ? 'page' : undefined}
+                          onClick={handleLinkClick}
+                        >
+                          {prayer.title}
+                        </NestedLink>
+                      </li>
+                    );
+                  })}
+                </NestedList>
+              </NavItem>
+              <NavItem>
+                <NavLink
+                  href="/journal"
+                  className={isJournalActive ? 'active' : ''}
+                  aria-current={isJournalActive ? 'page' : undefined}
+                  onClick={handleLinkClick}
+                >
+                  Журнал
+                </NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink
+                  href="/settings"
+                  className={isSettingsActive ? 'active' : ''}
+                  aria-current={isSettingsActive ? 'page' : undefined}
+                  onClick={handleLinkClick}
+                >
+                  Настройки
+                </NavLink>
+              </NavItem>
+            </NavList>
+          </Sidebar>
 
-      {!isDesktop && (
-        <Overlay
-          type="button"
-          aria-label="Закрыть меню"
-          onClick={closeDrawer}
-          data-visible={isOpen ? 'true' : 'false'}
-        />
-      )}
+          {!isDesktop && (
+            <Overlay
+              type="button"
+              aria-label="Закрыть меню"
+              onClick={closeDrawer}
+              data-visible={isOpen ? 'true' : 'false'}
+            />
+          )}
 
-      <Main>
-        <Content>{children}</Content>
-      </Main>
-      </Shell>
-    </SafeAreaProvider>
+          <Main>
+            <Content>{children}</Content>
+          </Main>
+        </Shell>
+      </SafeAreaProvider>
+    </FontScaleProvider>
   );
 };
 
