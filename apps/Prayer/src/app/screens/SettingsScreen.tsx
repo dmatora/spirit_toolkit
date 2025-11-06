@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -166,38 +165,37 @@ const SettingsScreen = () => {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      <TouchableWithoutFeedback accessible={false} onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            contentContainerStyle={{ paddingBottom: 32 }}
-          >
-            <Text style={styles.header}>Настройка ритма посещений</Text>
+          <Text style={styles.header}>Настройка ритма посещений</Text>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Выберите пресет</Text>
-              <View style={styles.presetRow}>
-                {PRESET_LIST.map((preset) => {
-                  const isSelected = selectedPreset === preset.key;
-                  return (
-                    <Pressable
-                      key={preset.key}
-                      accessibilityRole="button"
-                      onPress={() => handlePresetSelect(preset.key)}
-                      style={[styles.chip, isSelected && styles.chipSelected]}
-                    >
-                      <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                        {preset.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Выберите пресет</Text>
+            <View style={styles.presetRow}>
+              {PRESET_LIST.map((preset) => {
+                const isSelected = selectedPreset === preset.key;
+                return (
+                  <Pressable
+                    key={preset.key}
+                    accessibilityRole="button"
+                    onPress={() => handlePresetSelect(preset.key)}
+                    style={[styles.chip, isSelected && styles.chipSelected]}
+                  >
+                    <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                      {preset.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
+          </View>
 
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Тонкая настройка</Text>
@@ -254,39 +252,38 @@ const SettingsScreen = () => {
               </Text>
             </View>
 
-            {!hasEmbeddedToken && (
-              <View style={styles.section}>
-                <Text style={styles.sectionLabel}>Синхронизация</Text>
-                <TextInput
-                  accessibilityLabel="Секрет синхронизации"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={syncSecret}
-                  onChangeText={setSyncSecret}
-                  placeholder="Введите секрет"
-                  style={styles.secretInput}
-                />
-                <Text style={styles.caption}>
-                  Используйте секрет, чтобы синхронизировать журнал между устройствами.
-                </Text>
-              </View>
-            )}
+          {!hasEmbeddedToken && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Синхронизация</Text>
+              <TextInput
+                accessibilityLabel="Секрет синхронизации"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={syncSecret}
+                onChangeText={setSyncSecret}
+                placeholder="Введите секрет"
+                style={styles.secretInput}
+              />
+              <Text style={styles.caption}>
+                Используйте секрет, чтобы синхронизировать журнал между устройствами.
+              </Text>
+            </View>
+          )}
 
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Сохранить настройки"
-              style={styles.saveButton}
-              onPress={() => {
-                Keyboard.dismiss();
-                handleSave();
-              }}
-            >
-              <Text style={styles.saveButtonText}>Сохранить</Text>
-            </Pressable>
-            {saved && <Text style={styles.savedText}>Сохранено</Text>}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Сохранить настройки"
+            style={styles.saveButton}
+            onPress={() => {
+              Keyboard.dismiss();
+              handleSave();
+            }}
+          >
+            <Text style={styles.saveButtonText}>Сохранить</Text>
+          </Pressable>
+          {saved && <Text style={styles.savedText}>Сохранено</Text>}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
