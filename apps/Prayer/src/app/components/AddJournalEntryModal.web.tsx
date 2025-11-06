@@ -56,18 +56,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 8,
   },
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: palette.chipBg,
-    borderColor: palette.divider,
+  prayerList: { marginTop: 4 },
+  prayerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
     borderWidth: 1,
+    borderColor: palette.divider,
+    backgroundColor: palette.paper,
+    marginTop: 8,
   },
-  chipActive: { backgroundColor: palette.accent, borderColor: palette.accent },
-  chipText: { color: palette.mutedInk, fontWeight: '600' },
-  chipTextActive: { color: palette.paper },
+  prayerOptionActive: { borderColor: palette.accent, backgroundColor: '#EEF5FF' },
+  prayerOptionText: { color: palette.ink, fontWeight: '600', flexShrink: 1 },
+  prayerOptionTextActive: { color: palette.accent },
+  prayerOptionTick: { marginLeft: 12, color: palette.accent, fontWeight: '700', fontSize: 16 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16, gap: 12 },
   btn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: palette.chipBg },
   btnPrimary: { backgroundColor: palette.accent },
@@ -141,23 +146,33 @@ const AddJournalEntryModalWeb: React.FC<Props> = ({ visible, onClose, onSaved })
       <View style={styles.card}>
         <Text style={styles.title}>Новая запись</Text>
         <Text style={styles.sectionTitle}>Молитва</Text>
-        <View style={styles.chipsRow}>
-          {prayerOptions.map((opt) => (
-            <Pressable
-              key={opt.id}
-              onPress={() => setPrayerId(opt.id)}
-              style={({ pressed }) => [
-                styles.chip,
-                prayerId === opt.id && styles.chipActive,
-                pressed && { opacity: 0.9 },
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ selected: prayerId === opt.id }}
-              accessibilityLabel={`Выбрать: ${opt.title}`}
-            >
-              <Text style={[styles.chipText, prayerId === opt.id && styles.chipTextActive]}>{opt.title}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.prayerList}>
+          {prayerOptions.map((opt) => {
+            const active = prayerId === opt.id;
+            return (
+              <Pressable
+                key={opt.id}
+                onPress={() => setPrayerId(opt.id)}
+                style={({ pressed }) => [
+                  styles.prayerOption,
+                  active && styles.prayerOptionActive,
+                  pressed && { opacity: 0.9 },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`Выбрать: ${opt.title}`}
+              >
+                <Text style={[styles.prayerOptionText, active && styles.prayerOptionTextActive]} numberOfLines={1}>
+                  {opt.title}
+                </Text>
+                {active && (
+                  <Text style={styles.prayerOptionTick} accessibilityElementsHidden>
+                    ✓
+                  </Text>
+                )}
+              </Pressable>
+            );
+          })}
         </View>
 
         <Text style={styles.sectionTitle}>Дата и время</Text>
