@@ -115,7 +115,7 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
             <Ionicons name="time-outline" size={18} color={palette.mutedInk} />
           </Pressable>
 
-          {(showDatePicker || Platform.OS === 'ios') && (
+          {showDatePicker && (
             <DateTimePicker
               value={dt}
               mode="date"
@@ -123,7 +123,7 @@ const AddJournalEntryModal: React.FC<Props> = ({ visible, onClose, onSaved }) =>
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             />
           )}
-          {(showTimePicker || Platform.OS === 'ios') && (
+          {showTimePicker && (
             <DateTimePicker
               value={dt}
               mode="time"
