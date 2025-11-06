@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { PrayerScreen, type PrayerId } from '@spirit/prayer-feature';
 
 import { addJournalEntry } from '../../../../../Prayer/src/app/services/journalDb.web';
+import { triggerSync } from '../../../../../Prayer/src/app/services/journalSync.web';
 
 type Props = { prayerId: string };
 
@@ -26,6 +27,7 @@ export default function PrayerScreenClient({ prayerId }: Props) {
     addJournalEntry(id)
       .then(() => {
         if (!cancelled) {
+          triggerSync();
           console.log(
             `[PrayerScreen:web] journal entry added for '${id}'`,
           );

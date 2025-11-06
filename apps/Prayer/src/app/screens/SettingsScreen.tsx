@@ -28,6 +28,7 @@ import {
   hasBuildTimeSyncToken,
   setRuntimeSyncToken,
 } from '../services/syncConfig';
+import { syncNow } from '../services/journalSync';
 
 const PRESET_LIST: Array<{ key: keyof typeof PRESETS; label: string }> = [
   { key: 'restoring', label: 'Восстанавливающий' },
@@ -144,6 +145,11 @@ const SettingsScreen = () => {
         console.warn('[SettingsScreen] Failed to persist sync secret', error);
       }
       setRuntimeSyncToken(trimmedSecret);
+      try {
+        await syncNow();
+      } catch (error) {
+        console.warn('[SettingsScreen] Failed to trigger sync after saving token', error);
+      }
     } else {
       try {
         await AsyncStorage.removeItem(SYNC_SECRET_STORAGE_KEY);
