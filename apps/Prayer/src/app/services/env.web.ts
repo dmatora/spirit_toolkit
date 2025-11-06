@@ -8,22 +8,15 @@ const normalize = (value?: string | null): MaybeString => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const runtimeEnv = (): NodeJS.ProcessEnv => {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env;
-  }
-  return {};
-};
-
-const env = runtimeEnv();
-
 export const envConfig = {
-  syncApi: normalize(env.NEXT_PUBLIC_SPIRIT_SYNC_API ?? env.SPIRIT_SYNC_API),
+  syncApi: normalize(
+    process.env.NEXT_PUBLIC_SPIRIT_SYNC_API ?? process.env.SPIRIT_SYNC_API,
+  ),
   syncToken: normalize(
-    env.NEXT_PUBLIC_SPIRIT_SYNC_TOKEN ??
-      env.SPIRIT_SYNC_TOKEN ??
-      env.SPIRIT_SYNC_SECRET ??
-      env.PRAYER_SYNC_SECRET,
+    process.env.NEXT_PUBLIC_SPIRIT_SYNC_TOKEN ??
+      process.env.SPIRIT_SYNC_TOKEN ??
+      process.env.SPIRIT_SYNC_SECRET ??
+      process.env.PRAYER_SYNC_SECRET,
   ),
 };
 
