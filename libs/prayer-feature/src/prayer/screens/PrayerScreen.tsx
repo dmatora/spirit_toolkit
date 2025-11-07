@@ -49,6 +49,9 @@ const styles = StyleSheet.create({
   mapContainer: {
     paddingBottom: 8,
   },
+  mapContainerCompact: {
+    paddingBottom: 0,
+  },
   scroll: { paddingBottom: 24 },
   statusContainer: {
     paddingHorizontal: 20,
@@ -472,7 +475,10 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
           sections={sections}
           activeSectionId={effectiveActiveSectionId}
           onSelect={handleSelectSection}
-          style={styles.mapContainer}
+          style={[
+            styles.mapContainer,
+            shouldTrackPrayerActivity ? styles.mapContainerCompact : null,
+          ]}
           isDisabled={!isPositionsReady || isLoading}
         />
         {isCalculating && (

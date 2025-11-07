@@ -108,6 +108,7 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 8,
     paddingHorizontal: 12,
+    marginTop: -4,
     backgroundColor: palette.paper,
   },
   label: {
