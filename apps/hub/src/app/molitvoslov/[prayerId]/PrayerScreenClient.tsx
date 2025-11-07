@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { PrayerScreen, type PrayerId } from '@spirit/prayer-feature';
+import { recordPrayerActivity } from '@spirit/prayer-feature/prayer/services/prayerActivityState';
 
 import { addJournalEntry } from '../../../../../Prayer/src/app/services/journalDb.web';
 import { triggerSync } from '../../../../../Prayer/src/app/services/journalSync.web';
@@ -14,6 +15,7 @@ const shouldSkipStrictEffectGuard =
 export default function PrayerScreenClient({ prayerId }: Props) {
   const id = (prayerId as PrayerId) ?? 'liturgy';
   const skipStrictEffectRef = useRef(shouldSkipStrictEffectGuard);
+  const lastScrollActivityRef = useRef(0);
 
   useEffect(() => {
     if (skipStrictEffectRef.current) {
@@ -41,6 +43,31 @@ export default function PrayerScreenClient({ prayerId }: Props) {
 
     return () => {
       cancelled = true;
+    };
+  }, [id, recordPrayerActivity]);
+
+  useEffect(() => {
+    if (id === 'liturgy' || id === 'evening') {
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleScroll = () => {
+      const now = Date.now();
+      if (now - lastScrollActivityRef.current < 1000) {
+        return;
+      }
+      lastScrollActivityRef.current = now;
+      recordPrayerActivity(now);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
     };
   }, [id]);
 
