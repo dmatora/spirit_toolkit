@@ -58,8 +58,14 @@ const TopBarRow = styled.div`
   }
 `;
 
+const TopBarMainContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
 const TopBarDynamicSlot = styled.div`
-  margin-top: 8px;
   display: flex;
   flex-direction: column;
 `;
@@ -373,7 +379,13 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
     return 'SpiritToolkit';
   }, [pathname]);
 
+  const isPrayerDetailRoute = useMemo(
+    () => PRAYERS.some((prayer) => prayer.href === pathname),
+    [pathname],
+  );
+
   const hasTopBarContent = Boolean(topBarContent);
+  const shouldShowSectionTitle = !isPrayerDetailRoute || !hasTopBarContent;
 
   return (
     <TopBarPortalContext.Provider value={topBarPortalValue}>
@@ -393,9 +405,11 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
                 >
                   <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
                 </IconButton>
-                <Title>{sectionTitle}</Title>
+                <TopBarMainContent>
+                  {shouldShowSectionTitle && <Title>{sectionTitle}</Title>}
+                  {hasTopBarContent && <TopBarDynamicSlot>{topBarContent}</TopBarDynamicSlot>}
+                </TopBarMainContent>
               </TopBarRow>
-              {hasTopBarContent ? <TopBarDynamicSlot>{topBarContent}</TopBarDynamicSlot> : null}
             </TopBar>
 
             <Sidebar data-open={isDesktop || isOpen ? 'true' : 'false'}>
