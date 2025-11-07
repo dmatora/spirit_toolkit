@@ -80,7 +80,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
   }
   const resolvedPrayerId: PrayerId = (prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
   const shouldTrackPrayerActivity =
-    resolvedPrayerId !== 'liturgy' && resolvedPrayerId !== 'evening';
+    resolvedPrayerId !== 'liturgy' && resolvedPrayerId !== 'vespers';
   const isWeb = Platform.OS === 'web';
   const useExternalScroll = isWeb && scrollSource === 'external';
   const isDev =

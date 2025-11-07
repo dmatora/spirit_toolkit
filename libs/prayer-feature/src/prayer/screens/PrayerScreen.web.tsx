@@ -87,7 +87,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   const prevSectionsSigRef = useRef<string | null>(null);
 
   const useExternalScroll = scrollSource === 'external';
-  const shouldTrackPrayerActivity = prayerId !== 'liturgy' && prayerId !== 'evening';
+  const shouldTrackPrayerActivity = prayerId !== 'liturgy' && prayerId !== 'vespers';
 
   useEffect(() => {
     let cancelled = false;

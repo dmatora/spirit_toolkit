@@ -8,5 +8,5 @@ export type PrayerLink = {
 
 export const PRAYERS: PrayerLink[] = [
   { id: 'liturgy', title: 'Божественная литургия', href: '/molitvoslov/liturgy' },
-  { id: 'evening', title: 'Вечерня', href: '/molitvoslov/evening' },
+  { id: 'vespers', title: 'Вечерня', href: '/molitvoslov/vespers' },
 ];

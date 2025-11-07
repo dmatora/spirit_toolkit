@@ -47,7 +47,7 @@ export default function PrayerScreenClient({ prayerId }: Props) {
   }, [id, recordPrayerActivity]);
 
   useEffect(() => {
-    if (id === 'liturgy' || id === 'evening') {
+    if (id === 'liturgy' || id === 'vespers') {
       return;
     }
 

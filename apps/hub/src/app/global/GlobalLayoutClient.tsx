@@ -220,7 +220,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const disableStickyForPath =
-    pathname === '/molitvoslov/liturgy' || pathname === '/molitvoslov/evening';
+    pathname === '/molitvoslov/liturgy' || pathname === '/molitvoslov/vespers';
   const shouldUseStickyTopBar = !disableStickyForPath;
 
   useEffect(() => {

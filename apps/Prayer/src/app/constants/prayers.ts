@@ -4,7 +4,7 @@ export type PrayerOption = { id: PrayerId; title: string };
 
 export const PRAYER_OPTIONS: PrayerOption[] = [
   { id: 'liturgy', title: 'Божественная литургия' },
-  { id: 'evening', title: 'Вечерня' },
+  { id: 'vespers', title: 'Вечерня' },
 ];
 
 export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>>(
@@ -12,5 +12,5 @@ export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>
     acc[cur.id] = cur.title;
     return acc;
   },
-  { liturgy: 'Божественная литургия', evening: 'Вечерня' },
+  { liturgy: 'Божественная литургия', vespers: 'Вечерня' },
 );
