@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styled, { css } from 'styled-components';
@@ -9,6 +9,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { palette } from '@spirit/prayer-feature/theme/palette';
 import { FontScaleProvider } from '@spirit/prayer-feature/prayer/context/FontScaleContext';
+import TopBarPortalContext, {
+  type TopBarPortalContextValue,
+} from '@spirit/prayer-feature/prayer/context/TopBarPortalContext';
 import { ensureInitialized } from '../../../../Prayer/src/app/services/journalDb.web';
 import { ensureSettingsInitialized } from '../../../../Prayer/src/app/services/attendanceConfig.web';
 import {
@@ -27,16 +30,10 @@ type GlobalLayoutClientProps = {
 
 const DESKTOP_MEDIA = '(min-width: 1024px)';
 
-const TopBar = styled.header<{ $isSticky: boolean }>`
+const TopBar = styled.header<{ $isSticky: boolean; $hasSlot: boolean }>`
   background: ${palette.paper};
   border-bottom: 1px solid ${palette.divider};
-  display: flex;
-  align-items: center;
-  /* iOS 12 Safari: flex-gap fallback */
-  & > * + * {
-    margin-left: 12px;
-  }
-  padding: 12px 16px;
+  padding: ${({ $hasSlot }) => ($hasSlot ? '12px 16px 0' : '12px 16px')};
 
   ${({ $isSticky }) =>
     $isSticky
@@ -48,8 +45,23 @@ const TopBar = styled.header<{ $isSticky: boolean }>`
       : null};
 
   @media ${DESKTOP_MEDIA} {
-    padding: 16px 48px 16px calc(280px + 32px);
+    padding: ${({ $hasSlot }) =>
+      $hasSlot ? '16px 48px 0 calc(280px + 32px)' : '16px 48px 16px calc(280px + 32px)'};
   }
+`;
+
+const TopBarRow = styled.div`
+  display: flex;
+  align-items: center;
+  & > * + * {
+    margin-left: 12px;
+  }
+`;
+
+const TopBarDynamicSlot = styled.div`
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const Title = styled.span`
@@ -219,9 +231,23 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   const pathname = usePathname() ?? '/';
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [topBarContent, setTopBarContent] = useState<ReactNode | null>(null);
   const disableStickyForPath =
     pathname === '/molitvoslov/liturgy' || pathname === '/molitvoslov/vespers';
   const shouldUseStickyTopBar = !disableStickyForPath;
+  const setTopBarContentValue = useCallback<TopBarPortalContextValue['setTopBarContent']>(
+    (content) => {
+      setTopBarContent(content);
+    },
+    [],
+  );
+
+  const topBarPortalValue = useMemo<TopBarPortalContextValue>(
+    () => ({
+      setTopBarContent: setTopBarContentValue,
+    }),
+    [setTopBarContentValue],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -347,99 +373,110 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
     return 'SpiritToolkit';
   }, [pathname]);
 
+  const hasTopBarContent = Boolean(topBarContent);
+
   return (
-    <FontScaleProvider>
-      <SafeAreaProvider>
-        <Shell>
-          <TopBar $isSticky={shouldUseStickyTopBar}>
-            <IconButton
-              type="button"
-              onClick={toggleDrawer}
-              aria-label={isOpen ? 'Закрыть меню' : 'Открыть меню'}
+    <TopBarPortalContext.Provider value={topBarPortalValue}>
+      <FontScaleProvider>
+        <SafeAreaProvider>
+          <Shell>
+            <TopBar
+              id="prayer-topbar"
+              $isSticky={shouldUseStickyTopBar}
+              $hasSlot={hasTopBarContent}
             >
-              <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
-            </IconButton>
-            <Title>{sectionTitle}</Title>
-          </TopBar>
+              <TopBarRow>
+                <IconButton
+                  type="button"
+                  onClick={toggleDrawer}
+                  aria-label={isOpen ? 'Закрыть меню' : 'Открыть меню'}
+                >
+                  <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
+                </IconButton>
+                <Title>{sectionTitle}</Title>
+              </TopBarRow>
+              {hasTopBarContent ? <TopBarDynamicSlot>{topBarContent}</TopBarDynamicSlot> : null}
+            </TopBar>
 
-          <Sidebar data-open={isDesktop || isOpen ? 'true' : 'false'}>
-            <NavSectionTitle>Навигация</NavSectionTitle>
-            <NavList>
-              <NavItem>
-                <NavLink
-                  href="/"
-                  className={isHomeActive ? 'active' : ''}
-                  aria-current={isHomeActive ? 'page' : undefined}
-                  onClick={handleLinkClick}
-                >
-                  Главная
-                </NavLink>
-              </NavItem>
-              <NavItem>
-                <NavLink
-                  href="/molitvoslov"
-                  className={isMolitvoslovActive ? 'active' : ''}
-                  aria-current={isMolitvoslovActive ? 'page' : undefined}
-                  onClick={handleLinkClick}
-                >
-                  Молитвослов
-                </NavLink>
-                <NestedList>
-                  {PRAYERS.map((prayer) => {
-                    const isActive = pathname === prayer.href;
-                    return (
-                      <li key={prayer.id}>
-                        <NestedLink
-                          href={prayer.href}
-                          className={isActive ? 'active' : ''}
-                          aria-current={isActive ? 'page' : undefined}
-                          onClick={handleLinkClick}
-                        >
-                          {prayer.title}
-                        </NestedLink>
-                      </li>
-                    );
-                  })}
-                </NestedList>
-              </NavItem>
-              <NavItem>
-                <NavLink
-                  href="/journal"
-                  className={isJournalActive ? 'active' : ''}
-                  aria-current={isJournalActive ? 'page' : undefined}
-                  onClick={handleLinkClick}
-                >
-                  Журнал
-                </NavLink>
-              </NavItem>
-              <NavItem>
-                <NavLink
-                  href="/settings"
-                  className={isSettingsActive ? 'active' : ''}
-                  aria-current={isSettingsActive ? 'page' : undefined}
-                  onClick={handleLinkClick}
-                >
-                  Настройки
-                </NavLink>
-              </NavItem>
-            </NavList>
-          </Sidebar>
+            <Sidebar data-open={isDesktop || isOpen ? 'true' : 'false'}>
+              <NavSectionTitle>Навигация</NavSectionTitle>
+              <NavList>
+                <NavItem>
+                  <NavLink
+                    href="/"
+                    className={isHomeActive ? 'active' : ''}
+                    aria-current={isHomeActive ? 'page' : undefined}
+                    onClick={handleLinkClick}
+                  >
+                    Главная
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    href="/molitvoslov"
+                    className={isMolitvoslovActive ? 'active' : ''}
+                    aria-current={isMolitvoslovActive ? 'page' : undefined}
+                    onClick={handleLinkClick}
+                  >
+                    Молитвослов
+                  </NavLink>
+                  <NestedList>
+                    {PRAYERS.map((prayer) => {
+                      const isActive = pathname === prayer.href;
+                      return (
+                        <li key={prayer.id}>
+                          <NestedLink
+                            href={prayer.href}
+                            className={isActive ? 'active' : ''}
+                            aria-current={isActive ? 'page' : undefined}
+                            onClick={handleLinkClick}
+                          >
+                            {prayer.title}
+                          </NestedLink>
+                        </li>
+                      );
+                    })}
+                  </NestedList>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    href="/journal"
+                    className={isJournalActive ? 'active' : ''}
+                    aria-current={isJournalActive ? 'page' : undefined}
+                    onClick={handleLinkClick}
+                  >
+                    Журнал
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    href="/settings"
+                    className={isSettingsActive ? 'active' : ''}
+                    aria-current={isSettingsActive ? 'page' : undefined}
+                    onClick={handleLinkClick}
+                  >
+                    Настройки
+                  </NavLink>
+                </NavItem>
+              </NavList>
+            </Sidebar>
 
-          {!isDesktop && (
-            <Overlay
-              type="button"
-              aria-label="Закрыть меню"
-              onClick={closeDrawer}
-              data-visible={isOpen ? 'true' : 'false'}
-            />
-          )}
+            {!isDesktop && (
+              <Overlay
+                type="button"
+                aria-label="Закрыть меню"
+                onClick={closeDrawer}
+                data-visible={isOpen ? 'true' : 'false'}
+              />
+            )}
 
-          <Main>
-            <Content>{children}</Content>
-          </Main>
-        </Shell>
-      </SafeAreaProvider>
-    </FontScaleProvider>
+            <Main>
+              <Content>{children}</Content>
+            </Main>
+          </Shell>
+        </SafeAreaProvider>
+      </FontScaleProvider>
+    </TopBarPortalContext.Provider>
   );
 };
 

@@ -14,6 +14,7 @@ import MeasureProgressBar from '../components/MeasureProgressBar';
 import PrayerActivityIndicator from '../components/PrayerActivityIndicator';
 import PrayerRenderer from '../components/PrayerRenderer';
 import ServiceMap from '../components/ServiceMap';
+import { useTopBarPortal } from '../context/TopBarPortalContext';
 import useEvaluationDate from '../hooks/useEvaluationDate';
 import type { PrayerBlock } from '../types/prayer';
 import { loadPrayer, type PrayerId } from '../utils/prayerLoader';
@@ -38,13 +39,6 @@ const styles = StyleSheet.create({
     backgroundColor: palette.paper,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: palette.divider,
-    ...(Platform.OS === 'web'
-      ? ({
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-        } as any)
-      : null),
   },
   mapContainer: {
     paddingBottom: 8,
@@ -90,6 +84,8 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   const prevSectionsSigRef = useRef<string | null>(null);
 
   const useExternalScroll = scrollSource === 'external';
+  const topBarPortal = useTopBarPortal();
+  const shouldRenderInPortal = Boolean(topBarPortal && useExternalScroll);
   const shouldTrackPrayerActivity = prayerId !== 'liturgy' && prayerId !== 'vespers';
 
   useEffect(() => {
@@ -336,9 +332,9 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
     </ScrollView>
   );
 
-  return (
-    <View style={styles.container}>
-      <View nativeID={PRAYER_TOPBAR_NATIVE_ID} style={styles.topBar}>
+  const topBarContent = useMemo(
+    () => (
+      <>
         <ServiceMap
           sections={sections}
           activeSectionId={effectiveActiveSectionId}
@@ -357,7 +353,41 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
           />
         )}
         {shouldTrackPrayerActivity && <PrayerActivityIndicator />}
-      </View>
+      </>
+    ),
+    [
+      calcProgress,
+      effectiveActiveSectionId,
+      handleSelectSection,
+      isCalculating,
+      isLoading,
+      isPositionsReady,
+      measuredCount,
+      sections,
+      sectionsCount,
+      shouldTrackPrayerActivity,
+    ],
+  );
+
+  useEffect(() => {
+    if (!shouldRenderInPortal || !topBarPortal) {
+      return;
+    }
+
+    topBarPortal.setTopBarContent(topBarContent);
+
+    return () => {
+      topBarPortal.setTopBarContent(null);
+    };
+  }, [shouldRenderInPortal, topBarContent, topBarPortal]);
+
+  return (
+    <View style={styles.container}>
+      {!shouldRenderInPortal && (
+        <View nativeID={PRAYER_TOPBAR_NATIVE_ID} style={styles.topBar}>
+          {topBarContent}
+        </View>
+      )}
       {isLoading && (
         <View style={styles.statusContainer}>
           <ActivityIndicator size="small" accessibilityLabel="Загрузка молитвы" />
