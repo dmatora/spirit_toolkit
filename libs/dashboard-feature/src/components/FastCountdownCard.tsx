@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Platform, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { getNextMajorFast } from '@spirit/prayer-feature/utils/fasts';
 import { pluralizeDaysRu } from '@spirit/prayer-feature/utils/plural';
 import { palette } from '@spirit/prayer-feature/theme';
+import { useMidnightTicker } from './useMidnightTicker';
 
 type Props = {
   referenceDate?: Date;
@@ -72,41 +73,10 @@ const styles = StyleSheet.create({
 });
 
 const FastCountdownCard = ({ referenceDate, style }: Props) => {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    if (referenceDate) {
-      return;
-    }
-
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-
-    const scheduleNextMidnight = () => {
-      const current = new Date();
-      const nextMidnight = new Date(
-        current.getFullYear(),
-        current.getMonth(),
-        current.getDate() + 1,
-      );
-      const timeoutMs = Math.max(0, nextMidnight.getTime() - current.getTime());
-      timeout = setTimeout(() => {
-        setNow(new Date());
-        scheduleNextMidnight();
-      }, timeoutMs);
-    };
-
-    scheduleNextMidnight();
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    };
-  }, [referenceDate]);
+  const baseDate = useMidnightTicker(referenceDate);
 
   const data = useMemo(() => {
     try {
-      const baseDate = referenceDate ?? now;
       const nextFast = getNextMajorFast(baseDate);
       if (!nextFast?.fast || !(nextFast.fast.startDate instanceof Date)) {
         return undefined;
@@ -115,7 +85,7 @@ const FastCountdownCard = ({ referenceDate, style }: Props) => {
     } catch (error) {
       return undefined;
     }
-  }, [referenceDate, now]);
+  }, [baseDate]);
 
   if (!data) {
     return null;
