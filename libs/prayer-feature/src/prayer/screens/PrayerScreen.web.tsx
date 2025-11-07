@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   ScrollView,
   StyleSheet,
@@ -9,6 +11,7 @@ import {
 } from 'react-native';
 import { palette } from '@spirit/prayer-feature/theme';
 import MeasureProgressBar from '../components/MeasureProgressBar';
+import PrayerActivityIndicator from '../components/PrayerActivityIndicator';
 import PrayerRenderer from '../components/PrayerRenderer';
 import ServiceMap from '../components/ServiceMap';
 import useEvaluationDate from '../hooks/useEvaluationDate';
@@ -17,6 +20,7 @@ import { loadPrayer, type PrayerId } from '../utils/prayerLoader';
 import { extractMajorSections } from '../utils/serviceMap';
 import { getSectionsSignature } from '../utils/sections';
 import { useActiveSectionObserver } from '../../web/useActiveSectionObserver';
+import { recordPrayerActivity } from '../services/prayerActivityState';
 
 type Props = {
   prayerId?: PrayerId;
@@ -83,6 +87,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   const prevSectionsSigRef = useRef<string | null>(null);
 
   const useExternalScroll = scrollSource === 'external';
+  const shouldTrackPrayerActivity = prayerId !== 'liturgy' && prayerId !== 'evening';
 
   useEffect(() => {
     let cancelled = false;
@@ -303,6 +308,15 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
 
   const effectiveActiveSectionId = observerActiveId ?? activeSectionId;
 
+  const handleTrackedScroll = useCallback(
+    (_event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (shouldTrackPrayerActivity) {
+        recordPrayerActivity(Date.now());
+      }
+    },
+    [shouldTrackPrayerActivity],
+  );
+
   const scrollableContent = useExternalScroll ? (
     <View nativeID="prayer-scroll-container" style={[styles.scrollWrapper, styles.scrollContent]}>
       {prayerContent}
@@ -312,6 +326,8 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
       nativeID="prayer-scroll-container"
       style={styles.scrollWrapper}
       contentContainerStyle={styles.scrollContent}
+      onScroll={handleTrackedScroll}
+      scrollEventThrottle={16}
     >
       {prayerContent}
     </ScrollView>
@@ -334,6 +350,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
             style={styles.progressContainer}
           />
         )}
+        {shouldTrackPrayerActivity && <PrayerActivityIndicator />}
       </View>
       {isLoading && (
         <View style={styles.statusContainer}>
