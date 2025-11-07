@@ -9,6 +9,8 @@ export type PrayerLink = {
 export const PRAYERS: PrayerLink[] = [
   { id: 'liturgy', title: 'Божественная литургия', href: '/molitvoslov/liturgy' },
   { id: 'vespers', title: 'Вечерня', href: '/molitvoslov/vespers' },
+  { id: 'morning_rule', title: 'Утреннее правило', href: '/molitvoslov/morning_rule' },
+  { id: 'evening_rule', title: 'Вечернее правило', href: '/molitvoslov/evening_rule' },
   {
     id: 'akathist_baptist',
     title: 'Акафист святому Иоанну Крестителю',
