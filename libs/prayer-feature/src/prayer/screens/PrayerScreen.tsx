@@ -14,6 +14,7 @@ import { useRoute } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
 import PrayerRenderer from '../components/PrayerRenderer';
 import MeasureProgressBar from '../components/MeasureProgressBar';
+import PrayerActivityIndicator from '../components/PrayerActivityIndicator';
 import ServiceMap from '../components/ServiceMap';
 import { extractMajorSections } from '../utils/serviceMap';
 import { getSectionsSignature } from '../utils/sections';
@@ -21,6 +22,7 @@ import useEvaluationDate from '../hooks/useEvaluationDate';
 import { loadPrayer, type PrayerId } from '../utils/prayerLoader';
 import type { PrayerBlock } from '../types/prayer';
 import { useActiveSectionObserver } from '../../web/useActiveSectionObserver';
+import { recordPrayerActivity } from '../services/prayerActivityState';
 
 type PrayerScreenProps = {
   prayerId?: PrayerId;
@@ -77,6 +79,8 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
     route = undefined as any;
   }
   const resolvedPrayerId: PrayerId = (prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
+  const shouldTrackPrayerActivity =
+    resolvedPrayerId !== 'liturgy' && resolvedPrayerId !== 'evening';
   const isWeb = Platform.OS === 'web';
   const useExternalScroll = isWeb && scrollSource === 'external';
   const isDev =
@@ -337,6 +341,16 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
     [computeActiveSectionIdForY, endProgrammaticScroll, isWeb],
   );
 
+  const handleTrackedScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      handleScroll(event);
+      if (shouldTrackPrayerActivity) {
+        recordPrayerActivity(Date.now());
+      }
+    },
+    [handleScroll, recordPrayerActivity, shouldTrackPrayerActivity],
+  );
+
   const handleSelectSection = useCallback(
     (sectionId: string) => {
       if (isWeb) {
@@ -421,7 +435,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       onLayout={(event) => {
         containerHeightRef.current = event.nativeEvent.layout.height;
       }}
-      onScroll={handleScroll}
+      onScroll={handleTrackedScroll}
       onScrollBeginDrag={() => {
         if (programmaticScrollRef.current.active) {
           endProgrammaticScroll();
@@ -468,6 +482,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
             style={{ paddingHorizontal: 20, paddingBottom: 8 }}
           />
         )}
+        {shouldTrackPrayerActivity && <PrayerActivityIndicator />}
       </View>
       {isLoading && (
         <View style={styles.statusContainer}>
