@@ -25,6 +25,12 @@ import {
   type Thresholds,
 } from '../services/attendanceConfig';
 import {
+  ensurePrayerActivityConfigInitialized,
+  getPrayerActivityThresholds,
+  setPrayerActivityThresholds,
+  type PrayerActivityThresholds,
+} from '../services/prayerActivityConfig';
+import {
   SYNC_SECRET_STORAGE_KEY,
   hasBuildTimeSyncToken,
   setRuntimeSyncToken,
@@ -73,6 +79,10 @@ const SettingsScreen = () => {
   const { fontScale, setFontScale } = useFontScale();
   const [normalValue, setNormalValue] = React.useState('0');
   const [warningValue, setWarningValue] = React.useState('0');
+  const [activityWarningMinutesValue, setActivityWarningMinutesValue] =
+    React.useState('30');
+  const [activityDangerMinutesValue, setActivityDangerMinutesValue] =
+    React.useState('60');
   const [selectedPreset, setSelectedPreset] = React.useState<keyof typeof PRESETS | null>(null);
   const [saved, setSaved] = React.useState(false);
   const [syncSecret, setSyncSecret] = React.useState('');
@@ -99,15 +109,31 @@ const SettingsScreen = () => {
     [matchPreset],
   );
 
+  const updateActivityThresholdState = React.useCallback(
+    (thresholds: PrayerActivityThresholds) => {
+      setActivityWarningMinutesValue(String(thresholds.warningMinutes));
+      setActivityDangerMinutesValue(String(thresholds.dangerMinutes));
+    },
+    [],
+  );
+
   React.useEffect(() => {
     let active = true;
     (async () => {
       try {
-        await ensureSettingsInitialized();
-        const thresholds = await getLiturgyThresholds();
-        if (active) {
-          updateThresholdState(thresholds);
+        await Promise.all([
+          ensureSettingsInitialized(),
+          ensurePrayerActivityConfigInitialized(),
+        ]);
+        const [thresholds, activityThresholds] = await Promise.all([
+          getLiturgyThresholds(),
+          getPrayerActivityThresholds(),
+        ]);
+        if (!active) {
+          return;
         }
+        updateThresholdState(thresholds);
+        updateActivityThresholdState(activityThresholds);
       } catch (error) {
         console.warn('[SettingsScreen]', error);
       }
@@ -115,7 +141,7 @@ const SettingsScreen = () => {
     return () => {
       active = false;
     };
-  }, [updateThresholdState]);
+  }, [updateActivityThresholdState, updateThresholdState]);
 
   React.useEffect(() => {
     let active = true;
@@ -220,6 +246,16 @@ const SettingsScreen = () => {
       return;
     }
 
+    try {
+      const activityThresholds = await setPrayerActivityThresholds({
+        warningMinutes: safeParseNumber(activityWarningMinutesValue),
+        dangerMinutes: safeParseNumber(activityDangerMinutesValue),
+      });
+      updateActivityThresholdState(activityThresholds);
+    } catch (error) {
+      console.warn('[SettingsScreen]', error);
+    }
+
     const trimmedSecret = syncSecret.trim();
     if (trimmedSecret.length > 0) {
       try {
@@ -244,7 +280,17 @@ const SettingsScreen = () => {
 
     setFontScale(sliderValue);
     setSaved(true);
-  }, [normalValue, warningValue, sliderValue, syncSecret, setFontScale, updateThresholdState]);
+  }, [
+    activityDangerMinutesValue,
+    activityWarningMinutesValue,
+    normalValue,
+    sliderValue,
+    syncSecret,
+    setFontScale,
+    updateActivityThresholdState,
+    updateThresholdState,
+    warningValue,
+  ]);
 
   const warningNumber = safeParseNumber(warningValue);
   const sliderDescriptor = describeFontScale(sliderValue);
@@ -284,60 +330,118 @@ const SettingsScreen = () => {
             </View>
           </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Тонкая настройка</Text>
-              <View
-                style={styles.legendRow}
-                accessibilityLabel="Легенда: Норма"
-              >
-                <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
-                <Text style={styles.legendText}>Норма</Text>
-              </View>
-              <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>Норма (дней)</Text>
-                <TextInput
-                  accessibilityLabel="Норма (дней)"
-                  keyboardType="number-pad"
-                  value={normalValue}
-                  onChangeText={(txt) => setNormalValue(txt.replace(/[^\d]/g, ''))}
-                  style={styles.input}
-                />
-              </View>
-              <Text style={styles.caption}>Пока не прошло столько дней, состояние считается нормальным</Text>
-
-              <View
-                style={styles.legendRow}
-                accessibilityLabel="Легенда: Предупреждение"
-              >
-                <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
-                <Text style={styles.legendText}>Предупреждение</Text>
-              </View>
-              <View style={styles.inputRow}>
-                <Text style={styles.inputLabel}>Предупреждение (дней)</Text>
-                <TextInput
-                  accessibilityLabel="Предупреждение (дней)"
-                  keyboardType="number-pad"
-                  value={warningValue}
-                  onChangeText={(txt) => setWarningValue(txt.replace(/[^\d]/g, ''))}
-                  style={styles.input}
-                />
-              </View>
-              <Text style={styles.caption}>Состояние длится до этого количества дней</Text>
-
-              <View
-                style={styles.legendRow}
-                accessibilityLabel="Легенда: Тревога"
-              >
-                <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
-                <Text style={styles.legendText}>Тревога</Text>
-              </View>
-              <Text style={styles.caption}>
-                Наступает, если прошло больше дней, чем указано в «Предупреждении»
-              </Text>
-              <Text style={[styles.caption, { color: palette.danger, fontWeight: '600' }]}>
-                Тревога: &gt; {warningNumber} дней
-              </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Тонкая настройка</Text>
+            <View
+              style={styles.legendRow}
+              accessibilityLabel="Легенда: Норма"
+            >
+              <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
+              <Text style={styles.legendText}>Норма</Text>
             </View>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputLabel}>Норма (дней)</Text>
+              <TextInput
+                accessibilityLabel="Норма (дней)"
+                keyboardType="number-pad"
+                value={normalValue}
+                onChangeText={(txt) => setNormalValue(txt.replace(/[^\d]/g, ''))}
+                style={styles.input}
+              />
+            </View>
+            <Text style={styles.caption}>Пока не прошло столько дней, состояние считается нормальным</Text>
+
+            <View
+              style={styles.legendRow}
+              accessibilityLabel="Легенда: Предупреждение"
+            >
+              <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
+              <Text style={styles.legendText}>Предупреждение</Text>
+            </View>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputLabel}>Предупреждение (дней)</Text>
+              <TextInput
+                accessibilityLabel="Предупреждение (дней)"
+                keyboardType="number-pad"
+                value={warningValue}
+                onChangeText={(txt) => setWarningValue(txt.replace(/[^\d]/g, ''))}
+                style={styles.input}
+              />
+            </View>
+            <Text style={styles.caption}>Состояние длится до этого количества дней</Text>
+
+            <View
+              style={styles.legendRow}
+              accessibilityLabel="Легенда: Тревога"
+            >
+              <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
+              <Text style={styles.legendText}>Тревога</Text>
+            </View>
+            <Text style={styles.caption}>
+              Наступает, если прошло больше дней, чем указано в «Предупреждении»
+            </Text>
+            <Text style={[styles.caption, { color: palette.danger, fontWeight: '600' }]}>
+              Тревога: &gt; {warningNumber} дней
+            </Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Индикатор молитвы</Text>
+            <Text style={styles.caption}>
+              Укажите, когда подсказка на молитве становится жёлтой и когда меняет цвет на красный.
+            </Text>
+            <View
+              style={styles.legendRow}
+              accessibilityLabel="Легенда: Норма"
+            >
+              <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
+              <Text style={styles.legendText}>Норма</Text>
+            </View>
+            <View
+              style={styles.legendRow}
+              accessibilityLabel="Легенда: Предупреждение"
+            >
+              <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
+              <Text style={styles.legendText}>Предупреждение</Text>
+            </View>
+            <View
+              style={styles.legendRow}
+              accessibilityLabel="Легенда: Тревога"
+            >
+              <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
+              <Text style={styles.legendText}>Тревога</Text>
+            </View>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputLabel}>Предупреждение (минут)</Text>
+              <TextInput
+                accessibilityLabel="Предупреждение (минут)"
+                keyboardType="number-pad"
+                value={activityWarningMinutesValue}
+                onChangeText={(txt) =>
+                  setActivityWarningMinutesValue(txt.replace(/[^\d]/g, ''))
+                }
+                style={styles.input}
+              />
+            </View>
+            <Text style={styles.caption}>
+              После этого времени без прокрутки текст станет жёлтым.
+            </Text>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputLabel}>Тревога (минут)</Text>
+              <TextInput
+                accessibilityLabel="Тревога (минут)"
+                keyboardType="number-pad"
+                value={activityDangerMinutesValue}
+                onChangeText={(txt) =>
+                  setActivityDangerMinutesValue(txt.replace(/[^\d]/g, ''))
+                }
+                style={styles.input}
+              />
+            </View>
+            <Text style={styles.caption}>
+              После этого времени без прокрутки текст станет красным.
+            </Text>
+          </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Размер шрифта</Text>
