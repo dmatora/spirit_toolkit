@@ -106,9 +106,9 @@ export default PrayerActivityIndicator;
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    paddingTop: 4,
+    paddingBottom: 2,
     paddingHorizontal: 12,
-    marginTop: -4,
     backgroundColor: palette.paper,
   },
   label: {
