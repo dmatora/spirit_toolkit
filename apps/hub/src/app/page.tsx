@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FeastCountdownCard } from '@spirit/dashboard-feature';
+import { FeastCountdownCard, FastCountdownCard } from '@spirit/dashboard-feature';
 import LiturgyAttendanceCard from '../../../Prayer/src/app/components/LiturgyAttendanceCard.web';
 import styled from 'styled-components';
 
@@ -21,6 +21,7 @@ export default function Page() {
   return (
     <Column>
       <FeastCountdownCard />
+      <FastCountdownCard />
       <LiturgyAttendanceCard />
     </Column>
   );
