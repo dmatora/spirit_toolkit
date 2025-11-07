@@ -141,8 +141,6 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   }, [sections]);
 
   const sectionsCount = sections.length;
-  const hasServiceMap = sections.length > 0;
-  const shouldShowActivityIndicator = shouldTrackPrayerActivity && !hasServiceMap;
 
   const recomputeMeasuredCount = useCallback(() => {
     const positions = sectionPositionsRef.current;
@@ -337,18 +335,16 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   const topBarContent = useMemo(
     () => (
       <>
-        {hasServiceMap && (
-          <ServiceMap
-            sections={sections}
-            activeSectionId={effectiveActiveSectionId}
-            onSelect={handleSelectSection}
-            style={[
-              styles.mapContainer,
-              shouldTrackPrayerActivity ? styles.mapContainerCompact : null,
-            ]}
-            isDisabled={!isPositionsReady || isLoading}
-          />
-        )}
+        <ServiceMap
+          sections={sections}
+          activeSectionId={effectiveActiveSectionId}
+          onSelect={handleSelectSection}
+          style={[
+            styles.mapContainer,
+            shouldTrackPrayerActivity ? styles.mapContainerCompact : null,
+          ]}
+          isDisabled={!isPositionsReady || isLoading}
+        />
         {isCalculating && (
           <MeasureProgressBar
             progress={calcProgress}
@@ -356,11 +352,10 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
             style={styles.progressContainer}
           />
         )}
-        {shouldShowActivityIndicator && <PrayerActivityIndicator />}
+        {shouldTrackPrayerActivity && <PrayerActivityIndicator />}
       </>
     ),
     [
-      hasServiceMap,
       sections,
       effectiveActiveSectionId,
       handleSelectSection,
@@ -371,7 +366,6 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
       calcProgress,
       measuredCount,
       sectionsCount,
-      shouldShowActivityIndicator,
     ],
   );
 
