@@ -33,7 +33,7 @@ const DESKTOP_MEDIA = '(min-width: 1024px)';
 const TopBar = styled.header<{ $isSticky: boolean; $hasSlot: boolean }>`
   background: ${palette.paper};
   border-bottom: 1px solid ${palette.divider};
-  padding: ${({ $hasSlot }) => ($hasSlot ? '8px 16px 0' : '12px 16px')};
+  padding: ${({ $hasSlot }) => ($hasSlot ? '8px 16px' : '12px 16px')};
 
   ${({ $isSticky }) =>
     $isSticky
