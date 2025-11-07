@@ -141,6 +141,8 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   }, [sections]);
 
   const sectionsCount = sections.length;
+  const hasServiceMap = sections.length > 0;
+  const shouldShowActivityIndicator = shouldTrackPrayerActivity && !hasServiceMap;
 
   const recomputeMeasuredCount = useCallback(() => {
     const positions = sectionPositionsRef.current;
@@ -335,16 +337,18 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   const topBarContent = useMemo(
     () => (
       <>
-        <ServiceMap
-          sections={sections}
-          activeSectionId={effectiveActiveSectionId}
-          onSelect={handleSelectSection}
-          style={[
-            styles.mapContainer,
-            shouldTrackPrayerActivity ? styles.mapContainerCompact : null,
-          ]}
-          isDisabled={!isPositionsReady || isLoading}
-        />
+        {hasServiceMap && (
+          <ServiceMap
+            sections={sections}
+            activeSectionId={effectiveActiveSectionId}
+            onSelect={handleSelectSection}
+            style={[
+              styles.mapContainer,
+              shouldTrackPrayerActivity ? styles.mapContainerCompact : null,
+            ]}
+            isDisabled={!isPositionsReady || isLoading}
+          />
+        )}
         {isCalculating && (
           <MeasureProgressBar
             progress={calcProgress}
@@ -352,20 +356,22 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
             style={styles.progressContainer}
           />
         )}
-        {shouldTrackPrayerActivity && <PrayerActivityIndicator />}
+        {shouldShowActivityIndicator && <PrayerActivityIndicator />}
       </>
     ),
     [
-      calcProgress,
+      hasServiceMap,
+      sections,
       effectiveActiveSectionId,
       handleSelectSection,
-      isCalculating,
-      isLoading,
-      isPositionsReady,
-      measuredCount,
-      sections,
-      sectionsCount,
       shouldTrackPrayerActivity,
+      isPositionsReady,
+      isLoading,
+      isCalculating,
+      calcProgress,
+      measuredCount,
+      sectionsCount,
+      shouldShowActivityIndicator,
     ],
   );
 
