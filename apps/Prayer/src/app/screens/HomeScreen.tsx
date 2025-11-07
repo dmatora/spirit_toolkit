@@ -2,13 +2,14 @@ import React from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FeastCountdownCard } from '@spirit/dashboard-feature';
+import { FeastCountdownCard, FastCountdownCard } from '@spirit/dashboard-feature';
 import { palette } from '@spirit/prayer-feature/theme';
 import LiturgyAttendanceCard from '../components/LiturgyAttendanceCard';
 
 const HomeScreen: React.FC = () => (
   <SafeAreaView style={styles.container}>
     <FeastCountdownCard style={styles.cardSpacing} />
+    <FastCountdownCard style={styles.cardSpacing} />
     <LiturgyAttendanceCard />
   </SafeAreaView>
 );
