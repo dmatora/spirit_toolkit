@@ -96,6 +96,7 @@ const schedulePrayerActivityNotificationsForTimestamp = async (
           title,
           body,
           android: Platform.OS === 'android' ? { channelId: PRAYER_ACTIVITY_CHANNEL_ID } : undefined,
+          ios: { sound: 'default' },
         },
         trigger,
       );
@@ -130,6 +131,12 @@ export const initializePrayerActivityNotifications = async (): Promise<void> => 
   isInitialized = true;
 
   try {
+    try {
+      await notifee.requestPermission();
+    } catch (error) {
+      warn(error, 'request permission');
+    }
+
     const [, thresholds] = await Promise.all([
       hydratePrayerActivityFromStorage(),
       getPrayerActivityThresholds(),
@@ -173,4 +180,3 @@ export const stopPrayerActivityNotifications = (): void => {
 
   isInitialized = false;
 };
-
