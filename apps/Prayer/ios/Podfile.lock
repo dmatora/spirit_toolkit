@@ -1193,6 +1193,11 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNNotifee (7.9.0):
+    - React-Core
+    - RNNotifee/NotifeeCore (= 7.9.0)
+  - RNNotifee/NotifeeCore (7.9.0):
+    - React-Core
   - RNReanimated (3.7.2):
     - DoubleConversion
     - glog
@@ -1323,6 +1328,7 @@ DEPENDENCIES:
   - "RNCAsyncStorage (from `../../../node_modules/@react-native-async-storage/async-storage`)"
   - "RNDateTimePicker (from `../../../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../../../node_modules/react-native-gesture-handler`)
+  - "RNNotifee (from `../../../node_modules/@notifee/react-native`)"
   - RNReanimated (from `../../../node_modules/react-native-reanimated`)
   - RNScreens (from `../../../node_modules/react-native-screens`)
   - RNSVG (from `../../../node_modules/react-native-svg`)
@@ -1451,6 +1457,8 @@ EXTERNAL SOURCES:
     :path: "../../../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
     :path: "../../../node_modules/react-native-gesture-handler"
+  RNNotifee:
+    :path: "../../../node_modules/@notifee/react-native"
   RNReanimated:
     :path: "../../../node_modules/react-native-reanimated"
   RNScreens:
@@ -1521,6 +1529,7 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: ec53e44dc3e75b44aa2a9f37618a49c3bc080a7a
   RNDateTimePicker: e1e3719be6e3f88077c44037f44070ff6c476bac
   RNGestureHandler: fcd2c75cb8ae1427d914fde30440855709971d99
+  RNNotifee: 935f3ea8c134c88cbf8b13ea0c97c72c09ad2116
   RNReanimated: b039d2b35a1f18c8a9d26203d38ee868b2e02c1b
   RNScreens: 763dbedc63d7de91d4f7c55617e4ab3f8c7c3282
   RNSVG: a48668fd382115bc89761ce291a81c4ca5f2fd2e

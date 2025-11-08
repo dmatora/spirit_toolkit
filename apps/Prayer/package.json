@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@notifee/react-native": "^7.9.0",
     "@nx/eslint-plugin": "*",
     "@nx/react": "*",
     "@nx/webpack": "*",
