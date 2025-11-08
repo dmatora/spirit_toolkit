@@ -5,10 +5,12 @@ import { palette } from '@spirit/prayer-feature/theme';
 
 import { pluralizeHoursRu, pluralizeMinutesRu } from '../../utils/plural';
 import {
+  DEFAULT_THRESHOLDS,
   getPrayerActivityThresholds,
   type PrayerActivityThresholds,
 } from '../services/prayerActivityConfig';
 import {
+  getCurrentPrayerSessionStartSync,
   getLastPrayerActivitySync,
   hydratePrayerActivityFromStorage,
   subscribeToPrayerActivity,
@@ -23,6 +25,9 @@ type Props = {
 const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
   const [thresholds, setThresholds] = React.useState<PrayerActivityThresholds | null>(null);
   const [lastActivity, setLastActivity] = React.useState<number | null>(getLastPrayerActivitySync());
+  const [sessionStart, setSessionStart] = React.useState<number | null>(
+    getCurrentPrayerSessionStartSync(),
+  );
   const [now, setNow] = React.useState(() => Date.now());
 
   React.useEffect(() => {
@@ -30,6 +35,7 @@ const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
     const unsubscribe = subscribeToPrayerActivity((timestamp) => {
       if (isMounted) {
         setLastActivity(timestamp);
+        setSessionStart(getCurrentPrayerSessionStartSync());
       }
     });
 
@@ -52,6 +58,7 @@ const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
 
         setThresholds(loadedThresholds);
         setLastActivity(getLastPrayerActivitySync());
+        setSessionStart(getCurrentPrayerSessionStartSync());
       } catch (error) {
         console.warn('[PrayerActivityIndicator]', error);
       }
@@ -72,31 +79,56 @@ const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
 
   const diffMs = Math.max(0, now - lastActivity);
   const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMinutes / 60);
 
-  let relativeLabel = 'менее минуты назад';
-  if (diffMinutes === 0) {
-    relativeLabel = 'менее минуты назад';
-  } else if (diffMinutes < 60) {
-    relativeLabel = `${diffMinutes} ${pluralizeMinutesRu(diffMinutes)} назад`;
-  } else {
-    relativeLabel = `${diffHours} ${pluralizeHoursRu(diffHours)} назад`;
-  }
+  const formatRelativeText = (minutes: number): string => {
+    if (minutes <= 0) {
+      return 'менее минуты';
+    }
+    if (minutes < 60) {
+      return `${minutes} ${pluralizeMinutesRu(minutes)}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    return `${hours} ${pluralizeHoursRu(hours)}`;
+  };
 
   const warning = thresholds.warningMinutes;
   const danger = thresholds.dangerMinutes;
+  const focusMinutes = thresholds.focusMinutes ?? DEFAULT_THRESHOLDS.focusMinutes;
+  const activeWindowMs = Math.max(0, focusMinutes) * 60000;
+  const sessionDurationMs = sessionStart != null ? Math.max(0, now - sessionStart) : 0;
+  const sessionDurationMinutes = Math.floor(sessionDurationMs / 60000);
+  const isCurrentPrayerActive =
+    sessionStart != null &&
+    lastActivity != null &&
+    Math.max(0, now - lastActivity) < activeWindowMs;
 
+  let label = '';
   let color = palette.mutedInk;
-  if (diffMinutes >= danger) {
-    color = palette.danger;
-  } else if (diffMinutes >= warning) {
-    color = palette.warning;
+
+  if (isCurrentPrayerActive) {
+    const durationLabel = formatRelativeText(sessionDurationMinutes);
+    label = `Молитва длится: ${durationLabel}`;
+
+    if (sessionDurationMinutes >= focusMinutes * 2) {
+      color = palette.danger;
+    } else if (sessionDurationMinutes >= focusMinutes) {
+      color = palette.warning;
+    }
+  } else {
+    const relativeLabel = `${formatRelativeText(diffMinutes)} назад`;
+    label = `Последняя молитва: ${relativeLabel}`;
+
+    if (diffMinutes >= danger) {
+      color = palette.danger;
+    } else if (diffMinutes >= warning) {
+      color = palette.warning;
+    }
   }
 
   return (
     <View style={[styles.container, style]}>
       <Text style={[styles.label, { color }]} numberOfLines={1}>
-        Последняя молитва: {relativeLabel}
+        {label}
       </Text>
     </View>
   );
