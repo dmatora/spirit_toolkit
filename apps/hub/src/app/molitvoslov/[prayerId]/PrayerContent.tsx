@@ -49,7 +49,7 @@ const PrayerContent = ({ prayer, blocks }: PrayerContentProps) => (
     <BackLink href="/molitvoslov">← Ко списку молитв</BackLink>
     <Card>
       <Title>{prayer.title}</Title>
-      <PrayerRenderer blocks={blocks} />
+      <PrayerRenderer blocks={blocks} prayerId={prayer.id} />
     </Card>
   </Container>
 );

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { palette } from '@spirit/prayer-feature/theme';
 import type { PrayerBlock, PrayerRole } from '../types/prayer';
+import type { PrayerId } from '../utils/prayerLoader';
 import { evaluateCondition } from '../utils/conditions';
 import { useFontScale } from '../context/FontScaleContext';
 
@@ -65,6 +66,7 @@ type Props = {
   onMajorSectionLayout?: (block: PrayerBlock, index: number, y: number) => void;
   sectionIdLookup?: Record<number, string>;
   evaluationDate?: Date;
+  prayerId?: PrayerId;
 };
 
 type TextualPrayerBlock = Extract<PrayerBlock, { type: 'heading' | 'paragraph' | 'instruction' }>;
@@ -73,6 +75,46 @@ type RenderOptions = {
   onLayout?: (event: LayoutChangeEvent) => void;
   accessibilityRole?: AccessibilityRole;
   nativeID?: string;
+  shrinkLeadingDigits?: boolean;
+};
+
+const LEADING_DIGIT_PRAYER_IDS: PrayerId[] = ['morning_rule', 'evening_rule'];
+const LEADING_DIGIT_SCALE = 0.5;
+const LEADING_DIGIT_REGEX = /^(\s*)(\d+)([\s\S]*)/;
+
+const renderLeadingDigitContent = (
+  content: string,
+  textStyle: TextStyle,
+): React.ReactNode[] | null => {
+  const match = content.match(LEADING_DIGIT_REGEX);
+  if (!match) {
+    return null;
+  }
+
+  const [, leadingWhitespace, digits, remainder] = match;
+  const leadingDigitStyle: TextStyle = {};
+
+  if (typeof textStyle.fontSize === 'number') {
+    leadingDigitStyle.fontSize = textStyle.fontSize * LEADING_DIGIT_SCALE;
+  }
+
+  const children: React.ReactNode[] = [];
+
+  if (leadingWhitespace) {
+    children.push(leadingWhitespace);
+  }
+
+  children.push(
+    <Text key="leading-number" style={[textStyle, leadingDigitStyle]}>
+      {digits}
+    </Text>,
+  );
+
+  if (remainder) {
+    children.push(remainder);
+  }
+
+  return children;
 };
 
 const renderTextualBlock = (
@@ -84,6 +126,11 @@ const renderTextualBlock = (
 ): React.ReactNode => {
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
   const { onLayout, accessibilityRole, nativeID } = options;
+
+  const contentChildren =
+    options.shrinkLeadingDigits && typeof block.content === 'string'
+      ? renderLeadingDigitContent(block.content, textStyle)
+      : null;
 
   return (
     <View
@@ -108,7 +155,7 @@ const renderTextualBlock = (
           {roleStyle.label}
         </Text>
       )}
-      <Text style={textStyle}>{block.content}</Text>
+      <Text style={textStyle}>{contentChildren ?? block.content}</Text>
     </View>
   );
 };
@@ -118,6 +165,7 @@ const PrayerRenderer = ({
   onMajorSectionLayout,
   sectionIdLookup,
   evaluationDate,
+  prayerId,
 }: Props) => {
   const { fontScale } = useFontScale();
   const scaledTextStyles = useMemo(() => {
@@ -140,6 +188,10 @@ const PrayerRenderer = ({
   let globalIndex = -1;
   let conditionalCounter = 0;
   const effectiveEvaluationDate = evaluationDate ?? new Date();
+
+  const shouldShrinkLeadingDigits = prayerId
+    ? LEADING_DIGIT_PRAYER_IDS.includes(prayerId)
+    : false;
 
   const renderBlockRecursive = (block: PrayerBlock): React.ReactNode => {
     if (block.type === 'conditional') {
@@ -176,6 +228,10 @@ const PrayerRenderer = ({
     if (hasSection && block.is_major_section) {
       renderOptions.nativeID = sectionIdLookup?.[index];
     }
+    renderOptions.shrinkLeadingDigits =
+      shouldShrinkLeadingDigits && typeof block.content === 'string'
+        ? LEADING_DIGIT_REGEX.test(block.content)
+        : false;
 
     switch (block.type) {
       case 'heading':

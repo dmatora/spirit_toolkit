@@ -420,6 +420,7 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       onMajorSectionLayout={handleSectionLayout}
       sectionIdLookup={sectionIndexLookup}
       evaluationDate={evaluationDate}
+      prayerId={resolvedPrayerId}
     />
   ) : null;
 

@@ -302,6 +302,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
         onMajorSectionLayout={handleSectionLayout}
         sectionIdLookup={sectionIndexLookup}
         evaluationDate={evaluationDate}
+        prayerId={prayerId}
       />
     ) : null;
 
