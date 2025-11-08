@@ -50,6 +50,7 @@ const FONT_SCALE_STEP = 0.1;
 const SLIDER_TOUCH_HEIGHT = 44;
 const SLIDER_HANDLE_SIZE = 28;
 const SLIDER_TRACK_THICKNESS = 6;
+const DEFAULT_ACTIVITY_FOCUS_MINUTES = 3;
 
 const clampFontScale = (value: number) =>
   Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, value));
@@ -83,6 +84,9 @@ const SettingsScreen = () => {
     React.useState('30');
   const [activityDangerMinutesValue, setActivityDangerMinutesValue] =
     React.useState('60');
+  const [activityFocusMinutesValue, setActivityFocusMinutesValue] = React.useState(
+    String(DEFAULT_ACTIVITY_FOCUS_MINUTES),
+  );
   const [selectedPreset, setSelectedPreset] = React.useState<keyof typeof PRESETS | null>(null);
   const [saved, setSaved] = React.useState(false);
   const [syncSecret, setSyncSecret] = React.useState('');
@@ -111,6 +115,11 @@ const SettingsScreen = () => {
 
   const updateActivityThresholdState = React.useCallback(
     (thresholds: PrayerActivityThresholds) => {
+      const focusMinutes =
+        typeof thresholds.focusMinutes === 'number'
+          ? thresholds.focusMinutes
+          : DEFAULT_ACTIVITY_FOCUS_MINUTES;
+      setActivityFocusMinutesValue(String(focusMinutes));
       setActivityWarningMinutesValue(String(thresholds.warningMinutes));
       setActivityDangerMinutesValue(String(thresholds.dangerMinutes));
     },
@@ -248,6 +257,7 @@ const SettingsScreen = () => {
 
     try {
       const activityThresholds = await setPrayerActivityThresholds({
+        focusMinutes: safeParseNumber(activityFocusMinutesValue),
         warningMinutes: safeParseNumber(activityWarningMinutesValue),
         dangerMinutes: safeParseNumber(activityDangerMinutesValue),
       });
@@ -282,6 +292,7 @@ const SettingsScreen = () => {
     setSaved(true);
   }, [
     activityDangerMinutesValue,
+    activityFocusMinutesValue,
     activityWarningMinutesValue,
     normalValue,
     sliderValue,
@@ -388,7 +399,9 @@ const SettingsScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Индикатор молитвы</Text>
             <Text style={styles.caption}>
-              Укажите, когда подсказка на молитве становится жёлтой и когда меняет цвет на красный.
+              Индикатор показывает длительность текущей молитвы и время перерыва между молитвами.
+              Настройте оба сценария, чтобы понимать, когда стоит сосредоточиться или сделать
+              паузу.
             </Text>
             <View
               style={styles.legendRow}
@@ -411,6 +424,31 @@ const SettingsScreen = () => {
               <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
               <Text style={styles.legendText}>Тревога</Text>
             </View>
+            <Text style={styles.caption}>
+              Цвета применяются и к текущей активной молитве, и к таймеру после последней молитвы.
+            </Text>
+            <Text style={styles.subsectionLabel}>Текущая молитва</Text>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputLabel}>Окно внимания (минут)</Text>
+              <TextInput
+                accessibilityLabel="Окно внимания (минут)"
+                keyboardType="number-pad"
+                value={activityFocusMinutesValue}
+                onChangeText={(txt) =>
+                  setActivityFocusMinutesValue(txt.replace(/[^\d]/g, ''))
+                }
+                style={styles.input}
+              />
+            </View>
+            <Text style={styles.caption}>
+              После указанного времени непрерывной молитвы индикатор станет жёлтым, а после
+              удвоенного значения - красным.
+            </Text>
+            <Text style={styles.subsectionLabel}>Перерыв между молитвами</Text>
+            <Text style={styles.caption}>
+              Эти значения учитывают время без прокрутки текста и показывают, когда пора вернуться к
+              молитве.
+            </Text>
             <View style={styles.inputRow}>
               <Text style={styles.inputLabel}>Предупреждение (минут)</Text>
               <TextInput
@@ -656,6 +694,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: palette.mutedInk,
     marginBottom: 12,
+  },
+  subsectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: palette.mutedInk,
+    marginTop: 12,
+    marginBottom: 8,
   },
   sliderTrack: {
     position: 'relative',
