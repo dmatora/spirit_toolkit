@@ -30,6 +30,7 @@ import {
   setPrayerActivityThresholds,
   type PrayerActivityThresholds,
 } from '../services/prayerActivityConfig';
+import { updatePrayerActivityNotificationThresholds } from '../services/prayerActivityNotifications';
 import {
   SYNC_SECRET_STORAGE_KEY,
   hasBuildTimeSyncToken,
@@ -262,6 +263,14 @@ const SettingsScreen = () => {
         dangerMinutes: safeParseNumber(activityDangerMinutesValue),
       });
       updateActivityThresholdState(activityThresholds);
+      try {
+        await updatePrayerActivityNotificationThresholds(activityThresholds);
+      } catch (error) {
+        console.warn(
+          '[SettingsScreen] Failed to update prayer activity notifications thresholds',
+          error,
+        );
+      }
     } catch (error) {
       console.warn('[SettingsScreen]', error);
     }
@@ -301,6 +310,7 @@ const SettingsScreen = () => {
     updateActivityThresholdState,
     updateThresholdState,
     warningValue,
+    updatePrayerActivityNotificationThresholds,
   ]);
 
   const warningNumber = safeParseNumber(warningValue);
