@@ -12,6 +12,10 @@ import {
   SYNC_SECRET_STORAGE_KEY,
   setRuntimeSyncToken,
 } from './services/syncConfig';
+import {
+  initializePrayerActivityNotifications,
+  stopPrayerActivityNotifications,
+} from './services/prayerActivityNotifications';
 
 const App = () => {
   useEffect(() => {
@@ -54,6 +58,16 @@ const App = () => {
         return;
       }
 
+      try {
+        await initializePrayerActivityNotifications();
+      } catch (error) {
+        console.warn('[App] failed to initialize prayer activity notifications', error);
+      }
+
+      if (cancelled) {
+        return;
+      }
+
       stopBackground = startBackgroundSync();
     };
 
@@ -65,6 +79,7 @@ const App = () => {
         stopBackground();
         stopBackground = null;
       }
+      stopPrayerActivityNotifications();
     };
   }, []);
 
