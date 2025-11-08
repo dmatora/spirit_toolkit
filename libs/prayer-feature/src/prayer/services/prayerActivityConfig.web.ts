@@ -1,6 +1,7 @@
 export type PrayerActivityThresholds = {
   warningMinutes: number;
   dangerMinutes: number;
+  focusMinutes: number;
 };
 
 export const STORAGE_KEY = 'prayer/activityConfig/v1';
@@ -8,6 +9,7 @@ export const STORAGE_KEY = 'prayer/activityConfig/v1';
 export const DEFAULT_THRESHOLDS: PrayerActivityThresholds = {
   warningMinutes: 30,
   dangerMinutes: 60,
+  focusMinutes: 3,
 };
 
 const hasLocalStorage =
@@ -38,24 +40,27 @@ export const sanitizePrayerActivityThresholds = (
 ): PrayerActivityThresholds => {
   const warning = parseMinutes(input.warningMinutes, DEFAULT_THRESHOLDS.warningMinutes);
   let danger = parseMinutes(input.dangerMinutes, DEFAULT_THRESHOLDS.dangerMinutes);
+  const focus = parseMinutes(input.focusMinutes, DEFAULT_THRESHOLDS.focusMinutes);
 
   if (danger < warning) {
     danger = warning;
   }
 
-  return { warningMinutes: warning, dangerMinutes: danger };
+  return { warningMinutes: warning, dangerMinutes: danger, focusMinutes: focus };
 };
 
 const writeToMemory = (thresholds: PrayerActivityThresholds) => {
   memoryThresholds = {
     warningMinutes: thresholds.warningMinutes,
     dangerMinutes: thresholds.dangerMinutes,
+    focusMinutes: thresholds.focusMinutes,
   };
 };
 
 const readFromMemory = (): PrayerActivityThresholds => ({
   warningMinutes: memoryThresholds.warningMinutes,
   dangerMinutes: memoryThresholds.dangerMinutes,
+  focusMinutes: memoryThresholds.focusMinutes,
 });
 
 export const ensurePrayerActivityConfigInitialized = async (): Promise<void> => {

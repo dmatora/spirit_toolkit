@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type PrayerActivityThresholds = {
   warningMinutes: number;
   dangerMinutes: number;
+  focusMinutes: number;
 };
 
 export const STORAGE_KEY = 'prayer/activityConfig/v1';
@@ -10,6 +11,7 @@ export const STORAGE_KEY = 'prayer/activityConfig/v1';
 export const DEFAULT_THRESHOLDS: PrayerActivityThresholds = {
   warningMinutes: 30,
   dangerMinutes: 60,
+  focusMinutes: 3,
 };
 
 const parseMinutes = (value: unknown, fallback: number): number => {
@@ -35,12 +37,13 @@ export const sanitizePrayerActivityThresholds = (
 ): PrayerActivityThresholds => {
   const warning = parseMinutes(input.warningMinutes, DEFAULT_THRESHOLDS.warningMinutes);
   let danger = parseMinutes(input.dangerMinutes, DEFAULT_THRESHOLDS.dangerMinutes);
+  const focus = parseMinutes(input.focusMinutes, DEFAULT_THRESHOLDS.focusMinutes);
 
   if (danger < warning) {
     danger = warning;
   }
 
-  return { warningMinutes: warning, dangerMinutes: danger };
+  return { warningMinutes: warning, dangerMinutes: danger, focusMinutes: focus };
 };
 
 export const ensurePrayerActivityConfigInitialized = async (): Promise<void> => {
