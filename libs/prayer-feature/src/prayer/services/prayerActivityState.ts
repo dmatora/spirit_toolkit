@@ -5,8 +5,15 @@ export type PrayerActivityListener = (timestamp: number | null) => void;
 const PRAYER_ACTIVITY_STORAGE_KEY = 'prayer/activity/lastScrollAt/v1';
 const LAST_NOTIFY_INTERVAL_MS = 1000;
 const PERSIST_DEBOUNCE_MS = 10000;
+const SESSION_RESET_THRESHOLD_MS = 5 * 60 * 1000;
+
+type PrayerActivityStoragePayload = {
+  lastActivity?: number | null;
+  sessionStart?: number | null;
+};
 
 let lastActivityTimestamp: number | null = null;
+let sessionStartTimestamp: number | null = null;
 let isHydrated = false;
 const listeners = new Set<PrayerActivityListener>();
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
@@ -21,6 +28,18 @@ const notifyListeners = () => {
   });
 };
 
+const readTimestamp = (value: unknown): number | null => {
+  if (value === null || typeof value === 'undefined') {
+    return null;
+  }
+
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+  return null;
+};
+
 const schedulePersist = () => {
   if (persistTimer) {
     clearTimeout(persistTimer);
@@ -29,13 +48,17 @@ const schedulePersist = () => {
   persistTimer = setTimeout(async () => {
     persistTimer = null;
     try {
-      if (lastActivityTimestamp === null) {
+      const payload: PrayerActivityStoragePayload = {
+        lastActivity: lastActivityTimestamp,
+        sessionStart: sessionStartTimestamp,
+      };
+
+      const hasAnyValue = payload.lastActivity !== null || payload.sessionStart !== null;
+
+      if (!hasAnyValue) {
         await AsyncStorage.removeItem(PRAYER_ACTIVITY_STORAGE_KEY);
       } else {
-        await AsyncStorage.setItem(
-          PRAYER_ACTIVITY_STORAGE_KEY,
-          JSON.stringify(lastActivityTimestamp),
-        );
+        await AsyncStorage.setItem(PRAYER_ACTIVITY_STORAGE_KEY, JSON.stringify(payload));
       }
     } catch (error) {
       console.warn('[prayerActivityState]', error);
@@ -51,18 +74,29 @@ export const hydratePrayerActivityFromStorage = async (): Promise<number | null>
   try {
     const raw = await AsyncStorage.getItem(PRAYER_ACTIVITY_STORAGE_KEY);
     if (raw) {
-      const parsed = Number(JSON.parse(raw));
-      if (!Number.isNaN(parsed)) {
-        lastActivityTimestamp = parsed;
+      const parsed = JSON.parse(raw) as PrayerActivityStoragePayload | number | null;
+
+      if (parsed && typeof parsed === 'object') {
+        const lastActivityValue = readTimestamp(parsed.lastActivity);
+        const sessionStartValue =
+          readTimestamp(parsed.sessionStart) ?? readTimestamp(parsed.lastActivity);
+
+        lastActivityTimestamp = lastActivityValue;
+        sessionStartTimestamp =
+          sessionStartValue ?? (lastActivityValue !== null ? lastActivityValue : null);
       } else {
-        lastActivityTimestamp = null;
+        const numericValue = readTimestamp(parsed);
+        lastActivityTimestamp = numericValue;
+        sessionStartTimestamp = numericValue;
       }
     } else {
       lastActivityTimestamp = null;
+      sessionStartTimestamp = null;
     }
   } catch (error) {
     console.warn('[prayerActivityState]', error);
     lastActivityTimestamp = null;
+    sessionStartTimestamp = null;
   }
 
   isHydrated = true;
@@ -70,6 +104,7 @@ export const hydratePrayerActivityFromStorage = async (): Promise<number | null>
 };
 
 export const getLastPrayerActivitySync = (): number | null => lastActivityTimestamp;
+export const getCurrentPrayerSessionStartSync = (): number | null => sessionStartTimestamp;
 
 export const subscribeToPrayerActivity = (
   listener: PrayerActivityListener,
@@ -91,6 +126,15 @@ export const recordPrayerActivity = (explicitTimestampMs?: number): void => {
       : Date.now();
 
   const previous = lastActivityTimestamp;
+  const shouldStartNewSession =
+    previous === null || timestamp - previous > SESSION_RESET_THRESHOLD_MS;
+
+  if (shouldStartNewSession) {
+    sessionStartTimestamp = timestamp;
+  } else if (sessionStartTimestamp === null) {
+    sessionStartTimestamp = previous;
+  }
+
   lastActivityTimestamp = timestamp;
   isHydrated = true;
   schedulePersist();
