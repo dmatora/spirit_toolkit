@@ -14,6 +14,28 @@ export const DEFAULT_THRESHOLDS: PrayerActivityThresholds = {
   focusMinutes: 3,
 };
 
+type PrayerActivityThresholdsListener = (thresholds: PrayerActivityThresholds) => void;
+const thresholdListeners = new Set<PrayerActivityThresholdsListener>();
+
+const notifyThresholdListeners = (thresholds: PrayerActivityThresholds) => {
+  thresholdListeners.forEach((listener) => {
+    try {
+      listener(thresholds);
+    } catch (error) {
+      console.warn('[prayerActivityConfig] listener', error);
+    }
+  });
+};
+
+export const subscribeToPrayerActivityThresholdUpdates = (
+  listener: PrayerActivityThresholdsListener,
+): (() => void) => {
+  thresholdListeners.add(listener);
+  return () => {
+    thresholdListeners.delete(listener);
+  };
+};
+
 const parseMinutes = (value: unknown, fallback: number): number => {
   if (typeof value === 'number' && !Number.isNaN(value)) {
     return Math.max(0, Math.round(value));
@@ -85,5 +107,6 @@ export const setPrayerActivityThresholds = async (
   } catch (error) {
     console.warn('[prayerActivityConfig]', error);
   }
+  notifyThresholdListeners(sanitized);
   return sanitized;
 };

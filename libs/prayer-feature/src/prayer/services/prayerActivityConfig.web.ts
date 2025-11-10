@@ -12,6 +12,28 @@ export const DEFAULT_THRESHOLDS: PrayerActivityThresholds = {
   focusMinutes: 3,
 };
 
+type PrayerActivityThresholdsListener = (thresholds: PrayerActivityThresholds) => void;
+const thresholdListeners = new Set<PrayerActivityThresholdsListener>();
+
+const notifyThresholdListeners = (thresholds: PrayerActivityThresholds) => {
+  thresholdListeners.forEach((listener) => {
+    try {
+      listener(thresholds);
+    } catch (error) {
+      console.warn('[prayerActivityConfig] listener', error);
+    }
+  });
+};
+
+export const subscribeToPrayerActivityThresholdUpdates = (
+  listener: PrayerActivityThresholdsListener,
+): (() => void) => {
+  thresholdListeners.add(listener);
+  return () => {
+    thresholdListeners.delete(listener);
+  };
+};
+
 const hasLocalStorage =
   typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
@@ -109,6 +131,7 @@ export const setPrayerActivityThresholds = async (
 
   if (!hasLocalStorage) {
     writeToMemory(sanitized);
+    notifyThresholdListeners(sanitized);
     return sanitized;
   }
 
@@ -118,5 +141,6 @@ export const setPrayerActivityThresholds = async (
     console.warn('[prayerActivityConfig]', error);
   }
 
+  notifyThresholdListeners(sanitized);
   return sanitized;
 };
