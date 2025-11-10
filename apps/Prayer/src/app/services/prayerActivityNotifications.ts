@@ -96,7 +96,7 @@ const schedulePrayerActivityNotificationsForTimestamp = async (
           title,
           body,
           android: Platform.OS === 'android' ? { channelId: PRAYER_ACTIVITY_CHANNEL_ID } : undefined,
-          ios: { sound: 'default' },
+          ios: { sound: 'angels_sing_in_heaven.caf' },
         },
         trigger,
       );
