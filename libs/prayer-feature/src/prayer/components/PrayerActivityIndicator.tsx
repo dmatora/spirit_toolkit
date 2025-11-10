@@ -17,6 +17,7 @@ import {
 } from '../services/prayerActivityState';
 
 const REFRESH_INTERVAL_MS = 30000;
+const INACTIVITY_TIMEOUT_MS = 10000; // consider prayer paused after 10s with no activity
 
 type Props = {
   style?: StyleProp<ViewStyle>;
@@ -94,13 +95,12 @@ const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
   const warning = thresholds.warningMinutes;
   const danger = thresholds.dangerMinutes;
   const focusMinutes = thresholds.focusMinutes ?? DEFAULT_THRESHOLDS.focusMinutes;
-  const activeWindowMs = Math.max(0, focusMinutes) * 60000;
   const sessionDurationMs = sessionStart != null ? Math.max(0, now - sessionStart) : 0;
   const sessionDurationMinutes = Math.floor(sessionDurationMs / 60000);
   const isCurrentPrayerActive =
     sessionStart != null &&
     lastActivity != null &&
-    Math.max(0, now - lastActivity) < activeWindowMs;
+    Math.max(0, now - lastActivity) < INACTIVITY_TIMEOUT_MS;
 
   let label = '';
   let color = palette.mutedInk;
@@ -108,6 +108,7 @@ const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
   if (isCurrentPrayerActive) {
     const durationLabel = formatRelativeText(sessionDurationMinutes);
     label = `Молитва длится: ${durationLabel}`;
+    color = palette.ink;
 
     if (sessionDurationMinutes >= focusMinutes * 2) {
       color = palette.danger;
@@ -117,6 +118,7 @@ const PrayerActivityIndicator: React.FC<Props> = ({ style }) => {
   } else {
     const relativeLabel = `${formatRelativeText(diffMinutes)} назад`;
     label = `Последняя молитва: ${relativeLabel}`;
+    color = palette.ink;
 
     if (diffMinutes >= danger) {
       color = palette.danger;
