@@ -12,6 +12,11 @@ export const PRAYERS: PrayerLink[] = [
   { id: 'morning_rule', title: 'Утреннее правило', href: '/molitvoslov/morning_rule' },
   { id: 'evening_rule', title: 'Вечернее правило', href: '/molitvoslov/evening_rule' },
   {
+    id: 'three_canons',
+    title: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
+    href: '/molitvoslov/three_canons',
+  },
+  {
     id: 'akathist_baptist',
     title: 'Акафист святому Иоанну Крестителю',
     href: '/molitvoslov/akathist_baptist',
