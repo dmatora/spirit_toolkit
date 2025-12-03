@@ -9,6 +9,7 @@ export type PrayerId =
   | 'communion_evening'
   | 'communion_morning'
   | 'communion'
+  | 'gratitude'
   | 'akathist_baptist'
   | 'akathist_spiridon'
   | 'akathist_sergy'
@@ -26,6 +27,7 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
     prayerId === 'communion_evening' ||
     prayerId === 'communion_morning' ||
     prayerId === 'communion' ||
+    prayerId === 'gratitude' ||
     prayerId === 'akathist_baptist' ||
     prayerId === 'akathist_spiridon' ||
     prayerId === 'akathist_sergy' ||
@@ -67,6 +69,9 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
             break;
           case 'communion':
             data = require('../assets/prayers/communion.json');
+            break;
+          case 'gratitude':
+            data = require('../assets/prayers/gratitude.json');
             break;
           case 'akathist_baptist':
             data = require('../assets/prayers/akathist_baptist.json');
