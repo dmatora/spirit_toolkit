@@ -23,6 +23,10 @@ export const PRAYER_OPTIONS: PrayerOption[] = [
     id: 'communion',
     title: 'Памятка готовящемуся ко Святому Причащению',
   },
+  {
+    id: 'gratitude',
+    title: 'Благодарственные молитвы по Святом Причащении',
+  },
   { id: 'akathist_baptist', title: 'Акафист святому Иоанну Крестителю' },
   { id: 'akathist_spiridon', title: 'Акафист святителю Спиридону Тримифунтскому' },
   { id: 'akathist_sergy', title: 'Акафист преподобному Сергию Радонежскому' },
@@ -43,6 +47,7 @@ export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>
     communion_evening: 'Последование ко Святому Причащению (канон)',
     communion_morning: 'Последование ко Святому Причащению (молитвы)',
     communion: 'Памятка готовящемуся ко Святому Причащению',
+    gratitude: 'Благодарственные молитвы по Святом Причащении',
     akathist_baptist: 'Акафист святому Иоанну Крестителю',
     akathist_spiridon: 'Акафист святителю Спиридону Тримифунтскому',
     akathist_sergy: 'Акафист преподобному Сергию Радонежскому',
