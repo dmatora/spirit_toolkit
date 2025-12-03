@@ -81,6 +81,25 @@ type RenderOptions = {
 const LEADING_DIGIT_PRAYER_IDS: PrayerId[] = ['morning_rule', 'evening_rule'];
 const LEADING_DIGIT_SCALE = 0.5;
 const LEADING_DIGIT_REGEX = /^(\s*)(\d+)([\s\S]*)/;
+const BOLD_TAG_REGEX = /<b>(.*?)<\/b>/;
+
+const renderRichText = (content: string, baseStyle: TextStyle): React.ReactNode => {
+  if (!BOLD_TAG_REGEX.test(content)) {
+    return null;
+  }
+
+  const parts = content.split(/<b>(.*?)<\/b>/g);
+  return parts.map((part, index) => {
+    if (index % 2 === 1) {
+      return (
+        <Text key={index} style={[baseStyle, { fontWeight: '700' }]}>
+          {part}
+        </Text>
+      );
+    }
+    return part;
+  });
+};
 
 const renderLeadingDigitContent = (
   content: string,
@@ -127,10 +146,15 @@ const renderTextualBlock = (
   const roleStyle = block.role ? ROLE_STYLES[block.role] : undefined;
   const { onLayout, accessibilityRole, nativeID } = options;
 
-  const contentChildren =
-    options.shrinkLeadingDigits && typeof block.content === 'string'
-      ? renderLeadingDigitContent(block.content, textStyle)
-      : null;
+  let contentChildren: React.ReactNode = null;
+
+  if (options.shrinkLeadingDigits && typeof block.content === 'string') {
+    contentChildren = renderLeadingDigitContent(block.content, textStyle);
+  }
+
+  if (!contentChildren && typeof block.content === 'string') {
+    contentChildren = renderRichText(block.content, textStyle);
+  }
 
   return (
     <View
