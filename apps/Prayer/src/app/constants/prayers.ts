@@ -7,6 +7,10 @@ export const PRAYER_OPTIONS: PrayerOption[] = [
   { id: 'vespers', title: 'Вечерня' },
   { id: 'morning_rule', title: 'Утреннее правило' },
   { id: 'evening_rule', title: 'Вечернее правило' },
+  {
+    id: 'three_canons',
+    title: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
+  },
   { id: 'akathist_baptist', title: 'Акафист святому Иоанну Крестителю' },
   { id: 'akathist_spiridon', title: 'Акафист святителю Спиридону Тримифунтскому' },
   { id: 'akathist_sergy', title: 'Акафист преподобному Сергию Радонежскому' },
@@ -23,6 +27,7 @@ export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>
     vespers: 'Вечерня',
     morning_rule: 'Утреннее правило',
     evening_rule: 'Вечернее правило',
+    three_canons: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
     akathist_baptist: 'Акафист святому Иоанну Крестителю',
     akathist_spiridon: 'Акафист святителю Спиридону Тримифунтскому',
     akathist_sergy: 'Акафист преподобному Сергию Радонежскому',
