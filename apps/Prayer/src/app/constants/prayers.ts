@@ -11,6 +11,18 @@ export const PRAYER_OPTIONS: PrayerOption[] = [
     id: 'three_canons',
     title: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
   },
+  {
+    id: 'communion_evening',
+    title: 'Последование ко Святому Причащению (канон)',
+  },
+  {
+    id: 'communion_morning',
+    title: 'Последование ко Святому Причащению (молитвы)',
+  },
+  {
+    id: 'communion',
+    title: 'Памятка готовящемуся ко Святому Причащению',
+  },
   { id: 'akathist_baptist', title: 'Акафист святому Иоанну Крестителю' },
   { id: 'akathist_spiridon', title: 'Акафист святителю Спиридону Тримифунтскому' },
   { id: 'akathist_sergy', title: 'Акафист преподобному Сергию Радонежскому' },
@@ -28,6 +40,9 @@ export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>
     morning_rule: 'Утреннее правило',
     evening_rule: 'Вечернее правило',
     three_canons: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
+    communion_evening: 'Последование ко Святому Причащению (канон)',
+    communion_morning: 'Последование ко Святому Причащению (молитвы)',
+    communion: 'Памятка готовящемуся ко Святому Причащению',
     akathist_baptist: 'Акафист святому Иоанну Крестителю',
     akathist_spiridon: 'Акафист святителю Спиридону Тримифунтскому',
     akathist_sergy: 'Акафист преподобному Сергию Радонежскому',
