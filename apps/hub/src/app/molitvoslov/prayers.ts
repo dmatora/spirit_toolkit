@@ -32,6 +32,11 @@ export const PRAYERS: PrayerLink[] = [
     href: '/molitvoslov/communion',
   },
   {
+    id: 'gratitude',
+    title: 'Благодарственные молитвы по Святом Причащении',
+    href: '/molitvoslov/gratitude',
+  },
+  {
     id: 'akathist_baptist',
     title: 'Акафист святому Иоанну Крестителю',
     href: '/molitvoslov/akathist_baptist',
