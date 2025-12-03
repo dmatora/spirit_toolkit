@@ -17,6 +17,21 @@ export const PRAYERS: PrayerLink[] = [
     href: '/molitvoslov/three_canons',
   },
   {
+    id: 'communion_evening',
+    title: 'Последование ко Святому Причащению (канон)',
+    href: '/molitvoslov/communion_evening',
+  },
+  {
+    id: 'communion_morning',
+    title: 'Последование ко Святому Причащению (молитвы)',
+    href: '/molitvoslov/communion_morning',
+  },
+  {
+    id: 'communion',
+    title: 'Памятка готовящемуся ко Святому Причащению',
+    href: '/molitvoslov/communion',
+  },
+  {
     id: 'akathist_baptist',
     title: 'Акафист святому Иоанну Крестителю',
     href: '/molitvoslov/akathist_baptist',
