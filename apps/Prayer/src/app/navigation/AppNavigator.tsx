@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme';
 import HomeScreen from '../screens/HomeScreen';
@@ -7,7 +8,7 @@ import JournalScreen from '../screens/JournalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrayerNavigator from './PrayerNavigator';
 
-type TabParamList = {
+export type TabParamList = {
   Главная: undefined;
   Журнал: undefined;
   Настройки: undefined;
@@ -46,7 +47,14 @@ const AppNavigator = () => (
     })}
   >
     <Tab.Screen name="Главная" component={HomeScreen} />
-    <Tab.Screen name="Журнал" component={JournalScreen} />
+    <Tab.Screen
+      name="Журнал"
+      component={JournalScreen}
+      options={{
+        headerShown: Platform.OS !== 'web',
+        headerTitle: 'Журнал',
+      }}
+    />
     <Tab.Screen name="Молитвослов" component={PrayerNavigator} />
     <Tab.Screen name="Настройки" component={SettingsScreen} />
   </Tab.Navigator>

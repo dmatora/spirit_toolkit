@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -12,23 +12,49 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme';
+import { useTopBarPortal } from '@spirit/prayer-feature/prayer/context/TopBarPortalContext';
 
 import {
   deleteJournalEntry,
   getAllJournalEntries,
   type JournalEntry,
 } from '../services/journalDb';
-import { onSynced, triggerSync } from '../services/journalSync.web';
+import {
+  getIsSyncing,
+  onSynced,
+  onSyncStateChange,
+  syncNow,
+  triggerSync,
+} from '../services/journalSync.web';
 import AddJournalEntryModal from '../components/AddJournalEntryModal.web';
+import JournalSyncButton from '../components/JournalSyncButton';
 
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp * 1000).toLocaleString('ru-RU');
 
 const JournalScreen = () => {
+  const topBarPortal = useTopBarPortal();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(() => getIsSyncing());
   const [error, setError] = useState<string | undefined>();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const unsyncedCount = entries.filter((entry) => entry.synced === 0).length;
+
+  const handleManualSync = useCallback(() => {
+    void syncNow();
+  }, []);
+
+  const syncButton = useMemo(
+    () => (
+      <JournalSyncButton
+        isSyncing={isSyncing}
+        onPress={handleManualSync}
+        unsyncedCount={unsyncedCount}
+      />
+    ),
+    [handleManualSync, isSyncing, unsyncedCount],
+  );
 
   const handleDelete = (id: number) => {
     const runDeletion = async () => {
@@ -106,6 +132,23 @@ const JournalScreen = () => {
   useEffect(() => {
     let isMounted = true;
 
+    const unsubscribe = onSyncStateChange.subscribe((nextValue) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsSyncing(nextValue);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
     const unsubscribe = onSynced.subscribe(() => {
       if (!isMounted) {
         return;
@@ -119,8 +162,21 @@ const JournalScreen = () => {
     };
   }, [loadEntries]);
 
+  useEffect(() => {
+    if (!topBarPortal) {
+      return;
+    }
+
+    topBarPortal.setTopBarActions(syncButton);
+
+    return () => {
+      topBarPortal.setTopBarActions(null);
+    };
+  }, [syncButton, topBarPortal]);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      {!topBarPortal ? <View style={styles.toolbar}>{syncButton}</View> : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {isLoading ? <ActivityIndicator style={styles.loader} /> : null}
       <FlatList
@@ -175,6 +231,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: palette.paper,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 12,
   },
   loader: {
     marginBottom: 12,

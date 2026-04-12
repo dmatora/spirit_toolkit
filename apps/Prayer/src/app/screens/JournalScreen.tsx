@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -9,9 +9,10 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { palette } from '@spirit/prayer-feature/theme';
 
 import {
@@ -19,17 +20,34 @@ import {
   getAllJournalEntries,
   type JournalEntry,
 } from '../services/journalDb';
-import { onSynced, triggerSync } from '../services/journalSync';
+import {
+  getIsSyncing,
+  onSynced,
+  onSyncStateChange,
+  syncNow,
+  triggerSync,
+} from '../services/journalSync';
 import AddJournalEntryModal from '../components/AddJournalEntryModal';
+import JournalSyncButton from '../components/JournalSyncButton';
+import type { TabParamList } from '../navigation/AppNavigator';
 
 const formatTimestamp = (timestamp: number) =>
   new Date(timestamp * 1000).toLocaleString('ru-RU');
 
+type JournalScreenNavigation = BottomTabNavigationProp<TabParamList, 'Журнал'>;
+
 const JournalScreen = () => {
+  const navigation = useNavigation<JournalScreenNavigation>();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(() => getIsSyncing());
   const [error, setError] = useState<string | undefined>();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const unsyncedCount = entries.filter((entry) => entry.synced === 0).length;
+
+  const handleManualSync = useCallback(() => {
+    void syncNow();
+  }, []);
 
   const handleDelete = (id: number) => {
     const runDeletion = async () => {
@@ -111,6 +129,23 @@ const JournalScreen = () => {
   useEffect(() => {
     let isMounted = true;
 
+    const unsubscribe = onSyncStateChange.subscribe((nextValue) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsSyncing(nextValue);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
     const unsubscribe = onSynced.subscribe(() => {
       if (!isMounted) {
         return;
@@ -124,8 +159,20 @@ const JournalScreen = () => {
     };
   }, [loadEntries]);
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <JournalSyncButton
+          isSyncing={isSyncing}
+          onPress={handleManualSync}
+          unsyncedCount={unsyncedCount}
+        />
+      ),
+    });
+  }, [handleManualSync, isSyncing, navigation, unsyncedCount]);
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {isLoading ? <ActivityIndicator style={styles.loader} /> : null}
       <FlatList

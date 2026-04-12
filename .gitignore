@@ -133,3 +133,4 @@ out
 # PWA Service Worker files (build artifacts)
 apps/hub/public/sw.js*
 apps/hub/public/workbox-*.js*
+*.tsbuildinfo

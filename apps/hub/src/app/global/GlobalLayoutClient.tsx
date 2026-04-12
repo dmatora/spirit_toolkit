@@ -65,9 +65,26 @@ const TopBarMainContent = styled.div`
   min-width: 0;
 `;
 
+const TopBarHeadlineRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+`;
+
 const TopBarDynamicSlot = styled.div`
   display: flex;
   flex-direction: column;
+`;
+
+const TopBarActionsSlot = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  & > * + * {
+    margin-left: 8px;
+  }
 `;
 
 const Title = styled.span`
@@ -238,6 +255,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [topBarContent, setTopBarContent] = useState<ReactNode | null>(null);
+  const [topBarActions, setTopBarActions] = useState<ReactNode | null>(null);
   const disableStickyForPath =
     pathname === '/molitvoslov/liturgy' || pathname === '/molitvoslov/vespers';
   const shouldUseStickyTopBar = !disableStickyForPath;
@@ -247,12 +265,19 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
     },
     [],
   );
+  const setTopBarActionsValue = useCallback<TopBarPortalContextValue['setTopBarActions']>(
+    (content) => {
+      setTopBarActions(content);
+    },
+    [],
+  );
 
   const topBarPortalValue = useMemo<TopBarPortalContextValue>(
     () => ({
       setTopBarContent: setTopBarContentValue,
+      setTopBarActions: setTopBarActionsValue,
     }),
-    [setTopBarContentValue],
+    [setTopBarActionsValue, setTopBarContentValue],
   );
 
   useEffect(() => {
@@ -385,6 +410,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   );
 
   const hasTopBarContent = Boolean(topBarContent);
+  const hasTopBarActions = Boolean(topBarActions);
   const shouldShowSectionTitle = !isPrayerDetailRoute || !hasTopBarContent;
 
   return (
@@ -406,7 +432,12 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
                   <Ionicons name={isOpen ? 'close' : 'menu'} size={18} />
                 </IconButton>
                 <TopBarMainContent>
-                  {shouldShowSectionTitle && <Title>{sectionTitle}</Title>}
+                  <TopBarHeadlineRow>
+                    {shouldShowSectionTitle && <Title>{sectionTitle}</Title>}
+                    {hasTopBarActions && (
+                      <TopBarActionsSlot>{topBarActions}</TopBarActionsSlot>
+                    )}
+                  </TopBarHeadlineRow>
                   {hasTopBarContent && <TopBarDynamicSlot>{topBarContent}</TopBarDynamicSlot>}
                 </TopBarMainContent>
               </TopBarRow>

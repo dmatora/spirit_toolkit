@@ -11,6 +11,7 @@ import {
 import { isSyncEnabled, resolveUrl, withSyncAuthHeaders } from './syncConfig';
 
 type Listener = () => void;
+type SyncStateListener = (isSyncing: boolean) => void;
 
 const LAST_SYNC_CURSOR_KEY = 'journal/lastSyncedCursor';
 const LEGACY_SYNC_KEY = 'journal/lastSyncedAt';
@@ -21,8 +22,10 @@ const BACKGROUND_INTERVAL_MS = 120_000;
 
 let inFlightSync: Promise<void> | null = null;
 let stopBackground: (() => void) | null = null;
+let isSyncing = false;
 
 const listeners = new Set<Listener>();
+const syncStateListeners = new Set<SyncStateListener>();
 
 const notifySynced = () => {
   listeners.forEach((listener) => {
@@ -32,6 +35,25 @@ const notifySynced = () => {
       console.warn('[journalSync] Listener threw during notify', error);
     }
   });
+};
+
+const notifySyncState = () => {
+  syncStateListeners.forEach((listener) => {
+    try {
+      listener(isSyncing);
+    } catch (error) {
+      console.warn('[journalSync] Sync state listener threw during notify', error);
+    }
+  });
+};
+
+const setSyncing = (nextValue: boolean) => {
+  if (isSyncing === nextValue) {
+    return;
+  }
+
+  isSyncing = nextValue;
+  notifySyncState();
 };
 
 const readLastSyncedCursor = async (): Promise<number> => {
@@ -87,6 +109,17 @@ export const onSynced = {
   },
 };
 
+export const onSyncStateChange = {
+  subscribe(listener: SyncStateListener): () => void {
+    syncStateListeners.add(listener);
+    return () => {
+      syncStateListeners.delete(listener);
+    };
+  },
+};
+
+export const getIsSyncing = (): boolean => isSyncing;
+
 export const syncNow = async (): Promise<void> => {
   if (!isSyncEnabled()) {
     return;
@@ -95,8 +128,10 @@ export const syncNow = async (): Promise<void> => {
     return inFlightSync;
   }
 
+  setSyncing(true);
   inFlightSync = performSync().finally(() => {
     inFlightSync = null;
+    setSyncing(false);
   });
 
   return inFlightSync;
