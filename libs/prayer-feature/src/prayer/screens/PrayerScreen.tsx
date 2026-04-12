@@ -27,10 +27,19 @@ import { recordPrayerActivity } from '../services/prayerActivityState';
 type PrayerScreenProps = {
   prayerId?: PrayerId;
   scrollSource?: 'internal' | 'external';
+  initialScrollY?: number;
+  onScrollPositionChange?: (payload: {
+    prayerId: PrayerId;
+    scrollY: number;
+    maxScrollableY: number;
+    timestampMs: number;
+    isCompleted: boolean;
+  }) => void;
 };
 
 const PENDING_END_DEBOUNCE_MS = 100;
 const PRAYER_TOPBAR_NATIVE_ID = 'prayer-topbar';
+const SCROLL_COMPLETION_THRESHOLD_PX = 48;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: palette.paper },
@@ -74,6 +83,8 @@ const styles = StyleSheet.create({
 const PrayerScreen: React.FC<PrayerScreenProps> = ({
   prayerId,
   scrollSource = 'internal',
+  initialScrollY = 0,
+  onScrollPositionChange,
 }) => {
   let route: any;
   try {
@@ -81,7 +92,9 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
   } catch (_err) {
     route = undefined as any;
   }
-  const resolvedPrayerId: PrayerId = (prayerId ?? route?.params?.prayerId ?? 'liturgy') as PrayerId;
+  const resolvedPrayerId: PrayerId = (prayerId ??
+    route?.params?.prayerId ??
+    'liturgy') as PrayerId;
   const shouldTrackPrayerActivity =
     resolvedPrayerId !== 'liturgy' && resolvedPrayerId !== 'vespers';
   const isWeb = Platform.OS === 'web';
@@ -95,13 +108,17 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
         console.debug(...args);
       }
     },
-    [isDev],
+    [isDev]
   );
   const scrollRef = useRef<ScrollView | null>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
   const lastScrollYRef = useRef(0);
   const contentHeightRef = useRef<number>(0);
   const containerHeightRef = useRef<number>(0);
+  const hasRestoredInitialScrollRef = useRef(initialScrollY <= 0);
+  const pendingInitialScrollYRef = useRef(
+    Math.max(0, Math.round(initialScrollY))
+  );
   const skipMomentumEndCountRef = useRef(0);
   const getMaxScrollableY = () =>
     Math.max(0, contentHeightRef.current - containerHeightRef.current);
@@ -136,6 +153,8 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
     lastScrollYRef.current = 0;
     contentHeightRef.current = 0;
     containerHeightRef.current = 0;
+    pendingInitialScrollYRef.current = Math.max(0, Math.round(initialScrollY));
+    hasRestoredInitialScrollRef.current = pendingInitialScrollYRef.current <= 0;
     setMeasuredCount(0);
     setActiveSectionId(undefined);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -222,11 +241,61 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
           }
         }
       }
-      const fallback = sections.find((section) => typeof positions[section.id] === 'number');
+      const fallback = sections.find(
+        (section) => typeof positions[section.id] === 'number'
+      );
       return current?.id ?? fallback?.id;
     },
-    [sections],
+    [sections]
   );
+
+  const notifyScrollPositionChange = useCallback(
+    (scrollY: number, timestampMs: number) => {
+      if (!onScrollPositionChange) {
+        return;
+      }
+
+      const maxScrollableY = getMaxScrollableY();
+      onScrollPositionChange({
+        prayerId: resolvedPrayerId,
+        scrollY,
+        maxScrollableY,
+        timestampMs,
+        isCompleted:
+          maxScrollableY > 0 &&
+          maxScrollableY - scrollY <= SCROLL_COMPLETION_THRESHOLD_PX,
+      });
+    },
+    [onScrollPositionChange, resolvedPrayerId]
+  );
+
+  const maybeRestoreInitialScroll = useCallback(() => {
+    if (isWeb || hasRestoredInitialScrollRef.current) {
+      return;
+    }
+
+    if (
+      !scrollRef.current ||
+      contentHeightRef.current <= 0 ||
+      containerHeightRef.current <= 0
+    ) {
+      return;
+    }
+
+    const maxScrollableY = getMaxScrollableY();
+    const desiredY = pendingInitialScrollYRef.current;
+    const targetY = Math.max(0, Math.min(desiredY, maxScrollableY));
+
+    lastScrollYRef.current = targetY;
+    scrollRef.current.scrollTo({ y: targetY, animated: false });
+
+    // React Native can report multiple intermediate content heights while the
+    // prayer text is still laying out. Keep retrying until the scroll range is
+    // large enough to reach the saved position.
+    const restoreReachedTarget =
+      desiredY <= 0 || targetY >= desiredY || maxScrollableY >= desiredY;
+    hasRestoredInitialScrollRef.current = restoreReachedTarget;
+  }, [isWeb]);
 
   function endProgrammaticScroll() {
     const ref = programmaticScrollRef.current;
@@ -247,13 +316,21 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
   }
 
   useEffect(() => {
+    pendingInitialScrollYRef.current = Math.max(0, Math.round(initialScrollY));
+    hasRestoredInitialScrollRef.current = pendingInitialScrollYRef.current <= 0;
+    maybeRestoreInitialScroll();
+  }, [initialScrollY, maybeRestoreInitialScroll, resolvedPrayerId]);
+
+  useEffect(() => {
     const prevSig = prevSectionsSigRef.current;
     if (prevSig === null) {
       prevSectionsSigRef.current = sectionsSig;
       sectionPositionsRef.current = {};
       setActiveSectionId(undefined);
       setMeasuredCount(0);
-      debugLog('[PrayerScreen] sections signature initialized; performed initial reset');
+      debugLog(
+        '[PrayerScreen] sections signature initialized; performed initial reset'
+      );
       return;
     }
 
@@ -262,13 +339,16 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       sectionPositionsRef.current = {};
       setActiveSectionId(undefined);
       setMeasuredCount(0);
-      debugLog('[PrayerScreen] sections signature changed; reset measurement state', {
-        prevSig,
-        sectionsSig,
-      });
+      debugLog(
+        '[PrayerScreen] sections signature changed; reset measurement state',
+        {
+          prevSig,
+          sectionsSig,
+        }
+      );
     } else {
       debugLog(
-        '[PrayerScreen] sections signature unchanged; preserving measurement state',
+        '[PrayerScreen] sections signature unchanged; preserving measurement state'
       );
     }
   }, [debugLog, sectionsSig]);
@@ -341,17 +421,24 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
         setActiveSectionId(nextId);
       }
     },
-    [computeActiveSectionIdForY, endProgrammaticScroll, isWeb],
+    [computeActiveSectionIdForY, endProgrammaticScroll, isWeb]
   );
 
   const handleTrackedScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const timestampMs = Date.now();
       handleScroll(event);
+      notifyScrollPositionChange(lastScrollYRef.current, timestampMs);
       if (shouldTrackPrayerActivity) {
-        recordPrayerActivity(Date.now());
+        recordPrayerActivity(timestampMs);
       }
     },
-    [handleScroll, recordPrayerActivity, shouldTrackPrayerActivity],
+    [
+      handleScroll,
+      notifyScrollPositionChange,
+      recordPrayerActivity,
+      shouldTrackPrayerActivity,
+    ]
   );
 
   const handleSelectSection = useCallback(
@@ -363,13 +450,19 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       }
 
       const currentY = lastScrollYRef.current || 0;
-      scrollRef.current?.scrollTo({ y: Math.max(0, currentY), animated: false });
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, currentY),
+        animated: false,
+      });
       endProgrammaticScroll();
       skipMomentumEndCountRef.current += 1;
-      debugLog('[PrayerScreen] force-cancelled momentum prior to programmatic select', {
-        sectionId,
-        skipCount: skipMomentumEndCountRef.current,
-      });
+      debugLog(
+        '[PrayerScreen] force-cancelled momentum prior to programmatic select',
+        {
+          sectionId,
+          skipCount: skipMomentumEndCountRef.current,
+        }
+      );
 
       setActiveSectionId(sectionId);
       const positions = sectionPositionsRef.current;
@@ -379,7 +472,9 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       if (typeof directOffset === 'number') {
         targetOffset = directOffset;
       } else {
-        const sectionIndex = sections.findIndex((section) => section.id === sectionId);
+        const sectionIndex = sections.findIndex(
+          (section) => section.id === sectionId
+        );
         if (sectionIndex === -1) {
           targetOffset = 0;
         } else {
@@ -411,18 +506,19 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       beginProgrammaticScroll(finalOffset);
       scrollRef.current?.scrollTo({ y: finalOffset, animated: true });
     },
-    [beginProgrammaticScroll, debugLog, isWeb, sections, webObserver],
+    [beginProgrammaticScroll, debugLog, isWeb, sections, webObserver]
   );
 
-  const prayerContent = !isLoading && !loadError ? (
-    <PrayerRenderer
-      blocks={resolvedData}
-      onMajorSectionLayout={handleSectionLayout}
-      sectionIdLookup={sectionIndexLookup}
-      evaluationDate={evaluationDate}
-      prayerId={resolvedPrayerId}
-    />
-  ) : null;
+  const prayerContent =
+    !isLoading && !loadError ? (
+      <PrayerRenderer
+        blocks={resolvedData}
+        onMajorSectionLayout={handleSectionLayout}
+        sectionIdLookup={sectionIndexLookup}
+        evaluationDate={evaluationDate}
+        prayerId={resolvedPrayerId}
+      />
+    ) : null;
 
   const scrollableContent = useExternalScroll ? (
     <View nativeID="prayer-scroll-container" style={styles.scroll}>
@@ -435,9 +531,11 @@ const PrayerScreen: React.FC<PrayerScreenProps> = ({
       contentContainerStyle={styles.scroll}
       onContentSizeChange={(_w, h) => {
         contentHeightRef.current = h;
+        maybeRestoreInitialScroll();
       }}
       onLayout={(event) => {
         containerHeightRef.current = event.nativeEvent.layout.height;
+        maybeRestoreInitialScroll();
       }}
       onScroll={handleTrackedScroll}
       onScrollBeginDrag={() => {

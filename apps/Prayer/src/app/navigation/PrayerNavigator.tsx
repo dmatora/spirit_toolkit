@@ -7,7 +7,7 @@ import PrayerScreen from '../screens/PrayerScreen';
 
 export type PrayerStackParamList = {
   'Список молитв': undefined;
-  'Молитва': { prayerId: PrayerId };
+  'Молитва': { prayerId: PrayerId; resumeSavedPosition?: boolean };
 };
 
 const Stack = createNativeStackNavigator<PrayerStackParamList>();
