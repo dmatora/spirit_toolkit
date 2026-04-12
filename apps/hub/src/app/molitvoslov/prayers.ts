@@ -11,6 +11,7 @@ export const PRAYERS: PrayerLink[] = [
   { id: 'vespers', title: 'Вечерня', href: '/molitvoslov/vespers' },
   { id: 'morning_rule', title: 'Утреннее правило', href: '/molitvoslov/morning_rule' },
   { id: 'evening_rule', title: 'Вечернее правило', href: '/molitvoslov/evening_rule' },
+  { id: 'pascha_hours', title: 'Часы пасхальные', href: '/molitvoslov/pascha_hours' },
   {
     id: 'three_canons',
     title: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',

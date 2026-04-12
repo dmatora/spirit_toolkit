@@ -7,6 +7,7 @@ export const PRAYER_OPTIONS: PrayerOption[] = [
   { id: 'vespers', title: 'Вечерня' },
   { id: 'morning_rule', title: 'Утреннее правило' },
   { id: 'evening_rule', title: 'Вечернее правило' },
+  { id: 'pascha_hours', title: 'Часы пасхальные' },
   {
     id: 'three_canons',
     title: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
@@ -43,6 +44,7 @@ export const PRAYER_TITLE_BY_ID = PRAYER_OPTIONS.reduce<Record<PrayerId, string>
     vespers: 'Вечерня',
     morning_rule: 'Утреннее правило',
     evening_rule: 'Вечернее правило',
+    pascha_hours: 'Часы пасхальные',
     three_canons: 'Совмещённые каноны: Покаянный, Богородице, Ангелу Хранителю',
     communion_evening: 'Последование ко Святому Причащению (канон)',
     communion_morning: 'Последование ко Святому Причащению (молитвы)',
