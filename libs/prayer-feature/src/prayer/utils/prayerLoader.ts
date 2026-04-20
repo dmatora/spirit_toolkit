@@ -1,4 +1,8 @@
 import type { PrayerBlock } from '../types/prayer';
+import {
+  calculateLiturgicalPeriod,
+  type LiturgicalPeriodInfo,
+} from './liturgicalPeriods';
 
 export type PrayerId =
   | 'liturgy'
@@ -18,7 +22,29 @@ export type PrayerId =
 
 const cache: Partial<Record<PrayerId, PrayerBlock[]>> = {};
 
-export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
+export type LoadPrayerOptions = {
+  liturgicalPeriod?: LiturgicalPeriodInfo;
+  now?: Date;
+};
+
+const shouldUsePaschaHours = (
+  prayerId: PrayerId,
+  options?: LoadPrayerOptions,
+): boolean => {
+  if (prayerId !== 'morning_rule' && prayerId !== 'evening_rule') {
+    return false;
+  }
+
+  const period =
+    options?.liturgicalPeriod ?? calculateLiturgicalPeriod(options?.now ?? new Date());
+
+  return period.key === 'bright_week';
+};
+
+export async function loadPrayer(
+  prayerId: PrayerId,
+  options?: LoadPrayerOptions,
+): Promise<PrayerBlock[]> {
   const resolvedId: PrayerId =
     prayerId === 'liturgy' ||
     prayerId === 'vespers' ||
@@ -36,8 +62,11 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
     prayerId === 'akathist_luka'
       ? prayerId
       : 'liturgy';
+  const sourceId: PrayerId = shouldUsePaschaHours(resolvedId, options)
+    ? 'pascha_hours'
+    : resolvedId;
 
-  const cachedBlocks = cache[resolvedId];
+  const cachedBlocks = cache[sourceId];
   if (cachedBlocks) {
     return cachedBlocks;
   }
@@ -47,7 +76,7 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
       try {
         let data: PrayerBlock[];
 
-        switch (resolvedId) {
+        switch (sourceId) {
           case 'liturgy':
             data = require('../assets/prayers/liturgy.json');
             break;
@@ -95,7 +124,7 @@ export async function loadPrayer(prayerId: PrayerId): Promise<PrayerBlock[]> {
             break;
         }
 
-        cache[resolvedId] = data;
+        cache[sourceId] = data;
         resolve(data);
       } catch (error) {
         reject(error);

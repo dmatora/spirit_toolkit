@@ -1,14 +1,25 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import type { PrayerBlock, PrayerConditionalBlock } from '@spirit/prayer-feature/prayer/types/prayer';
+import type {
+  PrayerBlock,
+  PrayerConditionalBlock,
+  PrayerConditionRule,
+} from '@spirit/prayer-feature/prayer/types/prayer';
 import { evaluateCondition } from '@spirit/prayer-feature/prayer/utils/conditions';
 import {
   computeSectionRanges,
   extractMajorSections,
 } from '@spirit/prayer-feature/prayer/utils/serviceMap';
 
-const ASSETS_DIR = path.resolve(__dirname, '../../libs/prayer-feature/src/prayer/assets/prayers');
+const ASSETS_DIR = path.resolve(__dirname, '../../../libs/prayer-feature/src/prayer/assets/prayers');
 const ALLOWED_ROLES = new Set<PrayerBlock['role']>(['priest', 'deacon', 'choir', 'people']);
+const ALLOWED_CONDITION_RULES = new Set<PrayerConditionRule>([
+  'ordinary',
+  'pascha_period',
+  'pascha_bright_week',
+  'pascha_to_ascension',
+  'ascension_to_trinity',
+]);
 
 type ValidationDate = {
   label: string;
@@ -17,7 +28,9 @@ type ValidationDate = {
 
 const VALIDATION_DATES: ValidationDate[] = [
   { label: 'ordinary', date: new Date('2024-03-01T12:00:00Z') },
-  { label: 'pascha_period', date: new Date('2024-05-05T12:00:00Z') },
+  { label: 'pascha_bright_week', date: new Date('2024-05-05T12:00:00Z') },
+  { label: 'pascha_to_ascension', date: new Date('2024-05-15T12:00:00Z') },
+  { label: 'ascension_to_trinity', date: new Date('2024-06-13T12:00:00Z') },
 ];
 
 type ValidationResult = {
@@ -45,8 +58,14 @@ const ensureConditionalBlock = (
   }
 
   const rule = (value.condition as Record<string, unknown>).rule;
-  if (rule !== 'pascha_period') {
+  if (!ALLOWED_CONDITION_RULES.has(rule as PrayerConditionRule)) {
     errors.push(`${ctx}: unsupported condition rule "${String(rule)}"`);
+    return null;
+  }
+
+  const negate = (value.condition as Record<string, unknown>).negate;
+  if (negate !== undefined && typeof negate !== 'boolean') {
+    errors.push(`${ctx}: condition "negate" must be boolean when provided`);
     return null;
   }
 
@@ -65,7 +84,10 @@ const ensureConditionalBlock = (
 
   return {
     type: 'conditional',
-    condition: { rule: 'pascha_period' },
+    condition: {
+      rule: rule as PrayerConditionRule,
+      ...(typeof negate === 'boolean' ? { negate } : {}),
+    },
     content: nested,
     role: assertRole(value.role) ? value.role : undefined,
     timestamp_minutes: assertTimestamp(value.timestamp_minutes)

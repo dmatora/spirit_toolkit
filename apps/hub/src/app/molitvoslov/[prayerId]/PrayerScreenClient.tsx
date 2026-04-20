@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { PrayerScreen, type PrayerId } from '@spirit/prayer-feature';
 import { recordPrayerActivity } from '@spirit/prayer-feature/prayer/services/prayerActivityState';
 
@@ -14,6 +15,7 @@ const shouldSkipStrictEffectGuard =
 
 export default function PrayerScreenClient({ prayerId }: Props) {
   const id = (prayerId as PrayerId) ?? 'liturgy';
+  const router = useRouter();
   const skipStrictEffectRef = useRef(shouldSkipStrictEffectGuard);
   const lastScrollActivityRef = useRef(0);
 
@@ -75,6 +77,7 @@ export default function PrayerScreenClient({ prayerId }: Props) {
     <PrayerScreen
       prayerId={id}
       scrollSource="external"
+      onOpenSettings={() => router.push('/settings')}
     />
   );
 }

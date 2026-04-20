@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -38,11 +39,31 @@ import {
 } from '../services/syncConfig';
 import { syncNow } from '../services/journalSync';
 import { useFontScale } from '@spirit/prayer-feature/prayer/context/FontScaleContext';
+import { useEvaluationDate } from '@spirit/prayer-feature/prayer/hooks/useEvaluationDate';
+import {
+  ensureLiturgicalCalendarSettingsInitialized,
+  formatLiturgicalPeriodStatus,
+  getLiturgicalCalendarSettings,
+  getLiturgicalPeriodMeta,
+  resolveLiturgicalCalendarSync,
+  setLiturgicalCalendarSettings,
+  type LiturgicalPeriodKey,
+} from '@spirit/prayer-feature/prayer';
 
 const PRESET_LIST: Array<{ key: keyof typeof PRESETS; label: string }> = [
   { key: 'restoring', label: 'Восстанавливающий' },
   { key: 'regular', label: 'Регулярный' },
   { key: 'diligent', label: 'Усердный' },
+];
+
+const LITURGICAL_PERIOD_OPTIONS: Array<{
+  key: LiturgicalPeriodKey;
+  label: string;
+}> = [
+  { key: 'ordinary', label: 'Обычный' },
+  { key: 'bright_week', label: 'Светлая седмица' },
+  { key: 'pascha_to_ascension', label: 'Пасха - Вознесение' },
+  { key: 'ascension_to_trinity', label: 'Вознесение - Троица' },
 ];
 
 const FONT_SCALE_MIN = 0.8;
@@ -79,6 +100,7 @@ const safeParseNumber = (value: string) => {
 
 const SettingsScreen = () => {
   const { fontScale, setFontScale } = useFontScale();
+  const evaluationDate = useEvaluationDate();
   const [normalValue, setNormalValue] = React.useState('0');
   const [warningValue, setWarningValue] = React.useState('0');
   const [activityWarningMinutesValue, setActivityWarningMinutesValue] =
@@ -94,6 +116,9 @@ const SettingsScreen = () => {
   const [hasEmbeddedToken] = React.useState(() => hasBuildTimeSyncToken());
   const [sliderValue, setSliderValue] = React.useState(() => quantizeFontScale(fontScale));
   const [trackWidth, setTrackWidth] = React.useState(0);
+  const [liturgicalAutoDetect, setLiturgicalAutoDetect] = React.useState(true);
+  const [liturgicalManualPeriod, setLiturgicalManualPeriod] =
+    React.useState<LiturgicalPeriodKey>('ordinary');
 
   const matchPreset = React.useCallback((thresholds: Thresholds) => {
     for (const entry of PRESET_LIST) {
@@ -127,6 +152,22 @@ const SettingsScreen = () => {
     [],
   );
 
+  const liturgicalPreview = React.useMemo(
+    () =>
+      resolveLiturgicalCalendarSync(
+        {
+          autoDetect: liturgicalAutoDetect,
+          manualPeriod: liturgicalManualPeriod,
+        },
+        evaluationDate,
+      ),
+    [evaluationDate, liturgicalAutoDetect, liturgicalManualPeriod],
+  );
+
+  const liturgicalPeriodStatus = liturgicalAutoDetect
+    ? formatLiturgicalPeriodStatus(liturgicalPreview.period)
+    : `Ручной режим: ${liturgicalPreview.period.title}`;
+
   React.useEffect(() => {
     let active = true;
     (async () => {
@@ -134,16 +175,20 @@ const SettingsScreen = () => {
         await Promise.all([
           ensureSettingsInitialized(),
           ensurePrayerActivityConfigInitialized(),
+          ensureLiturgicalCalendarSettingsInitialized(),
         ]);
-        const [thresholds, activityThresholds] = await Promise.all([
+        const [thresholds, activityThresholds, liturgicalSettings] = await Promise.all([
           getLiturgyThresholds(),
           getPrayerActivityThresholds(),
+          getLiturgicalCalendarSettings(),
         ]);
         if (!active) {
           return;
         }
         updateThresholdState(thresholds);
         updateActivityThresholdState(activityThresholds);
+        setLiturgicalAutoDetect(liturgicalSettings.autoDetect);
+        setLiturgicalManualPeriod(liturgicalSettings.manualPeriod);
       } catch (error) {
         console.warn('[SettingsScreen]', error);
       }
@@ -275,6 +320,17 @@ const SettingsScreen = () => {
       console.warn('[SettingsScreen]', error);
     }
 
+    try {
+      const liturgicalSettings = await setLiturgicalCalendarSettings({
+        autoDetect: liturgicalAutoDetect,
+        manualPeriod: liturgicalManualPeriod,
+      });
+      setLiturgicalAutoDetect(liturgicalSettings.autoDetect);
+      setLiturgicalManualPeriod(liturgicalSettings.manualPeriod);
+    } catch (error) {
+      console.warn('[SettingsScreen] Failed to persist liturgical calendar', error);
+    }
+
     const trimmedSecret = syncSecret.trim();
     if (trimmedSecret.length > 0) {
       try {
@@ -303,6 +359,8 @@ const SettingsScreen = () => {
     activityDangerMinutesValue,
     activityFocusMinutesValue,
     activityWarningMinutesValue,
+    liturgicalAutoDetect,
+    liturgicalManualPeriod,
     normalValue,
     sliderValue,
     syncSecret,
@@ -328,7 +386,78 @@ const SettingsScreen = () => {
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           contentContainerStyle={{ paddingBottom: 32 }}
         >
-          <Text style={styles.header}>Настройка ритма посещений</Text>
+          <Text style={styles.header}>Настройки приложения</Text>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Литургический календарь</Text>
+            <View style={styles.liturgicalStatusBox}>
+              <Text style={styles.liturgicalStatusTitle}>
+                {liturgicalPreview.period.title}
+              </Text>
+              <Text style={styles.caption}>{liturgicalPeriodStatus}</Text>
+              <Text style={styles.caption}>
+                {liturgicalPreview.period.description}
+              </Text>
+            </View>
+            <View style={styles.switchRow}>
+              <View style={styles.switchTextColumn}>
+                <Text style={styles.inputLabel}>Автоопределение режима</Text>
+                <Text style={styles.caption}>
+                  Приложение выбирает период по дате православной Пасхи.
+                </Text>
+              </View>
+              <Switch
+                accessibilityLabel="Автоопределение литургического режима"
+                value={liturgicalAutoDetect}
+                onValueChange={setLiturgicalAutoDetect}
+                trackColor={{
+                  false: palette.divider,
+                  true: palette.accentSoft,
+                }}
+                thumbColor={liturgicalAutoDetect ? palette.accent : palette.card}
+              />
+            </View>
+            {!liturgicalAutoDetect && (
+              <View style={styles.manualPeriodGroup}>
+                <Text style={styles.subsectionLabel}>Ручной режим</Text>
+                <View style={styles.periodGrid}>
+                  {LITURGICAL_PERIOD_OPTIONS.map((option) => {
+                    const isSelected = liturgicalManualPeriod === option.key;
+                    const meta = getLiturgicalPeriodMeta(option.key);
+                    return (
+                      <Pressable
+                        key={option.key}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        onPress={() => setLiturgicalManualPeriod(option.key)}
+                        style={[
+                          styles.periodOption,
+                          isSelected && styles.periodOptionSelected,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.periodOptionText,
+                            isSelected && styles.periodOptionTextSelected,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.periodOptionDescription,
+                            isSelected && styles.periodOptionDescriptionSelected,
+                          ]}
+                        >
+                          {meta.description}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Выберите пресет</Text>
@@ -607,6 +736,64 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: palette.mutedInk,
     marginBottom: 12,
+  },
+  liturgicalStatusBox: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.divider,
+    backgroundColor: palette.card,
+    marginBottom: 12,
+  },
+  liturgicalStatusTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: palette.ink,
+    marginBottom: 6,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  switchTextColumn: {
+    flex: 1,
+  },
+  manualPeriodGroup: {
+    marginTop: 8,
+  },
+  periodGrid: {
+    gap: 10,
+  },
+  periodOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.divider,
+    backgroundColor: palette.card,
+  },
+  periodOptionSelected: {
+    backgroundColor: palette.ink,
+    borderColor: palette.ink,
+  },
+  periodOptionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: palette.ink,
+    marginBottom: 4,
+  },
+  periodOptionTextSelected: {
+    color: palette.paper,
+  },
+  periodOptionDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: palette.mutedInk,
+  },
+  periodOptionDescriptionSelected: {
+    color: palette.paper,
   },
   presetRow: {
     flexDirection: 'column',

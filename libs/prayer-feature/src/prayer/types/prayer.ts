@@ -21,11 +21,17 @@ export interface PrayerInstructionBlock extends PrayerBlockMeta {
   content: string;
 }
 
-export type PrayerConditionRule = 'pascha_period' | string;
+export type PrayerConditionRule =
+  | 'ordinary'
+  | 'pascha_period'
+  | 'pascha_bright_week'
+  | 'pascha_to_ascension'
+  | 'ascension_to_trinity'
+  | string;
 
 export interface PrayerConditionalBlock extends PrayerBlockMeta {
   type: 'conditional';
-  condition: { rule: PrayerConditionRule };
+  condition: { rule: PrayerConditionRule; negate?: boolean };
   content: PrayerBlock[];
 }
 

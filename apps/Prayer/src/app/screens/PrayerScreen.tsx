@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import {
+  CommonActions,
   useFocusEffect,
   useNavigation,
   useRoute,
@@ -221,12 +222,17 @@ const PrayerScreen = (props: Props) => {
     [scheduleAutoReturnFrom]
   );
 
+  const handleOpenSettings = useCallback(() => {
+    navigation.getParent()?.dispatch(CommonActions.navigate('Настройки'));
+  }, [navigation]);
+
   return (
     <BasePrayerScreen
       {...props}
       prayerId={resolvedId}
       initialScrollY={initialScrollY}
       onScrollPositionChange={handleScrollPositionChange}
+      onOpenSettings={handleOpenSettings}
     />
   );
 };

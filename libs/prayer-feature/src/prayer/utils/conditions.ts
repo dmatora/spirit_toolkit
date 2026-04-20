@@ -1,30 +1,115 @@
-import { orthodoxEaster } from '../../utils/feasts';
-import type { PrayerConditionalBlock } from '../types/prayer';
+import { daysBetween } from '../../utils/date';
+import {
+  calculateLiturgicalPeriod,
+  type LiturgicalPeriodInfo,
+  type LiturgicalPeriodKey,
+} from './liturgicalPeriods';
+import type { PrayerConditionalBlock, PrayerConditionRule } from '../types/prayer';
 
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
+export type PrayerConditionContext =
+  | Date
+  | {
+      now?: Date;
+      liturgicalPeriod?: LiturgicalPeriodInfo;
+      periodKey?: LiturgicalPeriodKey;
+      isManual?: boolean;
+    };
 
-function addDays(date: Date, days: number): Date {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
+type NormalizedPrayerConditionContext = {
+  now: Date;
+  liturgicalPeriod: LiturgicalPeriodInfo;
+  isManual: boolean;
+};
+
+const isDate = (value: PrayerConditionContext | undefined): value is Date =>
+  value instanceof Date;
+
+export const normalizePrayerConditionContext = (
+  context: PrayerConditionContext = new Date(),
+): NormalizedPrayerConditionContext => {
+  const now = isDate(context) ? context : context.now ?? new Date();
+  const calculatedPeriod =
+    (!isDate(context) ? context.liturgicalPeriod : undefined) ??
+    calculateLiturgicalPeriod(now);
+  const periodKey = !isDate(context) ? context.periodKey : undefined;
+
+  if (periodKey && periodKey !== calculatedPeriod.key) {
+    return {
+      now,
+      liturgicalPeriod: {
+        ...calculatedPeriod,
+        key: periodKey,
+      },
+      isManual: Boolean(!isDate(context) && context.isManual),
+    };
+  }
+
+  return {
+    now,
+    liturgicalPeriod: calculatedPeriod,
+    isManual: Boolean(!isDate(context) && context.isManual),
+  };
+};
+
+const isPaschaPeriod = (
+  context: NormalizedPrayerConditionContext,
+): boolean => {
+  const { liturgicalPeriod, now } = context;
+
+  if (context.isManual) {
+    return (
+      liturgicalPeriod.key === 'bright_week' ||
+      liturgicalPeriod.key === 'pascha_to_ascension'
+    );
+  }
+
+  if (typeof liturgicalPeriod.daysSincePascha === 'number') {
+    return (
+      liturgicalPeriod.daysSincePascha >= 0 &&
+      liturgicalPeriod.daysSincePascha <= 39
+    );
+  }
+
+  if (!liturgicalPeriod.paschaDate) {
+    return false;
+  }
+
+  const daysSincePascha = daysBetween(liturgicalPeriod.paschaDate, now);
+  return daysSincePascha >= 0 && daysSincePascha <= 39;
+};
+
+const evaluateRule = (
+  rule: PrayerConditionRule | undefined,
+  context: NormalizedPrayerConditionContext,
+): boolean | null => {
+  const periodKey = context.liturgicalPeriod.key;
+
+  switch (rule) {
+    case 'ordinary':
+      return periodKey === 'ordinary';
+    case 'pascha_period':
+      return isPaschaPeriod(context);
+    case 'pascha_bright_week':
+      return periodKey === 'bright_week';
+    case 'pascha_to_ascension':
+      return periodKey === 'pascha_to_ascension';
+    case 'ascension_to_trinity':
+      return periodKey === 'ascension_to_trinity';
+    default:
+      return null;
+  }
+};
 
 export function evaluateCondition(
   block: PrayerConditionalBlock,
-  now: Date = new Date(),
+  context: PrayerConditionContext = new Date(),
 ): boolean {
-  const rule = block.condition?.rule;
+  const normalizedContext = normalizePrayerConditionContext(context);
+  const ruleResult = evaluateRule(block.condition?.rule, normalizedContext);
 
-  if (rule === 'pascha_period') {
-    const year = now.getFullYear();
-    const pascha = startOfDay(orthodoxEaster(year));
-    // Ascension is on the 40th day after Pascha, offset 39 from Easter day
-    const ascension = startOfDay(addDays(pascha, 39));
-    const today = startOfDay(now);
-    return today >= pascha && today <= ascension;
+  if (ruleResult === null) {
+    return false;
   }
 
-  return false;
+  return block.condition?.negate ? !ruleResult : ruleResult;
 }

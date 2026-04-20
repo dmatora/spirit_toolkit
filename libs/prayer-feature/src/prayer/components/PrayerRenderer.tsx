@@ -10,7 +10,7 @@ import {
 import { palette } from '@spirit/prayer-feature/theme';
 import type { PrayerBlock, PrayerRole } from '../types/prayer';
 import type { PrayerId } from '../utils/prayerLoader';
-import { evaluateCondition } from '../utils/conditions';
+import { evaluateCondition, type PrayerConditionContext } from '../utils/conditions';
 import { useFontScale } from '../context/FontScaleContext';
 
 const styles = StyleSheet.create({
@@ -66,6 +66,7 @@ type Props = {
   onMajorSectionLayout?: (block: PrayerBlock, index: number, y: number) => void;
   sectionIdLookup?: Record<number, string>;
   evaluationDate?: Date;
+  conditionContext?: PrayerConditionContext;
   prayerId?: PrayerId;
 };
 
@@ -189,6 +190,7 @@ const PrayerRenderer = ({
   onMajorSectionLayout,
   sectionIdLookup,
   evaluationDate,
+  conditionContext,
   prayerId,
 }: Props) => {
   const { fontScale } = useFontScale();
@@ -211,7 +213,7 @@ const PrayerRenderer = ({
 
   let globalIndex = -1;
   let conditionalCounter = 0;
-  const effectiveEvaluationDate = evaluationDate ?? new Date();
+  const effectiveConditionContext = conditionContext ?? evaluationDate ?? new Date();
 
   const shouldShrinkLeadingDigits = prayerId
     ? LEADING_DIGIT_PRAYER_IDS.includes(prayerId)
@@ -219,7 +221,7 @@ const PrayerRenderer = ({
 
   const renderBlockRecursive = (block: PrayerBlock): React.ReactNode => {
     if (block.type === 'conditional') {
-      if (!evaluateCondition(block, effectiveEvaluationDate)) {
+      if (!evaluateCondition(block, effectiveConditionContext)) {
         return null;
       }
 
@@ -227,9 +229,9 @@ const PrayerRenderer = ({
       conditionalCounter += 1;
 
       return (
-        <View key={`conditional-${conditionalKey}`} style={styles.conditionalBox}>
+        <React.Fragment key={`conditional-${conditionalKey}`}>
           {block.content.map((child) => renderBlockRecursive(child))}
-        </View>
+        </React.Fragment>
       );
     }
 

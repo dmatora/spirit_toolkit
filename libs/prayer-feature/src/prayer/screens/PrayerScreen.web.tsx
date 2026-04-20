@@ -12,11 +12,14 @@ import {
 import { palette } from '@spirit/prayer-feature/theme';
 import MeasureProgressBar from '../components/MeasureProgressBar';
 import PrayerActivityIndicator from '../components/PrayerActivityIndicator';
+import LiturgicalPeriodNotice from '../components/LiturgicalPeriodNotice';
 import PrayerRenderer from '../components/PrayerRenderer';
 import ServiceMap from '../components/ServiceMap';
 import { useTopBarPortal } from '../context/TopBarPortalContext';
 import useEvaluationDate from '../hooks/useEvaluationDate';
+import useLiturgicalCalendar from '../hooks/useLiturgicalCalendar';
 import type { PrayerBlock } from '../types/prayer';
+import type { PrayerConditionContext } from '../utils/conditions';
 import { loadPrayer, type PrayerId } from '../utils/prayerLoader';
 import { extractMajorSections } from '../utils/serviceMap';
 import { getSectionsSignature } from '../utils/sections';
@@ -26,6 +29,7 @@ import { recordPrayerActivity } from '../services/prayerActivityState';
 type Props = {
   prayerId?: PrayerId;
   scrollSource?: 'internal' | 'external';
+  onOpenSettings?: () => void;
 };
 
 const PRAYER_TOPBAR_NATIVE_ID = 'prayer-topbar';
@@ -73,7 +77,11 @@ const styles = StyleSheet.create({
   },
 });
 
-const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'internal' }) => {
+const PrayerScreen: React.FC<Props> = ({
+  prayerId = 'liturgy',
+  scrollSource = 'internal',
+  onOpenSettings,
+}) => {
   const [blocks, setBlocks] = useState<PrayerBlock[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
@@ -87,6 +95,17 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
   const topBarPortal = useTopBarPortal();
   const shouldRenderInPortal = Boolean(topBarPortal && useExternalScroll);
   const shouldTrackPrayerActivity = prayerId !== 'liturgy' && prayerId !== 'vespers';
+  const evaluationDate = useEvaluationDate();
+  const liturgicalCalendar = useLiturgicalCalendar(evaluationDate);
+  const liturgicalPeriod = liturgicalCalendar.period;
+  const conditionContext = useMemo<PrayerConditionContext>(
+    () => ({
+      now: evaluationDate,
+      liturgicalPeriod,
+      isManual: !liturgicalCalendar.settings.autoDetect,
+    }),
+    [evaluationDate, liturgicalCalendar.settings.autoDetect, liturgicalPeriod],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -95,7 +114,10 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
     setError(null);
     setBlocks([]);
 
-    loadPrayer(prayerId)
+    loadPrayer(prayerId, {
+      liturgicalPeriod,
+      now: evaluationDate,
+    })
       .then((loadedBlocks) => {
         if (cancelled) {
           return;
@@ -119,13 +141,11 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
     return () => {
       cancelled = true;
     };
-  }, [prayerId]);
-
-  const evaluationDate = useEvaluationDate();
+  }, [evaluationDate, liturgicalPeriod, prayerId]);
 
   const sections = useMemo(
-    () => extractMajorSections(blocks, evaluationDate),
-    [blocks, evaluationDate],
+    () => extractMajorSections(blocks, conditionContext),
+    [blocks, conditionContext],
   );
 
   const sectionsSig = useMemo(() => getSectionsSignature(sections), [sections]);
@@ -302,7 +322,17 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
         onMajorSectionLayout={handleSectionLayout}
         sectionIdLookup={sectionIndexLookup}
         evaluationDate={evaluationDate}
+        conditionContext={conditionContext}
         prayerId={prayerId}
+      />
+    ) : null;
+
+  const liturgicalNotice =
+    !isLoading && !error ? (
+      <LiturgicalPeriodNotice
+        period={liturgicalPeriod}
+        prayerId={prayerId}
+        onOpenSettings={onOpenSettings}
       />
     ) : null;
 
@@ -319,6 +349,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
 
   const scrollableContent = useExternalScroll ? (
     <View nativeID="prayer-scroll-container" style={[styles.scrollWrapper, styles.scrollContent]}>
+      {liturgicalNotice}
       {prayerContent}
     </View>
   ) : (
@@ -329,6 +360,7 @@ const PrayerScreen: React.FC<Props> = ({ prayerId = 'liturgy', scrollSource = 'i
       onScroll={handleTrackedScroll}
       scrollEventThrottle={16}
     >
+      {liturgicalNotice}
       {prayerContent}
     </ScrollView>
   );

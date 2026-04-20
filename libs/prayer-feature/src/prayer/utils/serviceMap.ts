@@ -1,5 +1,5 @@
 import type { PrayerBlock } from '../types/prayer';
-import { evaluateCondition } from './conditions';
+import { evaluateCondition, type PrayerConditionContext } from './conditions';
 
 export type ServiceSection = {
   id: string;
@@ -30,14 +30,14 @@ const fallbackTitle = (count: number) => `Раздел ${count + 1}`;
 
 const traverseBlocks = (
   blocks: PrayerBlock[],
-  now: Date,
+  context: PrayerConditionContext,
   state: TraversalState,
   callback?: TraverseCallback,
 ) => {
   blocks.forEach((block) => {
     if (block.type === 'conditional') {
-      if (evaluateCondition(block, now)) {
-        traverseBlocks(block.content, now, state, callback);
+      if (evaluateCondition(block, context)) {
+        traverseBlocks(block.content, context, state, callback);
       }
       return;
     }
@@ -63,12 +63,12 @@ const traverseBlocks = (
 
 export const extractMajorSections = (
   blocks: PrayerBlock[],
-  now: Date = new Date(),
+  context: PrayerConditionContext = new Date(),
 ): ServiceSection[] => {
   const sections: ServiceSection[] = [];
   const state: TraversalState = { globalIndex: 0, lastHeading: null };
 
-  traverseBlocks(blocks, now, state, ({ block, index, lastHeading }) => {
+  traverseBlocks(blocks, context, state, ({ block, index, lastHeading }) => {
     if (!block.is_major_section) {
       return;
     }
@@ -100,10 +100,10 @@ export type ServiceSectionRange = {
 export const computeSectionRanges = (
   blocks: PrayerBlock[],
   sections: ServiceSection[],
-  now: Date = new Date(),
+  context: PrayerConditionContext = new Date(),
 ): ServiceSectionRange[] => {
   const state: TraversalState = { globalIndex: 0, lastHeading: null };
-  traverseBlocks(blocks, now, state);
+  traverseBlocks(blocks, context, state);
 
   const totalRenderedCount = state.globalIndex;
 
