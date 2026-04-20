@@ -16,6 +16,7 @@ declare global {
 }
 
 type MaybeString = string | undefined;
+type SyncTokenSource = 'env' | 'runtime' | 'missing';
 
 const normalize = (value: unknown): MaybeString => {
   if (typeof value !== 'string') {
@@ -43,11 +44,20 @@ const resolveBuildTimeSyncToken = (): MaybeString =>
 export const hasBuildTimeSyncToken = (): boolean =>
   Boolean(resolveBuildTimeSyncToken());
 
+const resolveRuntimeSyncToken = (): MaybeString =>
+  pickFirst(
+    typeof window !== 'undefined' ? window.spiritSyncToken : undefined,
+    typeof globalThis !== 'undefined' ? globalThis.spiritSyncToken : undefined
+  );
+
+export const hasRuntimeSyncToken = (): boolean =>
+  Boolean(resolveRuntimeSyncToken());
+
 const resolveGlobalSyncApi = (): MaybeString =>
   pickFirst(
     normalize(buildTimeSyncApi),
     typeof window !== 'undefined' ? window.spiritSyncApi : undefined,
-    typeof globalThis !== 'undefined' ? globalThis.spiritSyncApi : undefined,
+    typeof globalThis !== 'undefined' ? globalThis.spiritSyncApi : undefined
   );
 
 const resolveGlobalSyncToken = (): MaybeString => {
@@ -55,10 +65,17 @@ const resolveGlobalSyncToken = (): MaybeString => {
   if (buildTimeToken) {
     return buildTimeToken;
   }
-  return pickFirst(
-    typeof window !== 'undefined' ? window.spiritSyncToken : undefined,
-    typeof globalThis !== 'undefined' ? globalThis.spiritSyncToken : undefined,
-  );
+  return resolveRuntimeSyncToken();
+};
+
+export const getSyncTokenSource = (): SyncTokenSource => {
+  if (resolveBuildTimeSyncToken()) {
+    return 'env';
+  }
+  if (resolveRuntimeSyncToken()) {
+    return 'runtime';
+  }
+  return 'missing';
 };
 
 export const getSyncApiBase = (): string => {
@@ -75,7 +92,8 @@ export const resolveUrl = (path: string): string => {
   return `${base}${JOURNAL_PREFIX}${normalized}`;
 };
 
-export const getSyncAuthToken = (): string | undefined => resolveGlobalSyncToken();
+export const getSyncAuthToken = (): string | undefined =>
+  resolveGlobalSyncToken();
 
 export const setRuntimeSyncToken = (token?: string): void => {
   const normalized = normalize(token);
@@ -96,7 +114,7 @@ export const setRuntimeSyncToken = (token?: string): void => {
 };
 
 export const withSyncAuthHeaders = (
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): Record<string, string> => {
   const token = getSyncAuthToken();
   if (!token) {
@@ -109,5 +127,14 @@ export const withSyncAuthHeaders = (
 };
 
 export const isSyncEnabled = (): boolean => !!getSyncAuthToken();
+
+export const getSyncDiagnostics = () => ({
+  syncApiBase: getSyncApiBase(),
+  syncApiFromEnv: Boolean(normalize(buildTimeSyncApi)),
+  syncSecretFromEnv: hasBuildTimeSyncToken(),
+  runtimeSyncSecretConfigured: hasRuntimeSyncToken(),
+  syncSecretConfigured: isSyncEnabled(),
+  syncTokenSource: getSyncTokenSource(),
+});
 
 export {};

@@ -18,7 +18,14 @@ This repository contains the Spirit Toolkit mobile app (`apps/Prayer`) and hub w
    SPIRIT_SYNC_TOKEN=super-secret-token
    ```
 
-2. Rebuild Metro after changing the file so the `react-native-dotenv` plugin picks up the new values.
+   The mobile Babel config reads `apps/Prayer/.env` first and falls back to the
+   workspace root `.env` for variables that are not set in the app-level file.
+
+2. Reset Metro after changing the file so the `react-native-dotenv` plugin picks up the new values:
+
+   ```sh
+   npx react-native start --reset-cache
+   ```
 
 The React Native bundle also honours `global.spiritSyncApi` / `global.spiritSyncToken` which can be useful for tests.
 

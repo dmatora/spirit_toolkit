@@ -8,10 +8,19 @@ import {
   removePendingDeletions,
   applyRemoteDeletions,
 } from './journalDb';
-import { isSyncEnabled, resolveUrl, withSyncAuthHeaders } from './syncConfig';
+import {
+  getSyncDiagnostics,
+  isSyncEnabled,
+  resolveUrl,
+  withSyncAuthHeaders,
+} from './syncConfig';
 
 type Listener = () => void;
 type SyncStateListener = (isSyncing: boolean) => void;
+type SyncRequestDiagnostics = {
+  operation: 'upload' | 'delete' | 'pull';
+  url: string;
+};
 
 const LAST_SYNC_CURSOR_KEY = 'journal/lastSyncedCursor';
 const LEGACY_SYNC_KEY = 'journal/lastSyncedAt';
@@ -23,6 +32,7 @@ const BACKGROUND_INTERVAL_MS = 120_000;
 let inFlightSync: Promise<void> | null = null;
 let stopBackground: (() => void) | null = null;
 let isSyncing = false;
+let lastMissingSecretWarning: string | null = null;
 
 const listeners = new Set<Listener>();
 const syncStateListeners = new Set<SyncStateListener>();
@@ -42,7 +52,10 @@ const notifySyncState = () => {
     try {
       listener(isSyncing);
     } catch (error) {
-      console.warn('[journalSync] Sync state listener threw during notify', error);
+      console.warn(
+        '[journalSync] Sync state listener threw during notify',
+        error
+      );
     }
   });
 };
@@ -100,6 +113,30 @@ const debouncedTrigger = debounce(() => {
   void syncNow();
 }, 1_000);
 
+const getSyncLogContext = (
+  since = 0,
+  lastRequest?: SyncRequestDiagnostics
+) => ({
+  ...getSyncDiagnostics(),
+  syncUrls: {
+    upload: resolveUrl(UPLOAD_ENDPOINT),
+    delete: resolveUrl(DELETE_ENDPOINT),
+    pull: resolveUrl(`${PULL_ENDPOINT}?since=${since || 0}`),
+  },
+  lastRequest,
+});
+
+const warnSyncSkippedMissingSecret = (): void => {
+  const context = getSyncLogContext();
+  const signature = JSON.stringify(context);
+  if (signature === lastMissingSecretWarning) {
+    return;
+  }
+
+  lastMissingSecretWarning = signature;
+  console.warn('[journalSync] Sync skipped: missing sync secret', context);
+};
+
 export const onSynced = {
   subscribe(listener: Listener): () => void {
     listeners.add(listener);
@@ -122,6 +159,7 @@ export const getIsSyncing = (): boolean => isSyncing;
 
 export const syncNow = async (): Promise<void> => {
   if (!isSyncEnabled()) {
+    warnSyncSkippedMissingSecret();
     return;
   }
   if (inFlightSync) {
@@ -139,10 +177,12 @@ export const syncNow = async (): Promise<void> => {
 
 const performSync = async (): Promise<void> => {
   if (!isSyncEnabled()) {
+    warnSyncSkippedMissingSecret();
     return;
   }
 
   const since = await readLastSyncedCursor();
+  let lastRequest: SyncRequestDiagnostics | undefined;
 
   try {
     const [unsynced, pendingDeletions] = await Promise.all([
@@ -151,7 +191,9 @@ const performSync = async (): Promise<void> => {
     ]);
 
     if (unsynced.length > 0) {
-      const response = await fetch(resolveUrl(UPLOAD_ENDPOINT), {
+      const uploadUrl = resolveUrl(UPLOAD_ENDPOINT);
+      lastRequest = { operation: 'upload', url: uploadUrl };
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         headers: withSyncAuthHeaders({
           'Content-Type': 'application/json',
@@ -172,7 +214,9 @@ const performSync = async (): Promise<void> => {
     }
 
     if (pendingDeletions.length > 0) {
-      const response = await fetch(resolveUrl(DELETE_ENDPOINT), {
+      const deleteUrl = resolveUrl(DELETE_ENDPOINT);
+      lastRequest = { operation: 'delete', url: deleteUrl };
+      const response = await fetch(deleteUrl, {
         method: 'POST',
         headers: withSyncAuthHeaders({
           'Content-Type': 'application/json',
@@ -191,26 +235,32 @@ const performSync = async (): Promise<void> => {
 
       const deletionIds = pendingDeletions
         .map((item) => item.id)
-        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
+        .filter(
+          (value): value is number =>
+            typeof value === 'number' && Number.isFinite(value)
+        );
       await removePendingDeletions(deletionIds);
     }
 
-    const pullResponse = await fetch(
-      resolveUrl(`${PULL_ENDPOINT}?since=${since || 0}`),
-      {
-        method: 'GET',
-        headers: withSyncAuthHeaders({
-          'Cache-Control': 'no-store',
-        }),
-      },
-    );
+    const pullUrl = resolveUrl(`${PULL_ENDPOINT}?since=${since || 0}`);
+    lastRequest = { operation: 'pull', url: pullUrl };
+    const pullResponse = await fetch(pullUrl, {
+      method: 'GET',
+      headers: withSyncAuthHeaders({
+        'Cache-Control': 'no-store',
+      }),
+    });
 
     if (!pullResponse.ok) {
       throw new Error(`Pull failed: ${pullResponse.status}`);
     }
 
     const payload = (await pullResponse.json()) as {
-      entries?: Array<{ prayer_id: string; timestamp: number; cursor?: number }>;
+      entries?: Array<{
+        prayer_id: string;
+        timestamp: number;
+        cursor?: number;
+      }>;
       deletions?: Array<{
         prayer_id: string;
         timestamp: number;
@@ -222,11 +272,17 @@ const performSync = async (): Promise<void> => {
 
     const pulledEntries = Array.isArray(payload.entries)
       ? payload.entries.filter(
-          (entry): entry is { prayer_id: string; timestamp: number; cursor?: number } =>
+          (
+            entry
+          ): entry is {
+            prayer_id: string;
+            timestamp: number;
+            cursor?: number;
+          } =>
             !!entry &&
             typeof entry === 'object' &&
             typeof entry.prayer_id === 'string' &&
-            typeof entry.timestamp === 'number',
+            typeof entry.timestamp === 'number'
         )
       : [];
 
@@ -235,13 +291,15 @@ const performSync = async (): Promise<void> => {
         pulledEntries.map((entry) => ({
           prayer_id: entry.prayer_id,
           timestamp: entry.timestamp,
-        })),
+        }))
       );
     }
 
     const pulledDeletions = Array.isArray(payload.deletions)
       ? payload.deletions.filter(
-          (item): item is {
+          (
+            item
+          ): item is {
             prayer_id: string;
             timestamp: number;
             deletedAt?: number;
@@ -250,7 +308,7 @@ const performSync = async (): Promise<void> => {
             !!item &&
             typeof item === 'object' &&
             typeof item.prayer_id === 'string' &&
-            typeof item.timestamp === 'number',
+            typeof item.timestamp === 'number'
         )
       : [];
 
@@ -259,28 +317,34 @@ const performSync = async (): Promise<void> => {
         pulledDeletions.map((item) => ({
           prayer_id: item.prayer_id,
           timestamp: item.timestamp,
-        })),
+        }))
       );
     }
 
     const maxPulledCursor = pulledEntries.reduce(
-      (max, entry) => Math.max(max, typeof entry.cursor === 'number' ? entry.cursor : since),
-      since,
+      (max, entry) =>
+        Math.max(max, typeof entry.cursor === 'number' ? entry.cursor : since),
+      since
     );
     const maxDeletionCursor = pulledDeletions.reduce(
       (max, item) =>
         Math.max(max, typeof item.cursor === 'number' ? item.cursor : since),
-      since,
+      since
     );
     const serverSyncedUntil =
-      typeof payload.syncedUntil === 'number' && Number.isFinite(payload.syncedUntil)
+      typeof payload.syncedUntil === 'number' &&
+      Number.isFinite(payload.syncedUntil)
         ? payload.syncedUntil
         : Math.max(maxPulledCursor, maxDeletionCursor, since);
 
     await writeLastSyncedCursor(serverSyncedUntil);
     notifySynced();
   } catch (error) {
-    console.warn('[journalSync] Sync failed', error);
+    console.warn(
+      '[journalSync] Sync failed',
+      getSyncLogContext(since, lastRequest),
+      error
+    );
   }
 };
 

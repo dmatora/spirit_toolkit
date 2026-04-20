@@ -1,5 +1,19 @@
+const {
+  getPrayerEnvCacheKey,
+  getPrayerEnvPath,
+  loadPrayerEnv,
+} = require('./babel.env');
+
 module.exports = function (api) {
-  api.cache(true);
+  api.cache.using(
+    () =>
+      `${getPrayerEnvCacheKey()}|${process.env.APP_ENV ?? ''}|${
+        process.env.BABEL_ENV ?? ''
+      }|${process.env.NODE_ENV ?? ''}|${
+        process.env.NX_TASK_TARGET_TARGET ?? ''
+      }`
+  );
+  loadPrayerEnv();
 
   const nxTarget = process.env.NX_TASK_TARGET_TARGET;
 
@@ -27,7 +41,10 @@ module.exports = function (api) {
       [
         'module:react-native-dotenv',
         {
-          path: '../../.env',
+          moduleName: '@env',
+          path: getPrayerEnvPath(),
+          safe: false,
+          allowUndefined: true,
         },
       ],
     ],

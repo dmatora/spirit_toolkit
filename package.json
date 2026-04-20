@@ -4,6 +4,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "NX_INTERACTIVE=false NX_DAEMON=false nx run hub:dev --hostname=0.0.0.0",
+    "start": "nx run Prayer:start",
+    "start:reset-cache": "nx run Prayer:start -- --reset-cache",
     "build": "NX_INTERACTIVE=false NX_DAEMON=false nx run-many --target=build --all",
     "build:player": "NX_INTERACTIVE=false NX_DAEMON=false nx build Prayer",
     "build:hub": "NX_INTERACTIVE=false NX_DAEMON=false nx build hub",
