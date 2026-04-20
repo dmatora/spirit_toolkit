@@ -10,11 +10,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { palette } from '@spirit/prayer-feature/theme';
 import HomeScreen from '../screens/HomeScreen';
 import JournalScreen from '../screens/JournalScreen';
+import RhythmScreen from '../screens/RhythmScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import PrayerNavigator, { type PrayerStackParamList } from './PrayerNavigator';
 
 export type TabParamList = {
   Главная: undefined;
+  Ритм: undefined;
   Журнал: undefined;
   Настройки: undefined;
   Молитвослов: NavigatorScreenParams<PrayerStackParamList> | undefined;
@@ -36,6 +38,8 @@ const AppNavigator = () => (
         let iconName: string;
         if (route.name === 'Главная') {
           iconName = focused ? 'home' : 'home-outline';
+        } else if (route.name === 'Ритм') {
+          iconName = focused ? 'analytics' : 'analytics-outline';
         } else if (route.name === 'Журнал') {
           iconName = focused ? 'book' : 'book-outline';
         } else if (route.name === 'Молитвослов') {
@@ -58,6 +62,7 @@ const AppNavigator = () => (
     })}
   >
     <Tab.Screen name="Главная" component={HomeScreen} />
+    <Tab.Screen name="Ритм" component={RhythmScreen} />
     <Tab.Screen
       name="Журнал"
       component={JournalScreen}

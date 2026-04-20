@@ -1,6 +1,13 @@
+/* eslint-disable @nx/enforce-module-boundaries */
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styled, { css } from 'styled-components';
@@ -46,7 +53,9 @@ const TopBar = styled.header<{ $isSticky: boolean; $hasSlot: boolean }>`
 
   @media ${DESKTOP_MEDIA} {
     padding: ${({ $hasSlot }) =>
-      $hasSlot ? '12px 48px 0 calc(280px + 32px)' : '16px 48px 16px calc(280px + 32px)'};
+      $hasSlot
+        ? '12px 48px 0 calc(280px + 32px)'
+        : '16px 48px 16px calc(280px + 32px)'};
   }
 `;
 
@@ -250,7 +259,9 @@ const Shell = styled.div`
   background: ${palette.paper};
 `;
 
-const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => {
+const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
+  children,
+}) => {
   const pathname = usePathname() ?? '/';
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -259,25 +270,23 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   const disableStickyForPath =
     pathname === '/molitvoslov/liturgy' || pathname === '/molitvoslov/vespers';
   const shouldUseStickyTopBar = !disableStickyForPath;
-  const setTopBarContentValue = useCallback<TopBarPortalContextValue['setTopBarContent']>(
-    (content) => {
-      setTopBarContent(content);
-    },
-    [],
-  );
-  const setTopBarActionsValue = useCallback<TopBarPortalContextValue['setTopBarActions']>(
-    (content) => {
-      setTopBarActions(content);
-    },
-    [],
-  );
+  const setTopBarContentValue = useCallback<
+    TopBarPortalContextValue['setTopBarContent']
+  >((content) => {
+    setTopBarContent(content);
+  }, []);
+  const setTopBarActionsValue = useCallback<
+    TopBarPortalContextValue['setTopBarActions']
+  >((content) => {
+    setTopBarActions(content);
+  }, []);
 
   const topBarPortalValue = useMemo<TopBarPortalContextValue>(
     () => ({
       setTopBarContent: setTopBarContentValue,
       setTopBarActions: setTopBarActionsValue,
     }),
-    [setTopBarActionsValue, setTopBarContentValue],
+    [setTopBarActionsValue, setTopBarContentValue]
   );
 
   useEffect(() => {
@@ -291,7 +300,9 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
           return;
         }
         try {
-          const storedSecret = await AsyncStorage.getItem(SYNC_SECRET_STORAGE_KEY);
+          const storedSecret = await AsyncStorage.getItem(
+            SYNC_SECRET_STORAGE_KEY
+          );
           if (!cancelled) {
             const trimmed = storedSecret?.trim() ?? '';
             setRuntimeSyncToken(trimmed.length > 0 ? trimmed : undefined);
@@ -376,9 +387,14 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
   }, [closeDrawer, isDesktop]);
 
   const isHomeActive = pathname === '/';
-  const isMolitvoslovActive = pathname === '/molitvoslov' || pathname.startsWith('/molitvoslov/');
-  const isJournalActive = pathname === '/journal' || pathname.startsWith('/journal/');
-  const isSettingsActive = pathname === '/settings' || pathname.startsWith('/settings/');
+  const isRhythmActive =
+    pathname === '/rhythm' || pathname.startsWith('/rhythm/');
+  const isMolitvoslovActive =
+    pathname === '/molitvoslov' || pathname.startsWith('/molitvoslov/');
+  const isJournalActive =
+    pathname === '/journal' || pathname.startsWith('/journal/');
+  const isSettingsActive =
+    pathname === '/settings' || pathname.startsWith('/settings/');
   const sectionTitle = useMemo(() => {
     const matchedPrayer = PRAYERS.find((prayer) => prayer.href === pathname);
     if (matchedPrayer) {
@@ -387,6 +403,10 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
 
     if (pathname === '/') {
       return 'Главная';
+    }
+
+    if (pathname.startsWith('/rhythm')) {
+      return 'Ритм';
     }
 
     if (pathname.startsWith('/molitvoslov')) {
@@ -406,7 +426,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
 
   const isPrayerDetailRoute = useMemo(
     () => PRAYERS.some((prayer) => prayer.href === pathname),
-    [pathname],
+    [pathname]
   );
 
   const hasTopBarContent = Boolean(topBarContent);
@@ -438,7 +458,9 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
                       <TopBarActionsSlot>{topBarActions}</TopBarActionsSlot>
                     )}
                   </TopBarHeadlineRow>
-                  {hasTopBarContent && <TopBarDynamicSlot>{topBarContent}</TopBarDynamicSlot>}
+                  {hasTopBarContent && (
+                    <TopBarDynamicSlot>{topBarContent}</TopBarDynamicSlot>
+                  )}
                 </TopBarMainContent>
               </TopBarRow>
             </TopBar>
@@ -454,6 +476,16 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({ children }) => 
                     onClick={handleLinkClick}
                   >
                     Главная
+                  </NavLink>
+                </NavItem>
+                <NavItem>
+                  <NavLink
+                    href="/rhythm"
+                    className={isRhythmActive ? 'active' : ''}
+                    aria-current={isRhythmActive ? 'page' : undefined}
+                    onClick={handleLinkClick}
+                  >
+                    Ритм
                   </NavLink>
                 </NavItem>
                 <NavItem>

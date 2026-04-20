@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   useFocusEffect,
@@ -12,7 +12,6 @@ import {
   FastCountdownCard,
 } from '@spirit/dashboard-feature';
 import { palette } from '@spirit/prayer-feature/theme';
-import LiturgyAttendanceCard from '../components/LiturgyAttendanceCard';
 import { type TabParamList } from '../navigation/AppNavigator';
 import { PRAYER_TITLE_BY_ID } from '../constants/prayers';
 import {
@@ -20,6 +19,7 @@ import {
   hydratePrayerResumeState,
   type PrayerResumeState,
 } from '../services/prayerResumeState';
+import LiturgyAttendanceCard from '../components/LiturgyAttendanceCard';
 
 type HomeNavigation = NavigationProp<TabParamList>;
 
@@ -51,40 +51,45 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {resumeState && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Продолжить ${
-            PRAYER_TITLE_BY_ID[resumeState.prayerId]
-          }`}
-          style={({ pressed }) => [
-            styles.resumeCard,
-            pressed ? styles.resumeCardPressed : null,
-          ]}
-          onPress={() =>
-            navigation.navigate('Молитвослов', {
-              initial: false,
-              screen: 'Молитва',
-              params: {
-                prayerId: resumeState.prayerId,
-                resumeSavedPosition: true,
-              },
-            })
-          }
-        >
-          <Text style={styles.resumeEyebrow}>Незавершённое чтение</Text>
-          <Text style={styles.resumeTitle}>
-            Продолжить {PRAYER_TITLE_BY_ID[resumeState.prayerId]}
-          </Text>
-          <Text style={styles.resumeSubtitle}>
-            Вернуться к последнему месту в молитве
-          </Text>
-        </Pressable>
-      )}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {resumeState && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Продолжить ${
+              PRAYER_TITLE_BY_ID[resumeState.prayerId]
+            }`}
+            style={({ pressed }) => [
+              styles.resumeCard,
+              pressed ? styles.resumeCardPressed : null,
+            ]}
+            onPress={() =>
+              navigation.navigate('Молитвослов', {
+                initial: false,
+                screen: 'Молитва',
+                params: {
+                  prayerId: resumeState.prayerId,
+                  resumeSavedPosition: true,
+                },
+              })
+            }
+          >
+            <Text style={styles.resumeEyebrow}>Незавершённое чтение</Text>
+            <Text style={styles.resumeTitle}>
+              Продолжить {PRAYER_TITLE_BY_ID[resumeState.prayerId]}
+            </Text>
+            <Text style={styles.resumeSubtitle}>
+              Вернуться к последнему месту в молитве
+            </Text>
+          </Pressable>
+        )}
 
-      <FeastCountdownCard style={styles.cardSpacing} />
-      <FastCountdownCard style={styles.cardSpacing} />
-      <LiturgyAttendanceCard />
+        <FeastCountdownCard style={styles.cardSpacing} />
+        <FastCountdownCard style={styles.cardSpacing} />
+        <LiturgyAttendanceCard />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -92,9 +97,12 @@ const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: palette.paper,
+  },
+  content: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: palette.paper,
+    paddingBottom: 32,
   },
   cardSpacing: {
     marginBottom: 24,
