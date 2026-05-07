@@ -98,7 +98,11 @@ const safeParseNumber = (value: string) => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-const SettingsScreen = () => {
+type SettingsScreenProps = {
+  appVersion?: string;
+};
+
+const SettingsScreen = ({ appVersion }: SettingsScreenProps) => {
   const { fontScale, setFontScale } = useFontScale();
   const evaluationDate = useEvaluationDate();
   const [normalValue, setNormalValue] = React.useState('0');
@@ -107,14 +111,17 @@ const SettingsScreen = () => {
     React.useState('30');
   const [activityDangerMinutesValue, setActivityDangerMinutesValue] =
     React.useState('60');
-  const [activityFocusMinutesValue, setActivityFocusMinutesValue] = React.useState(
-    String(DEFAULT_ACTIVITY_FOCUS_MINUTES),
-  );
-  const [selectedPreset, setSelectedPreset] = React.useState<keyof typeof PRESETS | null>(null);
+  const [activityFocusMinutesValue, setActivityFocusMinutesValue] =
+    React.useState(String(DEFAULT_ACTIVITY_FOCUS_MINUTES));
+  const [selectedPreset, setSelectedPreset] = React.useState<
+    keyof typeof PRESETS | null
+  >(null);
   const [saved, setSaved] = React.useState(false);
   const [syncSecret, setSyncSecret] = React.useState('');
   const [hasEmbeddedToken] = React.useState(() => hasBuildTimeSyncToken());
-  const [sliderValue, setSliderValue] = React.useState(() => quantizeFontScale(fontScale));
+  const [sliderValue, setSliderValue] = React.useState(() =>
+    quantizeFontScale(fontScale)
+  );
   const [trackWidth, setTrackWidth] = React.useState(0);
   const [liturgicalAutoDetect, setLiturgicalAutoDetect] = React.useState(true);
   const [liturgicalManualPeriod, setLiturgicalManualPeriod] =
@@ -123,7 +130,10 @@ const SettingsScreen = () => {
   const matchPreset = React.useCallback((thresholds: Thresholds) => {
     for (const entry of PRESET_LIST) {
       const preset = PRESETS[entry.key];
-      if (preset.normal === thresholds.normal && preset.warning === thresholds.warning) {
+      if (
+        preset.normal === thresholds.normal &&
+        preset.warning === thresholds.warning
+      ) {
         return entry.key;
       }
     }
@@ -136,7 +146,7 @@ const SettingsScreen = () => {
       setWarningValue(String(thresholds.warning));
       setSelectedPreset(matchPreset(thresholds));
     },
-    [matchPreset],
+    [matchPreset]
   );
 
   const updateActivityThresholdState = React.useCallback(
@@ -149,7 +159,7 @@ const SettingsScreen = () => {
       setActivityWarningMinutesValue(String(thresholds.warningMinutes));
       setActivityDangerMinutesValue(String(thresholds.dangerMinutes));
     },
-    [],
+    []
   );
 
   const liturgicalPreview = React.useMemo(
@@ -159,9 +169,9 @@ const SettingsScreen = () => {
           autoDetect: liturgicalAutoDetect,
           manualPeriod: liturgicalManualPeriod,
         },
-        evaluationDate,
+        evaluationDate
       ),
-    [evaluationDate, liturgicalAutoDetect, liturgicalManualPeriod],
+    [evaluationDate, liturgicalAutoDetect, liturgicalManualPeriod]
   );
 
   const liturgicalPeriodStatus = liturgicalAutoDetect
@@ -177,11 +187,12 @@ const SettingsScreen = () => {
           ensurePrayerActivityConfigInitialized(),
           ensureLiturgicalCalendarSettingsInitialized(),
         ]);
-        const [thresholds, activityThresholds, liturgicalSettings] = await Promise.all([
-          getLiturgyThresholds(),
-          getPrayerActivityThresholds(),
-          getLiturgicalCalendarSettings(),
-        ]);
+        const [thresholds, activityThresholds, liturgicalSettings] =
+          await Promise.all([
+            getLiturgyThresholds(),
+            getPrayerActivityThresholds(),
+            getLiturgicalCalendarSettings(),
+          ]);
         if (!active) {
           return;
         }
@@ -238,7 +249,7 @@ const SettingsScreen = () => {
         console.warn('[SettingsScreen]', error);
       }
     },
-    [updateThresholdState],
+    [updateThresholdState]
   );
 
   const handleTrackLayout = React.useCallback((event: LayoutChangeEvent) => {
@@ -262,10 +273,11 @@ const SettingsScreen = () => {
       }
       const boundedX = Math.min(Math.max(locationX, 0), trackWidth);
       const ratio = boundedX / trackWidth;
-      const nextValue = FONT_SCALE_MIN + ratio * (FONT_SCALE_MAX - FONT_SCALE_MIN);
+      const nextValue =
+        FONT_SCALE_MIN + ratio * (FONT_SCALE_MAX - FONT_SCALE_MIN);
       setSliderValue(quantizeFontScale(nextValue));
     },
-    [trackWidth],
+    [trackWidth]
   );
 
   const sliderPanResponder = React.useMemo(
@@ -273,12 +285,15 @@ const SettingsScreen = () => {
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: (event) => updateSliderFromOffset(event.nativeEvent.locationX),
-        onPanResponderMove: (event) => updateSliderFromOffset(event.nativeEvent.locationX),
-        onPanResponderRelease: (event) => updateSliderFromOffset(event.nativeEvent.locationX),
+        onPanResponderGrant: (event) =>
+          updateSliderFromOffset(event.nativeEvent.locationX),
+        onPanResponderMove: (event) =>
+          updateSliderFromOffset(event.nativeEvent.locationX),
+        onPanResponderRelease: (event) =>
+          updateSliderFromOffset(event.nativeEvent.locationX),
         onPanResponderTerminationRequest: () => false,
       }),
-    [updateSliderFromOffset],
+    [updateSliderFromOffset]
   );
 
   const sliderPreviewStyle = React.useMemo(
@@ -286,7 +301,7 @@ const SettingsScreen = () => {
       fontSize: 16 * sliderValue,
       lineHeight: 22 * sliderValue,
     }),
-    [sliderValue],
+    [sliderValue]
   );
 
   const handleSave = React.useCallback(async () => {
@@ -313,7 +328,7 @@ const SettingsScreen = () => {
       } catch (error) {
         console.warn(
           '[SettingsScreen] Failed to update prayer activity notifications thresholds',
-          error,
+          error
         );
       }
     } catch (error) {
@@ -328,7 +343,10 @@ const SettingsScreen = () => {
       setLiturgicalAutoDetect(liturgicalSettings.autoDetect);
       setLiturgicalManualPeriod(liturgicalSettings.manualPeriod);
     } catch (error) {
-      console.warn('[SettingsScreen] Failed to persist liturgical calendar', error);
+      console.warn(
+        '[SettingsScreen] Failed to persist liturgical calendar',
+        error
+      );
     }
 
     const trimmedSecret = syncSecret.trim();
@@ -342,7 +360,10 @@ const SettingsScreen = () => {
       try {
         await syncNow();
       } catch (error) {
-        console.warn('[SettingsScreen] Failed to trigger sync after saving token', error);
+        console.warn(
+          '[SettingsScreen] Failed to trigger sync after saving token',
+          error
+        );
       }
     } else {
       try {
@@ -383,10 +404,19 @@ const SettingsScreen = () => {
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          keyboardDismissMode={
+            Platform.OS === 'ios' ? 'interactive' : 'on-drag'
+          }
           contentContainerStyle={{ paddingBottom: 32 }}
         >
           <Text style={styles.header}>Настройки приложения</Text>
+
+          {appVersion && (
+            <View style={styles.versionBox}>
+              <Text style={styles.versionLabel}>Версия приложения</Text>
+              <Text style={styles.versionValue}>{appVersion}</Text>
+            </View>
+          )}
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Литургический календарь</Text>
@@ -414,7 +444,9 @@ const SettingsScreen = () => {
                   false: palette.divider,
                   true: palette.accentSoft,
                 }}
-                thumbColor={liturgicalAutoDetect ? palette.accent : palette.card}
+                thumbColor={
+                  liturgicalAutoDetect ? palette.accent : palette.card
+                }
               />
             </View>
             {!liturgicalAutoDetect && (
@@ -446,7 +478,8 @@ const SettingsScreen = () => {
                         <Text
                           style={[
                             styles.periodOptionDescription,
-                            isSelected && styles.periodOptionDescriptionSelected,
+                            isSelected &&
+                              styles.periodOptionDescriptionSelected,
                           ]}
                         >
                           {meta.description}
@@ -471,7 +504,12 @@ const SettingsScreen = () => {
                     onPress={() => handlePresetSelect(preset.key)}
                     style={[styles.chip, isSelected && styles.chipSelected]}
                   >
-                    <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        isSelected && styles.chipTextSelected,
+                      ]}
+                    >
                       {preset.label}
                     </Text>
                   </Pressable>
@@ -482,11 +520,10 @@ const SettingsScreen = () => {
 
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Тонкая настройка</Text>
-            <View
-              style={styles.legendRow}
-              accessibilityLabel="Легенда: Норма"
-            >
-              <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
+            <View style={styles.legendRow} accessibilityLabel="Легенда: Норма">
+              <View
+                style={[styles.legendDot, { backgroundColor: palette.ink }]}
+              />
               <Text style={styles.legendText}>Норма</Text>
             </View>
             <View style={styles.inputRow}>
@@ -495,17 +532,23 @@ const SettingsScreen = () => {
                 accessibilityLabel="Норма (дней)"
                 keyboardType="number-pad"
                 value={normalValue}
-                onChangeText={(txt) => setNormalValue(txt.replace(/[^\d]/g, ''))}
+                onChangeText={(txt) =>
+                  setNormalValue(txt.replace(/[^\d]/g, ''))
+                }
                 style={styles.input}
               />
             </View>
-            <Text style={styles.caption}>Пока не прошло столько дней, состояние считается нормальным</Text>
+            <Text style={styles.caption}>
+              Пока не прошло столько дней, состояние считается нормальным
+            </Text>
 
             <View
               style={styles.legendRow}
               accessibilityLabel="Легенда: Предупреждение"
             >
-              <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
+              <View
+                style={[styles.legendDot, { backgroundColor: palette.warning }]}
+              />
               <Text style={styles.legendText}>Предупреждение</Text>
             </View>
             <View style={styles.inputRow}>
@@ -514,23 +557,34 @@ const SettingsScreen = () => {
                 accessibilityLabel="Предупреждение (дней)"
                 keyboardType="number-pad"
                 value={warningValue}
-                onChangeText={(txt) => setWarningValue(txt.replace(/[^\d]/g, ''))}
+                onChangeText={(txt) =>
+                  setWarningValue(txt.replace(/[^\d]/g, ''))
+                }
                 style={styles.input}
               />
             </View>
-            <Text style={styles.caption}>Состояние длится до этого количества дней</Text>
+            <Text style={styles.caption}>
+              Состояние длится до этого количества дней
+            </Text>
 
             <View
               style={styles.legendRow}
               accessibilityLabel="Легенда: Тревога"
             >
-              <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
+              <View
+                style={[styles.legendDot, { backgroundColor: palette.danger }]}
+              />
               <Text style={styles.legendText}>Тревога</Text>
             </View>
             <Text style={styles.caption}>
               Наступает, если прошло больше дней, чем указано в «Предупреждении»
             </Text>
-            <Text style={[styles.caption, { color: palette.danger, fontWeight: '600' }]}>
+            <Text
+              style={[
+                styles.caption,
+                { color: palette.danger, fontWeight: '600' },
+              ]}
+            >
               Тревога: &gt; {warningNumber} дней
             </Text>
           </View>
@@ -538,33 +592,37 @@ const SettingsScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Индикатор молитвы</Text>
             <Text style={styles.caption}>
-              Индикатор показывает длительность текущей молитвы и время перерыва между молитвами.
-              Настройте оба сценария, чтобы понимать, когда стоит сосредоточиться или сделать
-              паузу.
+              Индикатор показывает длительность текущей молитвы и время перерыва
+              между молитвами. Настройте оба сценария, чтобы понимать, когда
+              стоит сосредоточиться или сделать паузу.
             </Text>
-            <View
-              style={styles.legendRow}
-              accessibilityLabel="Легенда: Норма"
-            >
-              <View style={[styles.legendDot, { backgroundColor: palette.ink }]} />
+            <View style={styles.legendRow} accessibilityLabel="Легенда: Норма">
+              <View
+                style={[styles.legendDot, { backgroundColor: palette.ink }]}
+              />
               <Text style={styles.legendText}>Норма</Text>
             </View>
             <View
               style={styles.legendRow}
               accessibilityLabel="Легенда: Предупреждение"
             >
-              <View style={[styles.legendDot, { backgroundColor: palette.warning }]} />
+              <View
+                style={[styles.legendDot, { backgroundColor: palette.warning }]}
+              />
               <Text style={styles.legendText}>Предупреждение</Text>
             </View>
             <View
               style={styles.legendRow}
               accessibilityLabel="Легенда: Тревога"
             >
-              <View style={[styles.legendDot, { backgroundColor: palette.danger }]} />
+              <View
+                style={[styles.legendDot, { backgroundColor: palette.danger }]}
+              />
               <Text style={styles.legendText}>Тревога</Text>
             </View>
             <Text style={styles.caption}>
-              Цвета применяются и к текущей активной молитве, и к таймеру после последней молитвы.
+              Цвета применяются и к текущей активной молитве, и к таймеру после
+              последней молитвы.
             </Text>
             <Text style={styles.subsectionLabel}>Текущая молитва</Text>
             <View style={styles.inputRow}>
@@ -580,13 +638,13 @@ const SettingsScreen = () => {
               />
             </View>
             <Text style={styles.caption}>
-              После указанного времени непрерывной молитвы индикатор станет жёлтым, а после
-              удвоенного значения - красным.
+              После указанного времени непрерывной молитвы индикатор станет
+              жёлтым, а после удвоенного значения - красным.
             </Text>
             <Text style={styles.subsectionLabel}>Перерыв между молитвами</Text>
             <Text style={styles.caption}>
-              Эти значения учитывают время без прокрутки текста и показывают, когда пора вернуться к
-              молитве.
+              Эти значения учитывают время без прокрутки текста и показывают,
+              когда пора вернуться к молитве.
             </Text>
             <View style={styles.inputRow}>
               <Text style={styles.inputLabel}>Предупреждение (минут)</Text>
@@ -623,7 +681,8 @@ const SettingsScreen = () => {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Размер шрифта</Text>
             <Text style={styles.caption}>
-              Настройте масштаб текста молитв для удобного чтения и слабовидящих пользователей.
+              Настройте масштаб текста молитв для удобного чтения и слабовидящих
+              пользователей.
             </Text>
             <View
               style={styles.sliderTrack}
@@ -650,7 +709,9 @@ const SettingsScreen = () => {
               <View
                 style={[
                   styles.sliderFill,
-                  { width: trackWidth > 0 ? clampedSliderRatio * trackWidth : 0 },
+                  {
+                    width: trackWidth > 0 ? clampedSliderRatio * trackWidth : 0,
+                  },
                 ]}
               />
               <View
@@ -660,7 +721,8 @@ const SettingsScreen = () => {
                     left: -SLIDER_HANDLE_SIZE / 2,
                     transform: [
                       {
-                        translateX: trackWidth > 0 ? clampedSliderRatio * trackWidth : 0,
+                        translateX:
+                          trackWidth > 0 ? clampedSliderRatio * trackWidth : 0,
                       },
                     ],
                   },
@@ -692,7 +754,8 @@ const SettingsScreen = () => {
                 style={styles.secretInput}
               />
               <Text style={styles.caption}>
-                Используйте секрет, чтобы синхронизировать журнал между устройствами.
+                Используйте секрет, чтобы синхронизировать журнал между
+                устройствами.
               </Text>
             </View>
           )}
@@ -730,6 +793,25 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+  },
+  versionBox: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: palette.divider,
+    backgroundColor: palette.card,
+    marginBottom: 24,
+  },
+  versionLabel: {
+    fontSize: 13,
+    color: palette.mutedInk,
+    marginBottom: 4,
+  },
+  versionValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: palette.ink,
   },
   sectionLabel: {
     fontSize: 14,
