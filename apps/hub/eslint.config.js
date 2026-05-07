@@ -16,5 +16,14 @@ module.exports = [
 
   ...baseConfig,
   ...nx.configs['flat/react-typescript'],
-  { ignores: ['.next/**/*'] },
+  {
+    ignores: [
+      '.next/**/*',
+      'out/**/*',
+      'public/sw.js*',
+      'public/workbox-*.js*',
+      'public/swe-worker-*.js*',
+      'public/worker-*.js*',
+    ],
+  },
 ];

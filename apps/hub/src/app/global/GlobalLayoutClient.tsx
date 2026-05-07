@@ -36,6 +36,7 @@ type GlobalLayoutClientProps = {
 };
 
 const DESKTOP_MEDIA = '(min-width: 1024px)';
+const OFFLINE_SHELL_ROUTES = new Set(['/', '/molitvoslov', '/journal']);
 
 const TopBar = styled.header<{ $isSticky: boolean; $hasSlot: boolean }>`
   background: ${palette.paper};
@@ -380,11 +381,29 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
     setIsOpen(false);
   }, []);
 
-  const handleLinkClick = useCallback(() => {
-    if (!isDesktop) {
-      closeDrawer();
-    }
-  }, [closeDrawer, isDesktop]);
+  const handleLinkClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      if (!isDesktop) {
+        closeDrawer();
+      }
+
+      if (
+        OFFLINE_SHELL_ROUTES.has(href) &&
+        typeof window !== 'undefined' &&
+        typeof navigator !== 'undefined' &&
+        navigator.onLine === false &&
+        event.button === 0 &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        window.location.assign(href);
+      }
+    },
+    [closeDrawer, isDesktop]
+  );
 
   const isHomeActive = pathname === '/';
   const isRhythmActive =
@@ -473,7 +492,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
                     href="/"
                     className={isHomeActive ? 'active' : ''}
                     aria-current={isHomeActive ? 'page' : undefined}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, '/')}
                   >
                     Главная
                   </NavLink>
@@ -483,7 +502,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
                     href="/rhythm"
                     className={isRhythmActive ? 'active' : ''}
                     aria-current={isRhythmActive ? 'page' : undefined}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, '/rhythm')}
                   >
                     Ритм
                   </NavLink>
@@ -493,7 +512,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
                     href="/molitvoslov"
                     className={isMolitvoslovActive ? 'active' : ''}
                     aria-current={isMolitvoslovActive ? 'page' : undefined}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, '/molitvoslov')}
                   >
                     Молитвослов
                   </NavLink>
@@ -506,7 +525,9 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
                             href={prayer.href}
                             className={isActive ? 'active' : ''}
                             aria-current={isActive ? 'page' : undefined}
-                            onClick={handleLinkClick}
+                            onClick={(event) =>
+                              handleLinkClick(event, prayer.href)
+                            }
                           >
                             {prayer.title}
                           </NestedLink>
@@ -520,7 +541,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
                     href="/journal"
                     className={isJournalActive ? 'active' : ''}
                     aria-current={isJournalActive ? 'page' : undefined}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, '/journal')}
                   >
                     Журнал
                   </NavLink>
@@ -530,7 +551,7 @@ const GlobalLayoutClient: React.FC<GlobalLayoutClientProps> = ({
                     href="/settings"
                     className={isSettingsActive ? 'active' : ''}
                     aria-current={isSettingsActive ? 'page' : undefined}
-                    onClick={handleLinkClick}
+                    onClick={(event) => handleLinkClick(event, '/settings')}
                   >
                     Настройки
                   </NavLink>
