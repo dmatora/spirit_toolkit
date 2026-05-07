@@ -1,5 +1,25 @@
 const APP_SHELL_CACHE = 'pages';
-const APP_SHELL_ROUTES = ['/', '/molitvoslov', '/journal'];
+const APP_SHELL_ROUTES = [
+  '/',
+  '/rhythm',
+  '/molitvoslov',
+  '/journal',
+  '/settings',
+  '/molitvoslov/liturgy',
+  '/molitvoslov/vespers',
+  '/molitvoslov/morning_rule',
+  '/molitvoslov/evening_rule',
+  '/molitvoslov/pascha_hours',
+  '/molitvoslov/three_canons',
+  '/molitvoslov/communion_evening',
+  '/molitvoslov/communion_morning',
+  '/molitvoslov/communion',
+  '/molitvoslov/gratitude',
+  '/molitvoslov/akathist_baptist',
+  '/molitvoslov/akathist_spiridon',
+  '/molitvoslov/akathist_sergy',
+  '/molitvoslov/akathist_luka',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

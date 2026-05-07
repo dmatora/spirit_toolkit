@@ -36,7 +36,14 @@ type GlobalLayoutClientProps = {
 };
 
 const DESKTOP_MEDIA = '(min-width: 1024px)';
-const OFFLINE_SHELL_ROUTES = new Set(['/', '/molitvoslov', '/journal']);
+const OFFLINE_SHELL_ROUTES = new Set([
+  '/',
+  '/rhythm',
+  '/molitvoslov',
+  '/journal',
+  '/settings',
+  ...PRAYERS.map((prayer) => prayer.href),
+]);
 
 const TopBar = styled.header<{ $isSticky: boolean; $hasSlot: boolean }>`
   background: ${palette.paper};
