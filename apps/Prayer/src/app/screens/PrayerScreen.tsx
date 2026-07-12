@@ -21,11 +21,9 @@ import {
   flushPrayerResumeState,
   getPrayerResumeStateSync,
   hydratePrayerResumeState,
-  isPrayerSessionExpired,
   PRAYER_AUTO_RETURN_TIMEOUT_MS,
   recordPrayerScrollProgress,
   startPrayerSession,
-  touchPrayerSession,
 } from '../services/prayerResumeState';
 
 type BasePrayerScreenProps = React.ComponentProps<typeof BasePrayerScreen>;
@@ -49,6 +47,13 @@ const PrayerScreen = (props: Props) => {
   const autoReturnTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFocusedRef = useRef(false);
   const skipNextExpiryCheckRef = useRef(false);
+  // Captured at mount; never updated. Used together with the persisted
+  // `lastActiveAt` to compute the inactivity budget. The persisted
+  // timestamp reflects only physical scroll events, so the screen open
+  // time is the source of truth for the 6h grace period — without it,
+  // a stale disk entry (>6h old) would force an immediate return
+  // the moment the user re-enters the prayer via the Home card.
+  const screenOpenedAtRef = useRef(Date.now());
 
   const routePrayerId = route.params?.prayerId;
   const resumeSavedPosition = Boolean(route.params?.resumeSavedPosition);
@@ -76,9 +81,17 @@ const PrayerScreen = (props: Props) => {
     (lastActiveAt: number) => {
       clearAutoReturnTimer();
 
+      // Use the most recent activity reference: either the last physical
+      // scroll (persisted on disk) or the moment the screen was opened
+      // (in-memory only). This gives the user a fresh 6h grace period
+      // each time the prayer screen is entered, without forcing a write
+      // to the persisted `lastActiveAt` just for opening the screen.
+      // `lastActiveAt` is already non-negative — normalized by the
+      // service layer (`normalizeNumber` / `startPrayerSession`).
+      const screenOpenedAt = screenOpenedAtRef.current;
+      const effectiveActiveAt = Math.max(lastActiveAt, screenOpenedAt);
       const remainingMs =
-        PRAYER_AUTO_RETURN_TIMEOUT_MS -
-        (Date.now() - Math.max(0, lastActiveAt));
+        PRAYER_AUTO_RETURN_TIMEOUT_MS - (Date.now() - effectiveActiveAt);
 
       if (remainingMs <= 0) {
         if (isFocusedRef.current) {
@@ -100,29 +113,25 @@ const PrayerScreen = (props: Props) => {
     if (skipNextExpiryCheckRef.current) {
       skipNextExpiryCheckRef.current = false;
       const currentState = getPrayerResumeStateSync();
-      scheduleAutoReturnFrom(currentState?.lastActiveAt ?? Date.now());
+      // No persisted activity yet — 0 lets `max()` fall through to
+      // `screenOpenedAt` so the user still gets the full 6h grace period.
+      scheduleAutoReturnFrom(currentState?.lastActiveAt ?? 0);
       return false;
     }
 
     const currentState =
       getPrayerResumeStateSync() ?? (await hydratePrayerResumeState());
 
-    if (
-      currentState?.prayerId === resolvedId &&
-      isPrayerSessionExpired(currentState)
-    ) {
-      navigateHomeDueToInactivity();
-      return true;
-    }
-
+    // NOTE: do not short-circuit on `isPrayerSessionExpired(currentState)`.
+    // A stale disk entry is the very case we want to recover from — the
+    // 6h budget is measured from `max(lastActiveAt, screenOpenedAt)`,
+    // so a freshly opened screen always gets a fresh grace period.
     scheduleAutoReturnFrom(
-      currentState?.prayerId === resolvedId
-        ? currentState.lastActiveAt
-        : Date.now()
+      currentState?.prayerId === resolvedId ? currentState.lastActiveAt : 0
     );
 
     return false;
-  }, [navigateHomeDueToInactivity, resolvedId, scheduleAutoReturnFrom]);
+  }, [resolvedId, scheduleAutoReturnFrom]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +140,12 @@ const PrayerScreen = (props: Props) => {
     skipNextExpiryCheckRef.current = resumeSavedPosition;
 
     if (!resumeSavedPosition) {
-      const nextState = startPrayerSession(resolvedId, Date.now());
+      // Brand-new reading session. We still need to create the persisted
+      // state so subsequent scroll events have a session to attach to,
+      // but the initial `lastActiveAt` is intentionally 0 — opening the
+      // screen is not a prayer act. The 6h grace period comes from
+      // `screenOpenedAtRef` via `scheduleAutoReturnFrom`'s `max()`.
+      const nextState = startPrayerSession(resolvedId, 0);
       scheduleAutoReturnFrom(nextState.lastActiveAt);
 
       return () => {
@@ -149,8 +163,14 @@ const PrayerScreen = (props: Props) => {
         setInitialScrollY(savedState.scrollY);
       }
 
-      const nextState = touchPrayerSession(resolvedId, Date.now());
-      scheduleAutoReturnFrom(nextState.lastActiveAt);
+      // Resuming a saved session. Do NOT call `touchPrayerSession` here:
+      // merely opening the prayer screen is not a prayer act. We pass
+      // the persisted `lastActiveAt` through as-is (0 when the saved
+      // state is missing or for a different prayer) so the inactivity
+      // budget is measured from `max(savedLastActive, screenOpenedAt)`.
+      const persistedActiveAt =
+        savedState?.prayerId === resolvedId ? savedState.lastActiveAt : 0;
+      scheduleAutoReturnFrom(persistedActiveAt);
     };
 
     void hydrateResumeState();
